@@ -140,9 +140,13 @@ per turn:
    56..176 x 98..182, `fence(7)`, feet area 64..168 x 118..168, sign at
    (187,183) by the path; box spots (60,206), (210,150), (140,88); rock,
    mushrooms, tufts moved. Growing the pen left or lower than this needs
-   17 palettes (the big tree at the left edge). Next: tasks 3 and 4, fix
-   the `pen.txt` / `pick.txt` walks for the new sign, a 20-friend pen
-   test, scoring, commit. Old plan: Pen is 52x24 px of feet area: fine for 7
+   17 palettes (the big tree at the left edge). Task 3 done: walks fixed
+   for the new sign and box spots (`pen.txt`, `pick.txt`,
+   `step3_boxes.txt`, `check_step3.py`); new `pen20.txt` /
+   `check_pen20.py` (20 found, 17 in the pen) read the pen array from the
+   IWRAM part of `dump`. The test found piles, so pen friends now pick the
+   roomiest of `PEN_TRIES` spots, give way inside `PEN_ROOM` px and
+   sidestep. All 8 suites pass. Next: task 4, scoring and wrap-up. Old plan: Pen is 52x24 px of feet area: fine for 7
    friends, a pile at 17. Make it about 100x48 in `tools/areas.py` (move
    the sign, check `MEADOW_PEN_*`, box spots and paths), keep the tile and
    palette budget. Each future area (Shore, Woods, Cloud Hill, 20 friends
