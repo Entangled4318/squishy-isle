@@ -9,7 +9,7 @@ typedef struct {
 } Scene;
 
 void scene_run(const Scene *first);
-void scene_go(const Scene *next);
+void scene_go(const Scene *next);   /* ignored while a fade runs */
 bool scene_fading(void);
 
 /* blend setup the scene wants when no fade runs (shadows etc.) */

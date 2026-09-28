@@ -74,3 +74,26 @@ wait 20
 tap A
 wait 110
 shot f01_after5
+# shelf close-up after catching (the friend used to show off centre, under the plate)
+wait 30
+hold UP 30
+wait 10
+tap START
+wait 60
+tap RIGHT
+wait 6
+tap RIGHT
+wait 6
+tap A
+wait 60
+shot f08_closeup_after_catch
+dump f_closeup
+tap A
+wait 30
+tap A
+wait 30
+tap A
+wait 90
+shot f09_back_on_shelf
+tap B
+wait 60

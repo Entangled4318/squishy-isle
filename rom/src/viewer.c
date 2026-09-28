@@ -654,7 +654,8 @@ static void shimmer(void) {
 }
 
 static void update(void) {
-    u16 held = key_held();
+    bool fading = scene_fading();      /* a press in a fade would be half done: scene_go ignores it */
+    u16 held = fading ? 0 : key_held();
     shimmer();
     int dx = 0, dy = 0;
     if (held & KEY_LEFT) { dx = -SPEED; dir = DIR_LEFT; }
@@ -697,14 +698,18 @@ static void update(void) {
             scene_go(&scene_shelf);
         }
     }
-    if (key_hit() & KEY_START) {
+    if (!fading && (key_hit() & KEY_START)) {
         sfx_chime(2);
         dbg("meadow start pip=%d,%d", px, py);
         save_pos(true);
         scene_go(&scene_shelf);
     }
-    u16 hit = key_hit();
+    u16 hit = fading ? 0 : key_hit();
     update_boxes(hit);
+    if (scene_fading()) {              /* a box just opened: this A press is used up */
+        draw();
+        return;
+    }
     bool was_at = at_sign;             /* by the pen sign: A picks who follows Pip */
     at_sign = touch_box < 0 && found_in_area(0) > 0 && px > MEADOW_SIGN_X - 20 && px < MEADOW_SIGN_X + 20 &&
               py > MEADOW_SIGN_Y - 8 && py < MEADOW_SIGN_Y + 22;

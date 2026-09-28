@@ -215,9 +215,18 @@ per turn:
       place fills, new game clears, layout), `loop_c/d.txt` +
       `check_loop.py` (Continue at the last box, then at the last still
       spot).
-   4. Shelf close-up after a catch: friend off centre, under the plate
-      and behind its name (state left over from the reveal); 3 squishes
-      close the close-up like B.
+   4. **Done.** Close-up after a catch: `closeup.c` shares `leave_t`
+      with the reveal, which ends at 30 (hop away, lift 210 px, the
+      sprite y wrapped under the cushion); `enter()` now resets it.
+      3 squishes (`SQUISHES`) go back to the shelf like B. Found while
+      testing: A that opens a box also set `shelf_pick` when Pip stood by
+      the sign (open_box clears `touch_box`, then the sign check ran in
+      the same frame; its `scene_go` was ignored during the fade), so
+      the next START opened the picker. The meadow now stops the frame
+      after a box opens and ignores buttons while a fade runs
+      (`scene_fading()`). Tests in `loop_a.txt` / `check_loop.py`: START
+      after a catch opens the plain shelf, close-up sprite y 28 (was 72),
+      3 squishes return to the shelf.
    5. Tests, scoring, screenshots, release ROM, merge to main.
    Owner feature requests for later: title, meadow, per-area and open
    music (step 5); mailbox and picnic basket do something (step 6, ask
