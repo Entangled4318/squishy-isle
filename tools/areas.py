@@ -163,17 +163,17 @@ def meadow():
     for kind, x, y in (('green', 180, 104), ('blossom', 300, 116), ('green', 24, 170), ('blossom', 150, 244),
                        ('green', 330, 140)):
         a.place(bush(kind), x, y, block_w=12, tall=8)
-    for big, x, y in ((True, 312, 150), (False, 176, 178), (True, 418, 300), (False, 60, 60)):
+    for big, x, y in ((True, 312, 150), (False, 196, 204), (True, 418, 300), (False, 60, 60)):
         r = world.rock(big)
         a.place(r, x, y, block_w=r.shape[1] - 2, tall=6)
-    for x, y in ((56, 112), (388, 150), (262, 300)):
+    for x, y in ((64, 136), (388, 150), (262, 300)):
         a.decor(world.mushrooms(), x, y)
     for x, y in ((200, 102), (250, 104), (262, 212), (196, 214), (110, 212), (330, 186)):
         a.place(world.decor('tulips'), x, y)         # walk-through: they looked too small to block
 
     # ---- friend pen left of the cottage: fence all round, sign by the corner
-    px0, py0, px1, py1 = 36, 98, 104, 156            # outer fence box
-    top = world.fence(4)
+    px0, py0, px1, py1 = 56, 98, 176, 182           # outer fence box: room for all 20 friends
+    top = world.fence(7)
     a.place(top, px0, py0 - 6, block_w=top.shape[1], tall=6)
     a.place(top, px0, py1 - top.shape[0], block_w=top.shape[1], tall=6)
     side = world.fence_side(py1 - py0 - 6)
@@ -183,8 +183,8 @@ def meadow():
     sign_img = world.signpost(world.mini_heart())
     a.place(sign_img, px1 + 2, py1 - 22, block_w=8, tall=6)
     a.sign = (px1 + 2 + sign_img.shape[1] // 2, py1 + 1)
-    for name, x, y in (('patch_mix', 60, 150), ('patch_yellow', 350, 196), ('patch_pink', 124, 170),
-                       ('tuft', 220, 250), ('patch_mix', 420, 226), ('tuft', 100, 110)):
+    for name, x, y in (('patch_mix', 60, 200), ('patch_yellow', 350, 196), ('patch_pink', 124, 170),
+                       ('tuft', 220, 250), ('patch_mix', 420, 226), ('tuft', 100, 132)):
         a.decor(world.decor(name), x, y)
     a.place(world.reeds(), 318, 74)
     a.place(world.reeds(), 402, 104)
@@ -196,7 +196,7 @@ def meadow():
     a.block(472, 0, 480, 320)                          # map edge beyond the stream
 
     a.spawn = (232, 124)
-    a.spots = [(60, 178), (150, 212), (286, 180), (200, 150), (120, 120), (330, 210), (400, 220),
+    a.spots = [(60, 206), (150, 212), (286, 180), (210, 150), (140, 88), (330, 210), (400, 220),
                (270, 260), (100, 260), (380, 166)]
     a.first_spot = 3                                   # (200, 150), just below the cottage
     return a

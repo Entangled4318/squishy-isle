@@ -136,7 +136,13 @@ per turn:
    missing friends are silhouettes named "Find me!". `step2.txt` now runs
    on a save with the Shore page found (`make_save.py`), since it opens
    Matcha Octo. Screenshot `docs/step3_7_counter.png`. Score 8.5/10.
-7b. **Next (owner request).** Pen is 52x24 px of feet area: fine for 7
+7b. **In progress (owner request).** Map done (task 1 of 4): outer fence
+   56..176 x 98..182, `fence(7)`, feet area 64..168 x 118..168, sign at
+   (187,183) by the path; box spots (60,206), (210,150), (140,88); rock,
+   mushrooms, tufts moved. Growing the pen left or lower than this needs
+   17 palettes (the big tree at the left edge). Next: tasks 3 and 4, fix
+   the `pen.txt` / `pick.txt` walks for the new sign, a 20-friend pen
+   test, scoring, commit. Old plan: Pen is 52x24 px of feet area: fine for 7
    friends, a pile at 17. Make it about 100x48 in `tools/areas.py` (move
    the sign, check `MEADOW_PEN_*`, box spots and paths), keep the tile and
    palette budget. Each future area (Shore, Woods, Cloud Hill, 20 friends
