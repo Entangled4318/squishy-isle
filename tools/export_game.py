@@ -19,6 +19,7 @@ from pip import frames as pip_frames
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'build'
 PILL_W = 104          # name pill on the shelf (top right)
+COUNT_PILL_W = 52     # found counter pill (top right of the world)
 
 
 def palette_and_lookup(images):
@@ -249,6 +250,27 @@ def main():
     cw.u16('ui_shadow_pal', [0, bgr555(rgb15('#c9789a'))] + [0] * 14)
 
     cw.u16('ui_text_pal', [0, bgr555(C['ui_ink']), bgr555(C['white']), bgr555(C['ui_line'])] + [0] * 12)
+
+    # found counter pill, top right, as in the mockups: the area's container
+    # icon at the left end, the count ("7/20") printed over it at run time in
+    # color 1 (ui_ink). Two 32x16 sprites and one palette per area.
+    icons = [props.box16('pink'), props.shell('pink', 16), props.acorn16(), props.capsule16()]
+    pills, pals = [], []
+    for ic in icons:
+        img = new(64, 16)
+        blit(img, props.pill(COUNT_PILL_W, 15, C['ui_bg'], C['ui_pk'], C['ui_ink'], C['white']), 0, 1)
+        blit(img, ic, 1, 0)
+        lk, _ = palette_and_lookup([img])
+        cs = [C['ui_ink']] + sorted(c for c in lk if c != C['ui_ink'])
+        if len(cs) > 15:
+            raise ValueError(f'count pill: {len(cs)} colors')
+        lk = {c: i + 1 for i, c in enumerate(cs)}
+        pills.append(obj(img[:, :32], lk) + obj(img[:, 32:], lk))   # two 32x16 halves
+        pals += [0] + [bgr555(c) for c in cs] + [0] * (15 - len(cs))
+    cw.u32_bytes('count_pill_tiles', b''.join(pills))
+    cw.u16('count_pill_pal', pals)
+    cw.define('COUNT_PILL_W', COUNT_PILL_W)
+    cw.define('COUNT_TEXT_X', 18)       # the 32 px text strip starts here inside the pill
 
     # ---------------- Pip
     pf = pip_frames()
