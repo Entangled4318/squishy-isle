@@ -27,7 +27,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
-| 3. Game loop in the meadow | Done. `release/squishy-isle.gba`, `release/step3_screens.png`. Owner to test on the Brick; see "Step 3 progress" |
+| 3. Game loop in the meadow | Done. Brick feedback fixed (3.9); owner to re-test on the Brick; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
@@ -35,10 +35,14 @@ shelf. No battles, no fail states, no reading needed. Full design:
 
 ## Owner notes
 
-- Step 3 is merged to main. Brick test pending (owner): new game from
-  the title, open a few boxes (press and no-press), friends follow Pip,
-  pen sign picker, START shelf, power off and on (Continue keeps the
-  friends), 20/20 pen if time allows. Report anything odd before step 4.
+- Step 3.9 (Brick feedback fixes) is merged to main. Brick re-test
+  pending (owner): walk past the pen's bottom-left corner and through
+  rocks, walk close beside bushes, walk the stream shore north to
+  south, arrow next to Pip after 5 s (blinks), no chime near boxes,
+  counter over trees, first 3 friends keep following, START then A on
+  a friend after a catch (centred, 3 squishes close it), power off and
+  Continue (Pip starts where he stood). Next after the re-test: step 5
+  music (owner request), then step 6 areas with mailbox and picnic.
 - Budget: the owner is on limited credit. Stop after each sub-step with a
   short report (score, screenshot when useful) and ask before going on.
   Commit, push and update this file at the end of every sub-step, so a new
@@ -182,6 +186,62 @@ per turn:
    Release ROM updated; screenshots `release/step3_screens.png`,
    `docs/step3_8_line.png`. `make -C rom test` runs 9 suites in ~10 s.
    A step 2 save on the Brick is version 1 and is replaced by a new game.
+
+9. Brick feedback fixes (owner test of step 3). Plan, one task per turn:
+   1. **Done.** Map and walking: collision cells 4 px (`areas.CELL`,
+      exported as `MEADOW_CELL_SHIFT`; harness `seek` derives the cell
+      size from the grid size); the bush by the pen's bottom-left post
+      is gone; rocks are walk-through; bushes, mailbox, signs, basket
+      block only their base (block_w 8..10, tall 6). `check_map.py`
+      tests the lane left of the pen, rocks, and room beside bushes with
+      the game's feet box; writes `map_collision.png`. Owner add-on:
+      the stream shore is a straight line (`Stream(460)`, no wave), the
+      small tree at the top right moved to x 410, bridge rails block
+      only over the water, so Pip walks the whole shore north to south
+      (lane x 445..454, checked). Meadow 903 tiles.
+   2. **Done.** `hud_spr()` draws the counter, A bubble and arrow at
+      OBJ priority 0 (over the tree-top overlay BG); box twinkles stay at
+      priority 1. The near-box chime and `Box.near` are gone (the arrow
+      still chimes once when it appears). Arrow: `ARROW_R` 26 px from
+      Pip's middle toward the nearest box, 8 directions, blinks
+      `ARROW_BLINK` 60 frames on / 60 off (starts on), shows after
+      `ARROW_DELAY` 5 s without an open. `check_step3.py` checks the 5 s,
+      the arrow next to Pip and the blink (two shots 1 s apart).
+   3. **Done.** `collection_add` calls `follower_join` (joins the end
+      only while the line has room), so the first 3 found keep
+      following; the sign picker still uses `follower_add`. Save has
+      `pip_x, pip_y` in 4 of the old reserved bytes (same layout, still
+      version 2; 0,0 = house). `save_pos()` in `viewer.c` writes it when
+      Pip has stood still `POS_SAVE_WAIT` (1 s) after moving and before
+      every scene change (box, door, START, sign); `restore_pos()` puts
+      Pip there on the first meadow visit after boot if walkable; new
+      game clears it. Tests: `test_collection.c` (first 3 stay, free
+      place fills, new game clears, layout), `loop_c/d.txt` +
+      `check_loop.py` (Continue at the last box, then at the last still
+      spot).
+   4. **Done.** Close-up after a catch: `closeup.c` shares `leave_t`
+      with the reveal, which ends at 30 (hop away, lift 210 px, the
+      sprite y wrapped under the cushion); `enter()` now resets it.
+      3 squishes (`SQUISHES`) go back to the shelf like B. Found while
+      testing: A that opens a box also set `shelf_pick` when Pip stood by
+      the sign (open_box clears `touch_box`, then the sign check ran in
+      the same frame; its `scene_go` was ignored during the fade), so
+      the next START opened the picker. The meadow now stops the frame
+      after a box opens and ignores buttons while a fade runs
+      (`scene_fading()`). Tests in `loop_a.txt` / `check_loop.py`: START
+      after a catch opens the plain shelf, close-up sprite y 28 (was 72),
+      3 squishes return to the shelf.
+   5. **Done.** 10 suites pass (`check_map.py` is new). Scores: map and
+      walking 8.5, shore 8.5, overlays and arrow 8.5, followers and
+      Continue spot 8.5, close-up 8.5. Release ROM updated;
+      `release/step3_9_screens.png`, `docs/step3_9_collision.png`.
+      Open idea (owner not asked yet): the shelf cursor starts top left
+      even when that friend is not found; starting on the first found
+      friend is a one-line change in `shelf.c`.
+   Owner feature requests for later: title, meadow, per-area and open
+   music (step 5); mailbox and picnic basket do something (step 6, ask
+   the owner one question each); 3 more maps with their own friends
+   (step 6).
 
 The old notes below mention hearts and "rolls lean toward new"; the owner
 replaced those with the rules above.

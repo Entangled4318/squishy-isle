@@ -59,7 +59,7 @@ bool collection_add(int id) {
     if (id < 0 || id >= NUM_FRIENDS || friend_found(id)) return false;
     game_save.found[id] = 1;
     game_save.opens++;
-    follower_add(id);
+    follower_join(id);
     collection_save();
     return true;
 }
@@ -68,6 +68,7 @@ void collection_new_game(u32 seed) {
     memset(game_save.found, 0, sizeof game_save.found);
     memset(game_save.followers, 0, sizeof game_save.followers);
     game_save.opens = 0;
+    game_save.pip_x = game_save.pip_y = 0;
     game_save.rng = seed | 1;
     collection_save();
 }
@@ -79,6 +80,17 @@ void follower_add(int id) {
         if (l[i] == id + 1) at = i;
     for (int i = at; i > 0; i--) l[i] = l[i - 1];
     l[0] = (u8)(id + 1);
+}
+
+void follower_join(int id) {
+    u8 *l = game_save.followers;
+    for (int i = 0; i < MAX_FOLLOWERS; i++) {
+        if (l[i] == id + 1) return;
+        if (l[i] == 0) {
+            l[i] = (u8)(id + 1);
+            return;
+        }
+    }
 }
 
 int follower_get(int i) { return game_save.followers[i] - 1; }

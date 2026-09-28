@@ -3,7 +3,7 @@
 Each area returns two layers and a collision grid:
   ground  - terrain, decor and the lower part of every object (under Pip)
   overlay - the upper part of tall objects (tree tops, roofs), over Pip
-  solid   - 8x8 px cells Pip cannot enter
+  solid   - 4x4 px cells Pip cannot enter (fine enough to walk close by)
 The split height equals Pip's height, and tall objects block that same
 height above their base, so Pip is covered by a tree top only when he is
 really behind it.
@@ -20,7 +20,7 @@ from world import (render_terrain, MEADOW_KINDS, shape_labels, Capsule, Oval, Sm
 import props
 
 PIP_H = 26          # sprite height that must be covered correctly
-CELL = 8
+CELL = 4
 
 
 class Area:
@@ -73,7 +73,7 @@ class Stream(SDF):
         self.x = x
 
     def d(self, X, Y):
-        return (self.x + 4 * np.sin(Y / 23.0) + 2 * np.sin(Y / 7.0)) - X
+        return self.x - X + 0 * Y                     # straight shore: Pip can walk its whole length
 
 
 def bridge(h=28):
@@ -108,7 +108,7 @@ def meadow():
                        Capsule(232, 200, 84, 200, 13),
                        Capsule(84, 200, 84, 300, 13))
     pond = Oval(362, 96, 50, 32, n=2.3)
-    lab = shape_labels(W_, H_, 'g', [('p', path), ('w', pond), ('w', Stream(454))])
+    lab = shape_labels(W_, H_, 'g', [('p', path), ('w', pond), ('w', Stream(460))])
     ground, lab = render_terrain(None, MEADOW_KINDS, lab=lab)
     a.ground = ground
     # water is solid; the bridge opens the stream again
@@ -137,7 +137,7 @@ def meadow():
         ('green', True, -14, -34), ('green', False, 34, -12), ('green', False, 70, -20),
         ('blossom', True, 108, -40), ('blossom', False, 156, -16),
         ('green', True, 276, -38), ('green', False, 324, -14), ('blossom', False, 358, -24),
-        ('blossom', True, 392, -36), ('green', False, 424, 6),
+        ('blossom', True, 392, -36), ('green', False, 410, 6),
         ('green', True, -20, 26), ('blossom', False, -10, 84), ('green', True, -22, 130),
         ('blossom', False, 10, 286), ('green', True, 150, 284), ('blossom', False, 196, 292),
         ('blossom', True, 236, 290), ('blossom', False, 366, 290), ('green', True, 404, 280),
@@ -156,15 +156,15 @@ def meadow():
     a.place(world.decor('tulips'), 122, 70)
     a.place(world.decor('tulips'), 138, 72)
     a.place(world.decor('tulips'), 154, 70)
-    a.place(world.mailbox(), 268, 74, block_w=10, tall=8)
-    a.place(world.signpost(world.mini_shell()), 414, 164, block_w=10, tall=8)
-    a.place(world.basket(), 322, 230, block_w=12, tall=8)
-    for kind, x, y in (('green', 180, 104), ('blossom', 300, 116), ('green', 24, 170), ('blossom', 150, 244),
+    a.place(world.mailbox(), 268, 74, block_w=8, tall=6)
+    a.place(world.signpost(world.mini_shell()), 414, 164, block_w=8, tall=6)
+    a.place(world.basket(), 322, 230, block_w=10, tall=6)
+    for kind, x, y in (('green', 180, 104), ('blossom', 300, 116), ('blossom', 150, 244),
                        ('green', 330, 140)):
-        a.place(bush(kind), x, y, block_w=12, tall=8)
+        a.place(bush(kind), x, y, block_w=10, tall=6)
     for big, x, y in ((True, 312, 150), (False, 196, 204), (True, 418, 300), (False, 60, 60)):
         r = world.rock(big)
-        a.place(r, x, y, block_w=r.shape[1] - 2, tall=6)
+        a.place(r, x, y)                             # walk-through (owner request)
     for x, y in ((64, 136), (388, 150), (262, 300)):
         a.decor(world.mushrooms(), x, y)
     for x, y in ((200, 102), (250, 104), (262, 212), (196, 214), (110, 212), (330, 186)):
@@ -190,8 +190,8 @@ def meadow():
     br = bridge()
     a.decor(br, 436, 186)
     a.solid[186 // CELL:(186 + 28) // CELL, 432 // CELL:] = False
-    a.solid[186 // CELL, 432 // CELL:] = True          # rails
-    a.solid[(186 + 27) // CELL, 432 // CELL:] = True
+    a.solid[186 // CELL, 460 // CELL:] = True          # rails, over the water only: the shore stays walkable
+    a.solid[(186 + 27) // CELL, 460 // CELL:] = True
     a.block(472, 0, 480, 320)                          # map edge beyond the stream
 
     a.spawn = (232, 124)

@@ -1,4 +1,4 @@
-/* Close-up: one friend big on the cushion. A squishes it, B goes back.
+/* Close-up: one friend big on the cushion. A squishes it (3 squishes go back, like B), B goes back.
  * Reveal mode (after a container pops): the friend drops onto the cushion
  * with confetti and a star burst; A or B squishes; after 3 squishes or a
  * calm wait it hops up and away, back to the meadow. */
@@ -48,6 +48,9 @@ static void enter_common(void);
 
 static void enter(void) {
     reveal = false;
+    leave_t = -1;             /* a reveal before this left it at the end of its hop away */
+    landed_t = 0;
+    squishes = calm_t = 0;
     enter_common();
 }
 
@@ -298,11 +301,15 @@ static void update(void) {
         return;
     }
     u16 hit = key_hit();
-    if (hit & KEY_A) {
+    calm_t++;
+    if ((hit & KEY_A) && squishes < SQUISHES) {
         squish();
-        dbg("closeup squish");
+        squishes++;
+        calm_t = 0;
+        dbg("closeup squish %d", squishes);
     }
-    if (hit & (KEY_B | KEY_START)) {
+    bool done = squishes >= SQUISHES && squish_t < 0 && calm_t > 30;   /* 3 squishes: back to the shelf, like B */
+    if (done || (hit & (KEY_B | KEY_START))) {
         sfx_blip();
         scene_go(&scene_shelf);
     }

@@ -42,8 +42,11 @@ wait 50
 shot r03_leaving
 wait 60
 shot b04_after_open
-wait 900
+wait 320
 shot b05_arrow
+wait 60
+shot b05b_arrow_blink_off
+wait 520
 hold RIGHT 60
 hold DOWN 40
 wait 2

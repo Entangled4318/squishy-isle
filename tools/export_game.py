@@ -317,6 +317,7 @@ def export_area(cw, a):
     cw.c.append(f'const uint8_t {a.name}_solid[{len(solid)}] = {{' + ','.join(map(str, solid)) + '};\n')
     cw.h.append(f'extern const uint8_t {a.name}_solid[{len(solid)}];\n')
     up = a.name.upper()
+    cw.define(f'{up}_CELL_SHIFT', areas.CELL.bit_length() - 1)
     cw.define(f'{up}_W', a.w)
     cw.define(f'{up}_H', a.h)
     cw.define(f'{up}_PALS', len(b['palettes']))

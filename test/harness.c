@@ -173,13 +173,14 @@ static void load_syms(void) {
 
 static uint32_t rd32(uint32_t a) { return core->busRead32(core, a); }
 
-static uint8_t solid_grid[(MAP_H / 8) * (MAP_W / 8)];
+static uint8_t solid_grid[(MAP_H / 4) * (MAP_W / 4)];   /* 4 px cells at the finest */
+static int cell_shift;
 static int box_x[3], box_y[3], n_box_slots;
 static int dist[MAP_H][MAP_W];
 
 static int solid_at(int x, int y) {
     if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) return 1;
-    return solid_grid[(y >> 3) * (MAP_W >> 3) + (x >> 3)];
+    return solid_grid[(y >> cell_shift) * (MAP_W >> cell_shift) + (x >> cell_shift)];
 }
 
 static int box_hit(int i, int x0, int y0, int x1, int y1) {
@@ -248,7 +249,9 @@ static int in_meadow(void) {
 
 static void seek(long max_frames) {
     load_syms();
-    for (unsigned i = 0; i < sizeof solid_grid; i++) solid_grid[i] = core->busRead8(core, syms[S_SOLID].addr + i);
+    unsigned cells = syms[S_SOLID].size;       /* the grid size gives the cell size */
+    for (cell_shift = 1; (unsigned)((MAP_W >> cell_shift) * (MAP_H >> cell_shift)) > cells; cell_shift++) {}
+    for (unsigned i = 0; i < cells && i < sizeof solid_grid; i++) solid_grid[i] = core->busRead8(core, syms[S_SOLID].addr + i);
     door_x = core->busRead16(core, syms[S_DOORS].addr);
     door_y = core->busRead16(core, syms[S_DOORS].addr + 2);
     door_w = core->busRead16(core, syms[S_DOORS].addr + 4);

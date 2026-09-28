@@ -23,7 +23,8 @@ typedef struct {
     u32 rng;                  /* roll state, kept so every boot rolls differently */
     u8 followers[MAX_FOLLOWERS];  /* friend id + 1, 0 = empty; [0] walks nearest Pip */
     u8 pad;
-    u32 reserved[8];
+    u16 pip_x, pip_y;         /* meadow position (feet) for Continue; 0,0 = start at the house */
+    u32 reserved[7];
     u32 checksum;
 } SaveData;
 
