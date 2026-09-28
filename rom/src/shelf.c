@@ -1,5 +1,8 @@
 /* Squishy Shelf: four pages (one per area), 4 species x 5 flavors each.
- * D-pad moves the gold frame, L/R turn pages, A opens the friend big. */
+ * D-pad moves the gold frame, L/R turn pages, A opens the friend big.
+ * Pick mode (A at the pen sign): the meadow page with the real collection;
+ * A adds or removes a follower (up to 3, the oldest drops off), B goes back. */
+#include "collection.h"
 #include "game.h"
 #include "game_assets.h"
 #include "sound.h"
@@ -16,10 +19,13 @@
 #define P_TEXT    15
 
 static int page, cur_r, cur_c = 0, demo;
+bool shelf_pick;
+static int pop_id = -1, pop_t;      /* the heart that just appeared, for a little pop */
 EWRAM_BSS static TextStrip st_name;
 static const u16 *const page_maps[4] = {shelf_map0, shelf_map1, shelf_map2, shelf_map3};
 
 static bool collected(int r, int c) {
+    if (shelf_pick) return friend_found(friend_id(page * 4 + r, c));
     if (!demo) return true;
     /* demo pattern: a partly filled shelf, to show the silhouettes */
     static const u8 pattern[4] = {0x0B, 0x06, 0x08, 0x11};
@@ -31,6 +37,8 @@ static void show_name(void) {
     if (collected(cur_r, cur_c)) {
         sq_full_name(buf, page * 4 + cur_r, cur_c);
         strip_print(&st_name, buf, 1, 7, 1, 0);
+    } else if (shelf_pick) {
+        strip_print(&st_name, "Find me!", 1, 7, 1, 0);
     } else {
         strip_print(&st_name, "? ? ?", 1, 7, 1, 0);
     }
@@ -58,8 +66,17 @@ static void enter(void) {
     dma3_copy16(PAL_OBJ + P_SIL * 16, sq_sil_pal, sizeof sq_sil_pal);
     dma3_copy16(PAL_OBJ + P_FRAME * 16, ui_frame_pal, sizeof ui_frame_pal);
     dma3_copy16(PAL_OBJ + P_SMALL * 16, ui_small_pal, sizeof ui_small_pal);
+    if (shelf_pick) {                 /* start on the first follower, or the first friend found */
+        page = 0;
+        int id = follower_get(0);
+        for (int i = 0; id < 0 && i < 20; i++)
+            if (friend_found(i)) id = i;
+        if (id >= 0) { cur_r = friend_species(id); cur_c = friend_flavor(id); }
+        pop_id = -1;
+    }
     load_page();
-    dbg("scene shelf page=%d", page);
+    if (shelf_pick) strip_print(&st_name, "Who follows Pip?", 1, 7, 1, 0);   /* until the frame moves */
+    dbg("scene shelf page=%d pick=%d", page, shelf_pick);
     scene_blend(0, 0);
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_OBJ | DCNT_OBJ_1D;
 }
@@ -93,6 +110,18 @@ static void draw(void) {
             }
         }
     }
+    for (int i = 0; i < MAX_FOLLOWERS; i++) {      /* a heart on each friend that follows Pip */
+        ObjAttr *h = &oam[25 + i];
+        int id = shelf_pick ? follower_get(i) : -1;
+        if (id < 0) { h->attr0 = A0_HIDE; continue; }
+        int hx = SHELF_X0 + friend_flavor(id) * SHELF_CW + 3;
+        int hy = SHELF_Y0 + friend_species(id) * SHELF_CH + 3;
+        if (id == pop_id && pop_t > 0) hy -= (pop_t * (12 - pop_t)) / 6;   /* small hop when chosen */
+        h->attr0 = A0_Y(hy) | A0_SQUARE;
+        h->attr1 = A1_X(hx) | A1_SIZE(0);
+        h->attr2 = A2_TILE(T_SMALL + 3) | A2_PRIO(0) | A2_PAL(P_SMALL);
+    }
+    if (pop_t > 0) pop_t--;
     int fx = SHELF_X0 + cur_c * SHELF_CW - 1;
     int fy = SHELF_Y0 + cur_r * SHELF_CH - 1;
     oam[20].attr0 = A0_Y(fy) | A0_WIDE;
@@ -112,6 +141,34 @@ static void update(void) {
         cur_c = c;
         sfx_tick();
         show_name();
+    }
+    if (shelf_pick) {
+        if (hit & KEY_A) {
+            int id = friend_id(page * 4 + cur_r, cur_c);
+            if (!friend_found(id)) {
+                sfx_blip();
+            } else if (follower_has(id)) {
+                follower_remove(id);
+                collection_save();
+                sfx_chime(1);
+                dbg("pick remove %d", id);
+            } else {
+                follower_add(id);
+                collection_save();
+                sfx_squeak(cur_c);
+                pop_id = id;
+                pop_t = 12;
+                dbg("pick add %d", id);
+            }
+        }
+        if (hit & (KEY_START | KEY_B)) {
+            shelf_pick = false;
+            sfx_chime(2);
+            dbg("pick done %d %d %d", follower_get(0), follower_get(1), follower_get(2));
+            scene_go(&scene_meadow_view);
+        }
+        draw();
+        return;
     }
     if (hit & (KEY_L | KEY_R)) {
         page = (page + ((hit & KEY_R) ? 1 : 3)) & 3;

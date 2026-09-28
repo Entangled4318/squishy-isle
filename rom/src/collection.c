@@ -83,6 +83,20 @@ void follower_add(int id) {
 
 int follower_get(int i) { return game_save.followers[i] - 1; }
 
+bool follower_has(int id) {
+    for (int i = 0; i < MAX_FOLLOWERS; i++)
+        if (game_save.followers[i] == id + 1) return true;
+    return false;
+}
+
+void follower_remove(int id) {
+    u8 *l = game_save.followers;
+    int n = 0;
+    for (int i = 0; i < MAX_FOLLOWERS; i++)
+        if (l[i] && l[i] != id + 1) l[n++] = l[i];
+    while (n < MAX_FOLLOWERS) l[n++] = 0;
+}
+
 #ifndef HOST_TEST
 #include "system.h"
 

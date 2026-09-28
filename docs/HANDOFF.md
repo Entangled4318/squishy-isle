@@ -27,7 +27,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
-| 3. Game loop in the meadow | In progress: 1 to 5 and 6a done, 6b next; see "Step 3 progress" |
+| 3. Game loop in the meadow | In progress: 1 to 6 done, 7 next; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
@@ -114,10 +114,20 @@ per turn:
    clumps are no longer solid (the owner's "invisible blocks").
    Tests: `make_save.py` builds a save with chosen friends, `pen.txt`,
    `check_pen.py`.
-   6b **Next.** Pressing A at the pen sign (`MEADOW_SIGN_X/Y`) opens a
-   picker of found friends; choose up to 3 followers (write
-   `game_save.followers`, then `collection_save()`).
-7. Found counter (sprites) and the real shelf (silhouettes).
+   6b **Done.** Pip within ~20 px of the pen sign (`at_sign` in
+   `viewer.c`, only when a meadow friend is found and no box is touched)
+   shows the A bubble over the sign; A opens the shelf in pick mode
+   (`shelf_pick` in `game.h`). Pick mode: meadow page only, real
+   collection (silhouettes for friends not found, "Find me!"), header
+   "Who follows Pip?" until the frame moves, a small heart on each
+   follower. A on a follower removes it (`follower_remove`), A on another
+   found friend adds it at the front (`follower_add`, the oldest drops
+   when 3 are chosen), each change saves. B or START goes back and the
+   meadow rebuilds the line. L/R, SELECT and the close-up are off in pick
+   mode. Tests: `pick.txt`, `check_pick.py`. Screenshot
+   `docs/step3_6b_picker.png`. Score 8.5/10: works and reads well; the
+   8 px hearts are small, a bigger badge could come with step 7 art.
+7. **Next.** Found counter (sprites) and the real shelf (silhouettes).
 8. Full-loop test with reboot, scoring pass, screenshots, release ROM.
 
 The old notes below mention hearts and "rolls lean toward new"; the owner

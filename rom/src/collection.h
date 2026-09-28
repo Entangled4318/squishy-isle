@@ -28,5 +28,7 @@ bool collection_add(int id);             /* records the friend and saves; false 
 
 void follower_add(int id);               /* puts id at the front of the line */
 int follower_get(int i);                 /* friend id, or -1 */
+bool follower_has(int id);
+void follower_remove(int id);            /* closes the gap; later ones move up */
 
 #endif

@@ -13,6 +13,7 @@ extern const Scene scene_open;
 extern const Scene scene_reveal;
 
 extern int open_color, open_friend;
+extern bool shelf_pick;                   /* shelf opened from the pen sign: pick followers */
 
 void meadow_reset(void);                   /* new game: Pip home, fresh boxes */       /* the box being opened and its friend (-1 = none) */
 

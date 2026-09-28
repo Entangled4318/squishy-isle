@@ -1,0 +1,28 @@
+# Pen sign picker: A at the heart sign, remove one follower, add another.
+wait 20
+tap A
+wait 15
+tap A
+wait 25
+hold DOWN 30
+hold LEFT 88
+wait 10
+shot k01_sign
+tap A
+wait 40
+shot k02_picker
+tap A
+wait 20
+tap LEFT
+wait 4
+tap LEFT
+wait 4
+tap A
+wait 6
+shot k03_added
+wait 20
+tap B
+wait 40
+hold RIGHT 40
+wait 30
+shot k04_meadow
