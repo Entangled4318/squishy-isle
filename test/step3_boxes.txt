@@ -1,0 +1,22 @@
+# Step 3.2: gift boxes in the meadow, touch + A to open, guide arrow.
+wait 30
+shot b01_first_box
+hold DOWN 20
+hold LEFT 30
+wait 4
+shot b02_touch_a_bubble
+hold LEFT 20
+tap A
+wait 10
+shot b03_open_burst
+wait 120
+shot b04_after_open
+wait 930
+shot b05_arrow
+hold RIGHT 60
+hold DOWN 40
+wait 2
+shot b06_arrow_walking
+hold RIGHT 70
+wait 2
+shot b07_arrow_over_box

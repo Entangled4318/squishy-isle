@@ -42,7 +42,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
 - Known issue (fix later): invisible blocks in the meadow make Pip walk
   around empty-looking ground. Likely the 26 px "tall object" collision
   above bases, or collision cells that reach past the art. Check the
-  collision grid against the art in `tools/areas.py`.
+  collision grid against the art in `tools/areas.py`. The collision
+  preview shows solid cells under the small flower tufts beside the path
+  and by the cottage; those are the likely cause.
 
 ## Step 3 progress
 
@@ -58,18 +60,29 @@ per turn:
    reshuffles. Saves after each change; boot loads and counts boots. A
    version 1 save is replaced by a fresh one. Tests: `test/test_collection.c`
    (host) and `check_save.py` (reboots on the mGBA core).
-2. Gift boxes on the map: up to 3 out at a time (fewer when fewer friends
-   are left), sparkle and chime, solid; touching one shows a bouncing A
-   bubble; A or B opens. No auto-open in the meadow.
+2. Gift boxes on the map. **Done.** In `viewer.c`: up to 3 boxes (fewer
+   when fewer friends are left) on free `meadow_spots`, 5 colors, never two
+   of one color; the first box of a game sits at `MEADOW_FIRST_SPOT` below
+   the cottage, later ones prefer spots off screen and 48 px from Pip. A
+   box hops every few seconds, a twinkle circles it, a chime plays as Pip
+   comes near. Boxes are solid; touching one shows a bouncing A button and
+   A or B opens it. Guide arrow after 15 s without an open (`ARROW_DELAY`),
+   always to the nearest box: at the screen edge in 8 directions, or above
+   the box when it is on screen. World sprites are depth sorted by y.
+   For now `open_box()` pops the box in a sparkle burst and adds the friend
+   directly; sub-steps 3 and 4 replace that with the open and reveal
+   screens. Tests: `step3_boxes.txt`, `check_step3.py`.
 3. Open screen: wobble on cushion, rising note per press, third press
    pops, auto-open after about 4 s.
 4. Reveal and squish: confetti, star burst, name pill; 3 squishes or a
    wait returns to the meadow and saves.
 5. Intro and title: logo intro (skippable), Continue / New game, guarded
    start-over screen (No default, hold A 3 s for Yes).
-6. Followers and wanderers: new friend joins the line; opening a found
-   friend in the shelf close-up makes it follow too (max 3). Up to 6 other
-   found meadow friends wander.
+6. Followers and the friend pen (owner request): found friends live in a
+   fenced pen left of the cottage and roam inside it. Talking to something
+   at the pen (sign or NPC) opens a picker to choose up to 3 followers.
+   The newest friend follows Pip by default. This replaces the earlier
+   "wander the meadow" and "pick in the close-up" ideas.
 7. Found counter (sprites) and the real shelf (silhouettes).
 8. Full-loop test with reboot, scoring pass, screenshots, release ROM.
 

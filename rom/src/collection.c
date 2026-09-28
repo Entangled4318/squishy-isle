@@ -15,6 +15,8 @@ static u32 rng_next(void) {
     return x;
 }
 
+u32 game_rand(void) { return rng_next(); }
+
 bool friend_found(int id) { return game_save.found[id] != 0; }
 
 int found_in_area(int area) {

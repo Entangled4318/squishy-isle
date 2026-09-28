@@ -157,6 +157,28 @@ def main():
     cw.u32_bytes('shadow16_tiles', obj(sh, {rgb15('#6a5a88'): 1}))
     cw.u16('shadow16_pal', [0, bgr555(rgb15('#6a5a88'))] + [0] * 14)
 
+    # ---------------- meadow sprites: gift boxes, A bubble, guide arrow
+    from gbaconv import tile4
+    idx = props.box16_index()
+    cw.u32_bytes('box16_tiles', b''.join(tile4(idx[ty:ty + 8, tx:tx + 8]) for ty in (0, 8) for tx in (0, 8)))
+    box_pals = []
+    for color in ('pink', 'lav', 'mint', 'yellow', 'sky'):
+        box_pals += [0] + [bgr555(c) for c in props.box16_palette(color)] + [0] * (15 - len(props.BOX16_KEYS))
+    cw.u16('box16_pal', box_pals)
+    cw.define('BOX_COLORS', 5)
+
+    abtn = pad_to(props.a_button(), 16, 32)
+    lk, pal = palette_and_lookup([abtn])
+    cw.u32_bytes('abubble_tiles', obj(abtn, lk))
+    cw.u16('abubble_pal', pal)
+
+    arrows = [props.guide_arrow(d) for d in ('right', 'up', 'upright')]
+    lk, pal = palette_and_lookup(arrows)
+    cw.u32_bytes('arrow_tiles', b''.join(obj(a, lk) for a in arrows))
+    cw.u16('arrow_pal', pal)
+    save_scaled(np.concatenate(arrows + [pad_to(props.box16(c), 16, 16) for c in ('pink', 'lav', 'mint', 'yellow', 'sky')], axis=1),
+                os.path.join(OUT, 'meadow_sprites.png'), 8)
+
     # ---------------- areas
     for area in (areas.meadow(),):
         export_area(cw, area)
@@ -195,6 +217,7 @@ def export_area(cw, a):
     cw.define(f'{up}_SPAWN_Y', a.spawn[1])
     spots = [v for p in a.spots for v in p]
     cw.u16(f'{a.name}_spots', spots)
+    cw.define(f'{up}_FIRST_SPOT', a.first_spot)
     cw.define(f'{up}_NSPOTS', len(a.spots))
     # palette slots holding the water shimmer color, for runtime cycling
     target = bgr555(C['w_lt'])

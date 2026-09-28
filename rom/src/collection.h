@@ -16,6 +16,8 @@ static inline int friend_id(int species, int flavor) { return species * 5 + flav
 static inline int friend_species(int id) { return id / 5; }
 static inline int friend_flavor(int id) { return id % 5; }
 
+u32 game_rand(void);                     /* shared random numbers (saved state) */
+
 bool friend_found(int id);
 int found_total(void);
 int found_in_area(int area);

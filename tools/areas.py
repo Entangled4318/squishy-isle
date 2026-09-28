@@ -31,6 +31,7 @@ class Area:
         self.solid = np.zeros((h // CELL, w // CELL), bool)
         self.spawn = (w // 2, h // 2)
         self.spots = []          # container spots (x, y of the sprite's bottom centre)
+        self.first_spot = 0      # spot of the very first container of a game (in view of the spawn)
         self.doors = []          # (x, y, w, h, target)
 
     def block(self, x0, y0, x1, y1):
@@ -182,6 +183,7 @@ def meadow():
     a.spawn = (232, 124)
     a.spots = [(64, 160), (150, 212), (286, 180), (200, 150), (120, 120), (330, 210), (400, 220),
                (270, 260), (100, 260), (380, 166)]
+    a.first_spot = 3                                   # (200, 150), just below the cottage
     return a
 
 

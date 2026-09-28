@@ -39,6 +39,61 @@ _BOX16 = [
 ]
 
 
+BOX16_KEYS = 'kTtFfdhRr'       # palette index = position + 1, same in every color
+
+
+def box16_index():
+    """The 16px box as palette indices (shared by all colors)."""
+    idx = np.zeros((16, 16), np.uint8)
+    for y, row in enumerate(_BOX16):
+        for x, ch in enumerate(row):
+            if ch != '.':
+                idx[y, x] = BOX16_KEYS.index(ch) + 1
+    return idx
+
+
+def box16_palette(color):
+    k, T, t, F, f, d, R, r = (rgb15(h) for h in BOX_COLORS[color])
+    return [k, T, t, F, f, d, C['white'], R, r]
+
+
+def guide_arrow(direction):
+    """16px guide arrow. direction: 'right', 'up' or 'upright' (flips give the rest)."""
+    ink, hi, fill, shade = rgb15('#c25a82'), rgb15('#fffdf0'), rgb15('#ffe07a'), rgb15('#f5b54a')
+    shape = [(1.5, 5.5), (8.5, 5.5), (8.5, 1.5), (14.8, 8), (8.5, 14.5), (8.5, 10.5), (1.5, 10.5)]
+    ang = {'right': 0.0, 'up': math.pi / 2, 'upright': math.pi / 4}[direction]
+    ca, sa = math.cos(ang), math.sin(ang)
+    pts = [(8 + (x - 8) * ca + (y - 8) * sa, 8 - (x - 8) * sa + (y - 8) * ca) for x, y in shape]
+
+    def inside(px, py):
+        c = False
+        for i in range(len(pts)):
+            (x1, y1), (x2, y2) = pts[i], pts[i - 1]
+            if (y1 > py) != (y2 > py) and px < (x2 - x1) * (py - y1) / (y2 - y1) + x1:
+                c = not c
+        return c
+
+    m = np.array([[inside(x + 0.5, y + 0.5) for x in range(16)] for y in range(16)])
+    img = new(16, 16)
+    for y in range(16):
+        for x in range(16):
+            if not m[y, x]:
+                continue
+            edge = any(not (0 <= y + dy < 16 and 0 <= x + dx < 16 and m[y + dy, x + dx])
+                       for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+            if edge:
+                col = ink
+            elif not m[y - 1, x] or not m[y - 1, x - 1] if y > 0 and x > 0 else False:
+                col = hi
+            elif not m[y + 1, x] or not m[y + 2, x] if y < 14 else True:
+                col = shade
+            else:
+                col = fill
+            img[y, x, :3] = col
+            img[y, x, 3] = 255
+    return img
+
+
 def box16(color='pink'):
     k, T, t, F, f, d, R, r = (rgb15(h) for h in BOX_COLORS[color])
     return from_ascii(_BOX16, {'k': k, 'T': T, 't': t, 'F': F, 'f': f, 'd': d, 'h': C['white'],

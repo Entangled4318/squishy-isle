@@ -27,5 +27,8 @@ run: $(HARNESS) $(UNIT)
 	./$(HARNESS) $(ROM) $(OUT)/v1.sav boot_only.txt $(OUT) > $(OUT)/savev1.log
 	./$(HARNESS) $(ROM) $(OUT)/v1.sav boot_only.txt $(OUT) > $(OUT)/savev1b.log
 	python3 check_save.py $(OUT)
+	./$(HARNESS) $(ROM) $(OUT)/boxes.sav step3_boxes.txt $(OUT) > $(OUT)/boxes.log
+	./$(HARNESS) $(ROM) $(OUT)/boxes.sav boot_only.txt $(OUT) > $(OUT)/boxes_reboot.log
+	python3 check_step3.py $(OUT)
 
 .PHONY: run
