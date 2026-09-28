@@ -32,6 +32,7 @@ WAVES = {
     'sine': _wave([(1, 1.0, 0)]),                              # pure and soft (the old melody wave)
     'bell': _wave([(1, 1.0, 0), (2, 0.45, 0), (3, 0.12, 0)]),   # music box: brighter, round
     'hollow': _wave([(1, 1.0, 0), (3, 0.30, 0)]),              # flute-like, a little woody
+    'reed': _wave([(1, 1.0, 0), (3, 0.40, 0), (5, 0.15, 0)]),  # clarinet-like: odd harmonics, reedy and warm
 }
 
 
@@ -186,6 +187,60 @@ song('shelf', 'Shelf: Music box', 10,
                   'C3:E3:G3 C3:E3:G3 | G3:B3:D4 G3:B3:D4 | A2:C3:E3 A2:C3:E3 | D3:F#3:A3 D3:F#3:A3 | '
                   'E3:G3:B3 E3:G3:B3 | C3:E3:G3 C3:E3:G3 | D3:F#3:A3 D3:F#3:A3 | D3:F#3:C4 D3:F#3:C4'),
      wave='bell', lead_level=1, lead_decay=8, lead_gap=2, bass_vol=4, bass_duty=1, bass_step=2)
+
+
+# ---- area tunes (step 6 plays them; until then they are in the sound test)
+# Each area has its own key, meter and lead sound: meadow F 3/4 hollow,
+# shore D 6/8 sine, woods A minor 4/4 reed, cloud hill Eb 4/4 slow bell.
+
+# Shore: "Sea breeze", D major, 6/8 (12 ticks a bar, two dotted-quarter
+# beats), 10 frames a tick (the swing beat at 60 bpm), 24 bars A B A'
+# (48 s). Long-short sways like small waves; soft sine lead; the bass
+# rocks root - fifth on each dotted beat. Chords: D G D A D G A D |
+# Bm G D A Bm Em G-A A | D G D Bm Em A D A7.
+song('shore', 'Shore: Sea breeze', 10,
+     lead='A5:4 F#5:2 A5:4 D6:2 | B5:6 G5:6 | A5:4 F#5:2 D5:4 F#5:2 | E5:6 r:2 C#5:2 E5:2 | '
+          'A5:4 F#5:2 A5:4 D6:2 | D6:4 B5:2 G5:6 | C#6:4 B5:2 A5:4 G5:2 | F#5:12 | '
+          'D6:4 C#6:2 B5:6 | B5:4 A5:2 G5:6 | A5:4 G5:2 F#5:6 | E5:12 | '
+          'F#5:4 G5:2 A5:4 B5:2 | G5:6 E5:6 | D5:4 G5:2 E5:4 A5:2 | C#6:4 B5:2 A5:6 | '
+          'A5:4 F#5:2 A5:4 D6:2 | B5:6 G5:6 | A5:4 F#5:2 D5:4 F#5:2 | B5:6 F#5:6 | '
+          'G5:4 B5:2 E6:6 | E6:4 C#6:2 A5:6 | D6:4 A5:2 F#5:6 | E5:4 C#5:2 E5:4 G5:2',
+     bass='D3:6 A2 | G2 D3 | D3 A2 | A2 E3 | D3 A2 | G2 D3 | A2 E3 | D3 A2 | '
+          'B2 F#3 | G2 D3 | D3 A2 | A2 E3 | B2 F#3 | E3 B2 | G2 A2 | A2 E3 | '
+          'D3 A2 | G2 D3 | D3 A2 | B2 F#3 | E3 B2 | A2 E3 | D3 A2 | A2 E3',
+     bar=12, wave='sine', lead_level=2, lead_decay=40, lead_gap=2, bass_vol=4, bass_duty=2, bass_step=7)
+
+# Woods: "Acorn trail", A minor turning to C major, 4/4, 11 frames a tick
+# (82 bpm), 16 bars (47 s). A (1-8) strolls with dotted steps, B (9-16)
+# opens up in major and ends on E to lead back. Reed lead; the bass walks
+# the chord in plucked quarter notes. Chords: Am Am Dm E Am F G C |
+# F C G Am F C Dm E.
+song('woods', 'Woods: Acorn trail', 11,
+     lead='E5:3 D5:1 C5:4 A4:4 C5:4 | A4:3 B4:1 C5:4 E5:8 | F5:3 E5:1 D5:4 A4:4 D5:4 | E5:6 D5:2 B4:4 G#4:4 | '
+          'A4:3 B4:1 C5:4 E5:4 A5:4 | A5:3 G5:1 F5:4 C5:4 F5:4 | G5:3 F5:1 D5:4 B4:4 D5:4 | C5:8 E5:4 G5:4 | '
+          'A5:6 G5:2 F5:4 C5:4 | G5:6 F5:2 E5:4 C5:4 | D5:3 E5:1 F5:4 G5:4 B5:4 | C6:8 A5:8 | '
+          'A5:3 G5:1 F5:4 A5:4 C6:4 | G5:3 F5:1 E5:4 G5:4 C6:4 | F5:3 E5:1 D5:4 F5:4 A5:4 | G#5:6 A5:2 B5:4 E5:4',
+     bass='A2:4 C3 E3 C3 | A2 C3 E3 C3 | D3 F3 A3 F3 | E2 G#2 B2 G#2 | '
+          'A2 C3 E3 C3 | F2 A2 C3 A2 | G2 B2 D3 B2 | C3 E3 G3 E3 | '
+          'F2 A2 C3 A2 | C3 E3 G3 E3 | G2 B2 D3 B2 | A2 C3 E3 C3 | '
+          'F2 A2 C3 A2 | C3 E3 G3 E3 | D3 F3 A3 F3 | E2 G#2 B2 G#2',
+     wave='reed', lead_level=2, lead_decay=30, lead_gap=2, bass_vol=5, bass_duty=1, bass_step=3)
+
+# Cloud Hill: "Floating up", Eb major, 4/4, 12 frames a tick (75 bpm),
+# 16 bars (51 s). Wide leaps up and long notes that drift down; bell lead
+# with a slow fade (a celesta more than a music box); the bass rolls root -
+# fifth - octave - fifth. Chords: Eb Ab Eb Bb Cm Ab Bb Eb | Ab Eb Fm Bb
+# Gm Cm Ab Bb.
+song('cloud', 'Cloud Hill: Floating up', 12,
+     lead='G5:4 Bb5:4 Eb6:8 | C6:4 Eb6:4 Ab5:8 | Bb5:4 Eb6:4 G6:8 | F6:8 D6:4 Bb5:4 | '
+          'Eb6:4 D6:4 C6:8 | C6:4 Bb5:4 Ab5:8 | Bb5:4 D6:4 F6:4 D6:4 | Eb6:12 r:4 | '
+          'C6:6 Eb6:2 F6:4 Eb6:4 | G6:6 F6:2 Eb6:8 | F6:4 C6:4 Ab5:8 | Bb5:6 C6:2 D6:8 | '
+          'D6:4 Bb5:4 G5:8 | Eb6:4 C6:4 G5:8 | Ab5:4 C6:4 Eb6:4 C6:4 | D6:8 Bb5:4 F5:4',
+     bass='Eb3:4 Bb3 Eb4 Bb3 | Ab2 Eb3 Ab3 Eb3 | Eb3 Bb3 Eb4 Bb3 | Bb2 F3 Bb3 F3 | '
+          'C3 G3 C4 G3 | Ab2 Eb3 Ab3 Eb3 | Bb2 F3 Bb3 F3 | Eb3 Bb3 Eb4 Bb3 | '
+          'Ab2 Eb3 Ab3 Eb3 | Eb3 Bb3 Eb4 Bb3 | F2 C3 F3 C3 | Bb2 F3 Bb3 F3 | '
+          'G2 D3 G3 D3 | C3 G3 C4 G3 | Ab2 Eb3 Ab3 Eb3 | Bb2 F3 Bb3 F3',
+     wave='bell', lead_level=1, lead_decay=24, lead_gap=2, bass_vol=4, bass_duty=2, bass_step=5)
 
 
 # ---------------------------------------------------------------- export
