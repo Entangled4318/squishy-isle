@@ -25,7 +25,8 @@
 #define P_SPARK   7
 #define P_ABTN    8
 #define P_ARROW   9
-#define T_COUNT   128      /* found counter text, 64x32 (32 tiles) */
+#define T_COUNT   128      /* found counter: pill with icon (two 32x16), then text 32x16 */
+#define T_COUNT_TXT (T_COUNT + 16)
 #define P_SQ      10       /* 10..14: the meadow's 5 flavor palettes */
 #define P_COUNT   15
 
@@ -373,17 +374,17 @@ static void enter(void) {
     dma3_copy32(OBJ_TILES + T_ARROW * 16, arrow_tiles, sizeof arrow_tiles);
     dma3_copy16(PAL_OBJ + P_ARROW * 16, arrow_pal, sizeof arrow_pal);
 
-    char buf[12];            /* found counter, top left: heart and "7/20" */
+    char buf[8];             /* found counter, top right: area icon and "7/20" */
     int n = found_in_area(0), k = 0;
     if (count_last >= 0 && n > count_last) count_hop = 40;
     count_last = n;
-    buf[k++] = ' ';
     if (n >= 10) buf[k++] = (char)('0' + n / 10);
     buf[k++] = (char)('0' + n % 10);
     buf[k++] = '/'; buf[k++] = '2'; buf[k++] = '0'; buf[k] = 0;
-    st_count.tw = 8; st_count.th = 4; st_count.cbb = 4; st_count.first_tile = T_COUNT;
-    strip_print(&st_count, buf, 0, 3, 2, 1);
-    dma3_copy16(PAL_OBJ + P_COUNT * 16, ui_text_pal, sizeof ui_text_pal);
+    dma3_copy32(OBJ_TILES + T_COUNT * 16, count_pill_tiles, 16 * 32);   /* area 0: gift box */
+    dma3_copy16(PAL_OBJ + P_COUNT * 16, count_pill_pal, 32);
+    st_count.tw = 4; st_count.th = 2; st_count.cbb = 4; st_count.first_tile = T_COUNT_TXT;
+    strip_print(&st_count, buf, 1, 4, 1, 0);        /* centred after the icon */
 
     door_cool = 30;          /* do not walk straight back in */
     dbg("scene meadow pip=%d,%d", (int)(pip_x >> 8), (int)(pip_y >> 8));
@@ -580,8 +581,10 @@ static void draw_counter(void) {
         int t = count_hop % 20;
         if (count_hop < 30) hop = t * (20 - t) / 25;
     }
-    hud_spr(6, 6 - hop, A0_SQUARE, 0, 0, T_SPARK + 3, P_SPARK);
-    hud_spr(12, 2 - hop, A0_WIDE, 3, 0, T_COUNT, P_COUNT);
+    int x = SCREEN_W - 4 - COUNT_PILL_W, y = 3 - hop;
+    hud_spr(x + COUNT_TEXT_X, y + 1, A0_WIDE, 2, 0, T_COUNT_TXT, P_COUNT);   /* text over the pill */
+    hud_spr(x, y, A0_WIDE, 2, 0, T_COUNT, P_COUNT);
+    hud_spr(x + 32, y, A0_WIDE, 2, 0, T_COUNT + 8, P_COUNT);
 }
 
 static void draw(void) {

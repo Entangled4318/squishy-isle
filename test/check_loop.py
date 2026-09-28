@@ -58,11 +58,12 @@ IW = 0x400 + 0x400 + 0x18000 + 0x400 - 0x03000000
 n_pen = struct.unpack_from('<i', b, IW + sym['n_pen'])[0]
 check(n_pen == 17, f'the pen array holds 17 friends after the reboot ({n_pen})')
 
-grass = ((181, 231, 165), (156, 214, 148))
+PILL, INK = (255, 247, 247), (140, 90, 123)   # counter pill fill and text ink
 for n in ('f03_full_meadow', 'f04_reboot_full'):
     m = Image.open(os.path.join(OUT, n + '.ppm')).convert('RGB')
-    ink = sum(1 for y in range(2, 16) for x in range(6, 50) if m.getpixel((x, y)) not in grass)
-    check(ink > 60, f'{n}: the found counter shows ({ink} px)')
+    fill = sum(1 for y in range(2, 18) for x in range(184, 236) if m.getpixel((x, y)) == PILL)
+    ink = sum(1 for y in range(2, 18) for x in range(184, 236) if m.getpixel((x, y)) == INK)
+    check(fill > 200 and ink > 80, f'{n}: the found counter pill shows at the top right ({fill} fill, {ink} ink px)')
 
 if fails:
     sys.exit(1)

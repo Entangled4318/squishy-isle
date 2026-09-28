@@ -28,8 +28,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
-| 4. Open / reveal / squish polish, shelf with real collection | To do |
-| 5. Music and sound set | To do |
+| 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
+| 5. Music and sound set | In progress; see "Step 5 progress" |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
 | 7. QA and final ROM with Brick instructions | To do |
 
@@ -39,6 +39,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  5.1 (found counter pill at the top right with the gift box icon, as
+  in the mockups; the count reads well at 4x), step
   3.10 (dark shelf frame, no chime when the arrow shows, reading the
   pen sign from the top), plus the 3.9 list: walk past the pen's bottom-left corner and through
   rocks, walk close beside bushes, walk the stream shore north to
@@ -266,6 +268,33 @@ per turn:
 
 The old notes below mention hearts and "rolls lean toward new"; the owner
 replaced those with the rules above.
+
+## Step 5 progress
+
+Plan agreed with the owner, one sub-step per turn, stop after each task:
+
+1. Found counter pill. **Done.** Owner request: match the mockups. A
+   rounded pill at the top right (`COUNT_PILL_W` 52 px, 4 px from the
+   edge) with the area's container icon at the left end (gift box for
+   the meadow; shell, acorn, capsule are exported too, in
+   `count_pill_tiles` / `count_pill_pal`, 16 tiles and one palette per
+   area, ink is color 1). The count is printed at run time into a 32x16
+   OBJ strip, centred after the icon (`COUNT_TEXT_X` 18). Two 32x16
+   sprites draw the pill (64x16 is not a GBA sprite size). Still hidden
+   while the area has 0 friends, still hops twice on a new friend.
+   `check_loop.py` and `check_pick.py` look for the pill fill and ink at
+   the top right. Screenshot `docs/step5_1_counter.png`. Score 8.5 (first
+   pass 7.5: "20/20" was left-aligned and touched the right end).
+2. Music engine: looping 2-voice songs (wave lead on channel 3, soft
+   square bass on channel 2), effects keep channels 1 and 4, the boing
+   borrows channel 2, jingles pause the song and it resumes. Songs
+   written in Python with note names, exported to C. Headless audio
+   check: pitch, tempo, loop point, volume, clicks.
+3. Title and meadow music.
+4. Box-opening tune (open screen), reveal jingle; shelf music box theme
+   (DESIGN.md) unless the owner says no.
+5. Shore, Woods and Cloud Hill tunes (played once step 6 builds them).
+6. Mix pass, all suites, release ROM, Brick queue, merge.
 
 ## What step 3 should do (as promised to the owner)
 
