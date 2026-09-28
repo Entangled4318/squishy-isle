@@ -45,5 +45,10 @@ run: $(HARNESS) $(UNIT)
 	python3 make_save.py $(OUT)/pen20.sav $$(seq -s, 0 19) 17,6,12
 	./$(HARNESS) $(ROM) $(OUT)/pen20.sav pen20.txt $(OUT) > $(OUT)/pen20.log
 	python3 check_pen20.py $(OUT) $(ROM:.gba=.elf)
+	rm -f $(OUT)/loop.sav
+	./$(HARNESS) $(ROM) $(OUT)/loop.sav loop_a.txt $(OUT) > $(OUT)/loop_a.log
+	./$(HARNESS) $(ROM) $(OUT)/loop.sav loop_b.txt $(OUT) > $(OUT)/loop_b.log
+	./$(HARNESS) $(ROM) $(OUT)/loop.sav loop_c.txt $(OUT) > $(OUT)/loop_c.log
+	python3 check_loop.py $(OUT) $(ROM:.gba=.elf)
 
 .PHONY: run

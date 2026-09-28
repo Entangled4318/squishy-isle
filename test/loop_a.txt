@@ -1,0 +1,76 @@
+# Full loop, part A (new game, 5 friends). Generated: boxes 1-5
+# seek walks Pip to the nearest box; every third box is left to open itself.
+wait 20
+tap A
+wait 15
+tap A
+wait 25
+# box 1
+seek 3000
+tap A
+wait 50
+tap A
+wait 29
+tap B
+wait 31
+tap A
+wait 140
+tap A
+wait 20
+tap B
+wait 20
+tap A
+wait 110
+# box 2
+seek 3000
+tap A
+wait 50
+tap A
+wait 29
+tap B
+wait 31
+tap A
+wait 140
+tap A
+wait 20
+tap B
+wait 20
+tap A
+wait 110
+# box 3
+seek 3000
+tap A
+wait 1300
+# box 4
+seek 3000
+tap A
+wait 50
+tap A
+wait 29
+tap B
+wait 31
+tap A
+wait 140
+tap A
+wait 20
+tap B
+wait 20
+tap A
+wait 110
+# box 5
+seek 3000
+tap A
+wait 50
+tap A
+wait 29
+tap B
+wait 31
+tap A
+wait 140
+tap A
+wait 20
+tap B
+wait 20
+tap A
+wait 110
+shot f01_after5
