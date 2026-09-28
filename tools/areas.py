@@ -156,7 +156,6 @@ def meadow():
     a.place(world.decor('tulips'), 122, 70)
     a.place(world.decor('tulips'), 138, 72)
     a.place(world.decor('tulips'), 154, 70)
-    a.place(world.fence(3), 118, 82, block_w=48, tall=10)
     a.place(world.mailbox(), 268, 74, block_w=10, tall=8)
     a.place(world.signpost(world.mini_shell()), 414, 164, block_w=10, tall=8)
     a.place(world.basket(), 322, 230, block_w=12, tall=8)

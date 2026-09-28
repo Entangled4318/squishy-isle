@@ -27,7 +27,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
-| 3. Game loop in the meadow | In progress: 1 to 7b done; 8 next; see "Step 3 progress" |
+| 3. Game loop in the meadow | Done. `release/squishy-isle.gba`, `release/step3_screens.png`. Owner to test on the Brick; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
@@ -154,12 +154,30 @@ per turn:
    under 10 px. Screenshot `docs/step3_7b_pen20.png`. Score 8.5/10
    (first pass 6: up to 9 piled pairs; second 7.5: jams, fixed by the
    sidestep). Known flaws: the top rail touches the cottage's tulip
-   fence (looks doubled; moving the pen costs a palette); the found
+   fence (looks doubled; fixed in 8 by removing the tulip fence); the found
    counter sits over the top rail when the whole pen is on screen; at
    20/20 the 16 px sprites still overlap a little at the edges.
    Each future area (Shore, Woods, Cloud Hill, 20 friends each) gets its
    own pen of this size.
-8. Full-loop test with reboot, scoring pass, screenshots, release ROM.
+8. Full loop, scoring, release. **Done.** Harness `seek N` walks Pip to
+   the nearest box: it waits for the meadow scene (`current` and
+   `pending` both `scene_meadow_view`, `fade_dir` 0), builds a distance
+   field on `meadow_solid` (other boxes and the door blocked) and holds
+   the keys that go downhill until `touch_box` >= 0. Symbols come from
+   `arm-none-eabi-nm -S` on the ROM's .elf. `loop_a/b/c.txt` +
+   `check_loop.py`: new game, 5 friends, reboot, 15 more (every third box
+   opens itself), reboot with a full meadow; checks no repeats, saves
+   survive, no boxes once full, 17 in the pen and 3 followers, 20/20.
+   Scoring pass (from the loop and test screenshots): boxes 8.5, open
+   8.5, reveal 8.7, arrow 8.5, counter 8.5, picker 8.5, title 8.6, pen
+   8.5. Two fixes: the follower line stacked on Pip's feet after a
+   reboot or a reveal (7/10); `trail_line()` now lays it out behind Pip,
+   away from where Pip faces, trying the other sides when blocked (8.5).
+   The cottage tulip fence doubled the pen's top rail (map 8/10); it is
+   removed, the tulips stay (8.5; meadow 942 tiles, 16 palettes).
+   Release ROM updated; screenshots `release/step3_screens.png`,
+   `docs/step3_8_line.png`. `make -C rom test` runs 9 suites in ~10 s.
+   A step 2 save on the Brick is version 1 and is replaced by a new game.
 
 The old notes below mention hearts and "rolls lean toward new"; the owner
 replaced those with the rules above.
@@ -218,7 +236,8 @@ The container needs these each new session:
     make -C rom test       # all headless checks on the real mGBA core
 
 `test/harness` runs a ROM with a script (`wait N`, `hold KEYS N`,
-`tap KEYS`, `shot NAME`, `audio NAME` / `audio end`, `dump NAME`), prints
+`tap KEYS`, `shot NAME`, `audio NAME` / `audio end`, `dump NAME`,
+`seek N`), prints
 the game's `dbg()` log lines, writes PPM screenshots, WAV audio and a
 memory dump. Checks read the log, pixels and audio pitch.
 
@@ -246,6 +265,8 @@ memory dump. Checks read the log, pixels and audio pitch.
   `step3_boxes.txt`, `pen.txt`, `pick.txt`, `pen20.txt` and the spot in
   `check_step3.py`. Probe Pip's position with a `dump` (IWRAM, `pip_x` /
   `pip_y` from `nm`) instead of guessing frame counts.
+- The scene manager leaves `pending` equal to `current` after a switch
+  (it is not cleared to NULL); test drivers must compare, not test 0.
 - Map objects split at Pip's height (26 px): upper part on the overlay BG
   (over Pip), lower part on the ground BG, and tall objects block 26 px
   above their base. This keeps Pip correctly in front of or behind trees.

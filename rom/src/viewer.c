@@ -116,6 +116,36 @@ static void pen_target(Roamer *r) {
     }
 }
 
+static bool blocked(int fx, int fy);
+
+/* Lays the follower line out behind Pip (away from where Pip faces), so the
+ * friends stand in a row instead of on Pip's feet. Tries the other sides
+ * when the way back is blocked; stacks them on Pip only when all are. */
+static void trail_line(void) {
+    static const s8 back[4][2] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};   /* by dir: down, up, right, left */
+    static const u8 order[4][4] = {{0, 2, 3, 1}, {1, 2, 3, 0}, {2, 0, 1, 3}, {3, 0, 1, 2}};
+    int px = pip_x >> 8, py = pip_y >> 8, bx = 0, by = 0;
+    for (int o = 0; o < 4; o++) {
+        int d = order[dir][o];
+        bool clear = true;
+        for (int k = 1; k <= MAX_FOLLOWERS && clear; k++) {
+            int s = k * TRAIL_GAP * SPEED >> 8;
+            for (int t = 4; t <= s && clear; t += 4) clear = !blocked(px + back[d][0] * t, py + back[d][1] * t);
+        }
+        if (clear) {
+            bx = back[d][0];
+            by = back[d][1];
+            break;
+        }
+    }
+    trail_i = 0;
+    for (int i = 0; i < TRAIL; i++) {            /* entry i steps back sits i steps along the line */
+        int t = (trail_i - i) & (TRAIL - 1), s = i * SPEED >> 8;
+        trail_x[t] = (s16)(px + bx * s);
+        trail_y[t] = (s16)(py + by * s);
+    }
+}
+
 static void friends_setup(void) {
     for (int sp = 0; sp < 4; sp++) sq_load_frames(sp, 16, 0, 2, T_SQ16 + sp * 8);
     dma3_copy16(PAL_OBJ + P_SQ * 16, sq_area_pals[0], 5 * 32);
@@ -142,11 +172,7 @@ static void friends_setup(void) {
         pen_target(r);
     }
     dbg("friends pen=%d follow=%d", n_pen, n_follow);
-    for (int i = 0; i < TRAIL; i++) {            /* line starts tucked behind Pip */
-        trail_x[i] = (s16)(pip_x >> 8);
-        trail_y[i] = (s16)(pip_y >> 8);
-    }
-    trail_i = 0;
+    trail_line();
 }
 
 /* True when a step to (nx,ny) takes r closer to a friend that is already near. */
