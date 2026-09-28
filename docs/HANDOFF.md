@@ -170,7 +170,8 @@ replaced those with the rules above.
 
 The container needs these each new session:
 
-    sudo apt-get install -y gcc-arm-none-eabi libnewlib-arm-none-eabi libmgba-dev
+    sudo apt-get update      # needed: a stale index gives 404s
+    sudo apt-get install -y --no-install-recommends gcc-arm-none-eabi libnewlib-arm-none-eabi libmgba-dev
     pip install numpy pillow
     make -C rom            # builds rom/build/squishy_isle.gba
     make -C rom test       # all headless checks on the real mGBA core
