@@ -27,7 +27,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
-| 3. Game loop in the meadow | In progress: 1 to 6 done, 7 next; see "Step 3 progress" |
+| 3. Game loop in the meadow | In progress: 1 to 7 done; 7b (bigger pen) and 8 next; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
@@ -127,7 +127,20 @@ per turn:
    mode. Tests: `pick.txt`, `check_pick.py`. Screenshot
    `docs/step3_6b_picker.png`. Score 8.5/10: works and reads well; the
    8 px hearts are small, a bigger badge could come with step 7 art.
-7. **Next.** Found counter (sprites) and the real shelf (silhouettes).
+7. Found counter and real shelf. **Done.** Counter in `viewer.c`: heart
+   plus "10/20" at the top left, text drawn by `strip_print` straight into
+   OBJ tiles (`T_COUNT`, 64x32, palette 15 = `ui_text_pal`), because the
+   meadow has no free BG palette. It hops twice when the count went up
+   since the last meadow visit. Shelf: `collected()` is now
+   `friend_found()` on every page (demo pattern and SELECT removed);
+   missing friends are silhouettes named "Find me!". `step2.txt` now runs
+   on a save with the Shore page found (`make_save.py`), since it opens
+   Matcha Octo. Screenshot `docs/step3_7_counter.png`. Score 8.5/10.
+7b. **Next (owner request).** Pen is 52x24 px of feet area: fine for 7
+   friends, a pile at 17. Make it about 100x48 in `tools/areas.py` (move
+   the sign, check `MEADOW_PEN_*`, box spots and paths), keep the tile and
+   palette budget. Each future area (Shore, Woods, Cloud Hill, 20 friends
+   each) gets its own pen of this size.
 8. Full-loop test with reboot, scoring pass, screenshots, release ROM.
 
 The old notes below mention hearts and "rolls lean toward new"; the owner

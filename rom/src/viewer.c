@@ -10,6 +10,7 @@
 #include "squishy.h"
 #include "sound.h"
 #include "system.h"
+#include "text.h"
 
 #define T_PIP     0        /* 8 frames x 8 tiles */
 #define T_SHADOW  64
@@ -24,7 +25,9 @@
 #define P_SPARK   7
 #define P_ABTN    8
 #define P_ARROW   9
+#define T_COUNT   128      /* found counter text, 64x32 (32 tiles) */
 #define P_SQ      10       /* 10..14: the meadow's 5 flavor palettes */
+#define P_COUNT   15
 
 #define MAX_BOXES   3
 #define ARROW_DELAY (15 * 60)   /* frames without an open before the arrow shows */
@@ -57,6 +60,8 @@ static bool boxes_ready;
 static int seek_t;                 /* frames since the last open */
 static int arrow_box = -1;         /* box the arrow points at, -1 = none */
 static int touch_box = -1;
+EWRAM_BSS static TextStrip st_count;   /* rendered into OBJ tiles: the meadow has no free BG palette */
+static int count_last = -1, count_hop;   /* the counter hops when a new friend is counted */
 static bool at_sign;               /* Pip stands by the pen sign: A opens the picker */
 
 void meadow_reset(void) {
@@ -263,6 +268,18 @@ static void enter(void) {
     dma3_copy32(OBJ_TILES + T_ARROW * 16, arrow_tiles, sizeof arrow_tiles);
     dma3_copy16(PAL_OBJ + P_ARROW * 16, arrow_pal, sizeof arrow_pal);
 
+    char buf[12];            /* found counter, top left: heart and "7/20" */
+    int n = found_in_area(0), k = 0;
+    if (count_last >= 0 && n > count_last) count_hop = 40;
+    count_last = n;
+    buf[k++] = ' ';
+    if (n >= 10) buf[k++] = (char)('0' + n / 10);
+    buf[k++] = (char)('0' + n % 10);
+    buf[k++] = '/'; buf[k++] = '2'; buf[k++] = '0'; buf[k] = 0;
+    st_count.tw = 8; st_count.th = 4; st_count.cbb = 4; st_count.first_tile = T_COUNT;
+    strip_print(&st_count, buf, 0, 3, 2, 1);
+    dma3_copy16(PAL_OBJ + P_COUNT * 16, ui_text_pal, sizeof ui_text_pal);
+
     door_cool = 30;          /* do not walk straight back in */
     dbg("scene meadow pip=%d,%d", (int)(pip_x >> 8), (int)(pip_y >> 8));
     update_camera();
@@ -440,8 +457,21 @@ static void draw_arrow(void) {
     ui_spr(x - 8 + nx * bob, y - 8 + ny * bob, A0_SQUARE, 1, flip, T_ARROW + tile * 4, P_ARROW);
 }
 
+static void draw_counter(void) {
+    if (!found_in_area(0)) return;
+    int hop = 0;
+    if (count_hop > 0) {                /* two small hops, starting after the fade-in */
+        count_hop--;
+        int t = count_hop % 20;
+        if (count_hop < 30) hop = t * (20 - t) / 25;
+    }
+    ui_spr(6, 6 - hop, A0_SQUARE, 0, 0, T_SPARK + 3, P_SPARK);
+    ui_spr(12, 2 - hop, A0_WIDE, 3, 0, T_COUNT, P_COUNT);
+}
+
 static void draw(void) {
     n_world = n_oam = 0;
+    draw_counter();
     draw_arrow();
     draw_boxes();
     draw_friends();

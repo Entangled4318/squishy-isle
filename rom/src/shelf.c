@@ -18,29 +18,21 @@
 #define P_SMALL   10
 #define P_TEXT    15
 
-static int page, cur_r, cur_c = 0, demo;
+static int page, cur_r, cur_c = 0;
 bool shelf_pick;
 static int pop_id = -1, pop_t;      /* the heart that just appeared, for a little pop */
 EWRAM_BSS static TextStrip st_name;
 static const u16 *const page_maps[4] = {shelf_map0, shelf_map1, shelf_map2, shelf_map3};
 
-static bool collected(int r, int c) {
-    if (shelf_pick) return friend_found(friend_id(page * 4 + r, c));
-    if (!demo) return true;
-    /* demo pattern: a partly filled shelf, to show the silhouettes */
-    static const u8 pattern[4] = {0x0B, 0x06, 0x08, 0x11};
-    return (pattern[(r + page) & 3] >> c) & 1;
-}
+static bool collected(int r, int c) { return friend_found(friend_id(page * 4 + r, c)); }
 
 static void show_name(void) {
     char buf[40];
     if (collected(cur_r, cur_c)) {
         sq_full_name(buf, page * 4 + cur_r, cur_c);
         strip_print(&st_name, buf, 1, 7, 1, 0);
-    } else if (shelf_pick) {
-        strip_print(&st_name, "Find me!", 1, 7, 1, 0);
     } else {
-        strip_print(&st_name, "? ? ?", 1, 7, 1, 0);
+        strip_print(&st_name, "Find me!", 1, 7, 1, 0);
     }
 }
 
@@ -175,11 +167,6 @@ static void update(void) {
         sfx_chime(page);
         load_page();
         dbg("shelf page=%d", page);
-    }
-    if (hit & KEY_SELECT) {
-        demo = !demo;
-        sfx_blip();
-        show_name();
     }
     if (hit & KEY_A) {
         if (collected(cur_r, cur_c)) {
