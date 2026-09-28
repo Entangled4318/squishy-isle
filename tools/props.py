@@ -1,0 +1,362 @@
+"""Containers, sparkles and UI pieces."""
+import math
+
+import numpy as np
+
+from gba import from_ascii, new, rgb15, blit
+from palette import C, ACC
+from paint import P, shade_parts
+from squishies import Ellipse, Poly, Union, Minus, Clip, HalfPlane, Star
+from font import draw_text, text_width
+
+# ---------------------------------------------------------------- gift box
+BOX_COLORS = {
+    # outline, top light, top, front, front shade, dots, ribbon, ribbon shade
+    'pink': ('#b85c82', '#ffe8ef', '#ffd3df', '#ffc2d3', '#f2a0ba', '#fff4f8', '#bff0dc', '#86d2b6'),
+    'lav': ('#7864ae', '#f1eaff', '#e2d4fb', '#d4c2f7', '#b8a0ea', '#faf6ff', '#fff0a0', '#f5cf5c'),
+    'mint': ('#4f8f76', '#e8fbf2', '#d0f4e4', '#bdeed8', '#94dcc0', '#f4fffa', '#ffc2d3', '#f09ab4'),
+    'yellow': ('#b0823a', '#fffbe0', '#fff2b8', '#ffe99a', '#f7d170', '#fffdf0', '#d4c2f7', '#ab93dc'),
+    'sky': ('#5a86b8', '#eef8ff', '#d8eeff', '#c6e4fc', '#a2cdf2', '#f6fbff', '#ffc2d3', '#f09ab4'),
+}
+
+_BOX16 = [
+    '................',
+    '....kkk..kkk....',
+    '...kRRRkkRRRk...',
+    '...kRrrRRrrRk...',
+    '...kkRRkkRRkk...',
+    '.kkkkkkRRkkkkkk.',
+    'kTTTTTTRrTTTTTTk',
+    'kttttttRrttttttk',
+    'kkkkkkkRrkkkkkkk',
+    '.kFhFFFRrFFFFfk.',
+    '.kFFFdFRrFFdFfk.',
+    '.kFdFFFRrFFFFfk.',
+    '.kFFFFFRrFdFFfk.',
+    '.kfffffRrfffffk.',
+    '..kkkkkkkkkkkk..',
+    '................',
+]
+
+
+def box16(color='pink'):
+    k, T, t, F, f, d, R, r = (rgb15(h) for h in BOX_COLORS[color])
+    return from_ascii(_BOX16, {'k': k, 'T': T, 't': t, 'F': F, 'f': f, 'd': d, 'h': C['white'],
+                               'R': R, 'r': r})
+
+
+def box64(color='pink', part='all'):
+    """Big gift box for the open scene. part: all | body | lid | open"""
+    k, T, t, F, f, d, R, r = (rgb15(h) for h in BOX_COLORS[color])
+    face = [T, T, F, f, f]
+    lidr = [T, T, t, f, f]
+    rib = [C['white'], R, R, r, r]
+    parts = []
+    if part in ('all', 'body', 'open'):
+        parts.append(P(Poly([(11, 31), (53, 31), (53, 61), (11, 61)], 0.6), face, z=0, bevel=True))
+        parts.append(P(Poly([(28.5, 31), (35.5, 31), (35.5, 61), (28.5, 61)], 0.1), rib, z=1, bevel=True))
+    if part in ('all', 'lid'):
+        parts.append(P(Poly([(7, 20), (57, 20), (57, 31), (7, 31)], 1.2), lidr, z=2, bevel=True, line=k))
+        parts.append(P(Poly([(28.5, 20), (35.5, 20), (35.5, 31), (28.5, 31)], 0.1), rib, z=3, bevel=True))
+        loop = lambda cx, rot: Minus(Ellipse(cx, 11, 10, 6.5, rot), Ellipse(cx + (2 if cx < 32 else -2), 11.5, 4.5, 2.2, rot))
+        parts.append(P(loop(22, -18), rib, z=4, k=3.5, line=k, levels=(0.95, 0.75, 0.40, 0.15)))
+        parts.append(P(loop(42, 18), rib, z=4, k=3.5, line=k, levels=(0.95, 0.75, 0.40, 0.15)))
+        parts.append(P(Poly([(29, 17), (26, 26), (23, 24)], 1.0), rib, z=3.5, line=k, bevel=True))
+        parts.append(P(Poly([(35, 17), (38, 26), (41, 24)], 1.0), rib, z=3.5, line=k, bevel=True))
+        parts.append(P(Ellipse(32, 14.5, 4.6, 4.2), rib, z=5, line=k, k=3.5, levels=(0.95, 0.72, 0.40, 0.15)))
+    img = shade_parts(64, 64, parts, outline=k)
+    if part in ('all', 'body', 'open'):
+        # polka dots
+        for (x, y) in ((16, 37), (23, 46), (15, 53), (42, 38), (48, 47), (41, 55), (24, 55)):
+            for dx, dy in ((0, 0), (1, 0), (0, 1), (1, 1), (-1, 0), (0, -1), (2, 0), (0, 2), (1, -1), (-1, 1), (2, 1), (1, 2)):
+                X, Y = x + dx, y + dy
+                if img[Y, X, 3] and tuple(img[Y, X, :3]) == F:
+                    img[Y, X, :3] = d
+        # top-left glint
+        for (x, y) in ((13, 33), (14, 33), (13, 34)):
+            img[y, x, :3] = C['white']
+    if part == 'open':
+        # dark interior visible at the top of the body
+        for y in range(31, 35):
+            for x in range(12, 53):
+                if img[y, x, 3]:
+                    img[y, x, :3] = k if y == 31 else f
+    return img
+
+
+# ----------------------------------------------------------------- shell
+def shell(color='pink', size=16):
+    """Scallop shell: scalloped fan with radial ridges and hinge wings."""
+    rp = {'pink': ['#ffffff', '#ffe6ee', '#ffcadb', '#f5a7c2', '#e38aa9', '#b0607e'],
+          'peach': ['#ffffff', '#fff0e0', '#ffd9bb', '#f7bb90', '#e89f76', '#b0745a'],
+          'lav': ['#ffffff', '#f3ecff', '#e0d2fb', '#c6b0f0', '#aa92dc', '#7864ae']}[color]
+    hi, lt, base, dk, dk2, ink = (rgb15(h) for h in rp)
+    k = size / 16.0
+    img = new(size, size)
+    hx, hy = 7.5 * k + 0.5 * (k - 1), 13.2 * k
+    n = 7 if size > 16 else 5
+    for y in range(size):
+        for x in range(size):
+            dx, dy = x + 0.5 - hx - 0.5 * k + 0.5, y + 0.5 - hy
+            dx = x + 0.5 - (size / 2)
+            dy = dy / (1.25 if size <= 16 else 1.0)
+            r = math.hypot(dx, dy)
+            if dy > 0.3 * k:
+                continue
+            th = math.atan2(-dy, dx)            # 0..pi across the fan
+            t = th / math.pi * n                 # ridge coordinate
+            ridge = abs(((t % 1.0) - 0.5)) * 2   # 1 at groove, 0 at ridge centre
+            R = ((6.9 + 0.75 * (1 - ridge)) if size > 16 else (6.4 + 1.3 * (1 - ridge) ** 0.7)) * k
+            if r <= R:
+                img[y, x, 3] = 255
+                shade = 0.55 + 0.45 * math.cos(th - 2.2)   # light from upper left
+                if ridge > (0.62 if size <= 16 else 0.72) and r > 2.2 * k:
+                    c = dk if shade > 0.45 else dk2
+                elif shade > 0.93 and r > 3 * k:
+                    c = hi if r > R - 1.6 * k and ridge < 0.4 else lt
+                elif shade > 0.62:
+                    c = lt if ridge < 0.35 else base
+                elif shade > 0.3:
+                    c = base
+                else:
+                    c = dk
+                img[y, x, :3] = c
+    # hinge wings
+    for y in range(int(12.2 * k), int(14.6 * k)):
+        for x in range(int(4.2 * k), int(11.8 * k)):
+            img[y, x, :3] = base if y < int(13.4 * k) else dk
+            img[y, x, 3] = 255
+    m = img[..., 3] > 0
+    out = np.zeros_like(m)
+    out[1:] |= m[:-1]
+    out[:-1] |= m[1:]
+    out[:, 1:] |= m[:, :-1]
+    out[:, :-1] |= m[:, 1:]
+    out &= ~m
+    img[out, :3] = ink
+    img[out, 3] = 255
+    return img
+
+
+def shell16(color='pink'):
+    return shell(color, 16)
+
+
+# -------------------------------------------------------------- sparkles
+SPARK_BIG = from_ascii([
+    '...w...',
+    '...w...',
+    '..wyw..',
+    'wwyWyww',
+    '..wyw..',
+    '...w...',
+    '...w...',
+], {'w': rgb15('#fff6c0'), 'y': rgb15('#ffe07a'), 'W': C['white']})
+SPARK_SMALL = from_ascii([
+    '..w..',
+    '.wyw.',
+    'wyWyw',
+    '.wyw.',
+    '..w..',
+], {'w': rgb15('#fff6c0'), 'y': rgb15('#ffe07a'), 'W': C['white']})
+SPARK_HUGE = from_ascii([
+    '.....w.....',
+    '.....w.....',
+    '....wyw....',
+    '....wyw....',
+    '..wwyWyww..',
+    'wwyyWWWyyww',
+    '..wwyWyww..',
+    '....wyw....',
+    '....wyw....',
+    '.....w.....',
+    '.....w.....',
+], {'w': rgb15('#fff6c0'), 'y': rgb15('#ffe07a'), 'W': C['white']})
+SPARK_TINY = from_ascii(['.w.', 'wWw', '.w.'], {'w': rgb15('#fff6c0'), 'W': C['white']})
+
+
+def shadow(w, h, color=None):
+    s = new(w, h)
+    xs, ys = np.meshgrid(np.arange(w) + 0.5, np.arange(h) + 0.5)
+    m = ((xs - w / 2) / (w / 2)) ** 2 + ((ys - h / 2) / (h / 2)) ** 2 <= 1
+    s[m, :3] = color or C['shadow']
+    s[m, 3] = 255
+    return s
+
+
+HEART = from_ascii([
+    '.kk.kk.',
+    'kppkppk',
+    'kpwpppk',
+    'kppppPk',
+    '.kpppk.',
+    '..kPk..',
+    '...k...',
+], {'k': rgb15('#c25a82'), 'p': rgb15('#ff9fbd'), 'P': rgb15('#f07aa0'), 'w': C['white']})
+
+HEART_BIG = from_ascii([
+    '.kkk.kkk.',
+    'kpppkpppk',
+    'kpwwpppPk',
+    'kpwppppPk',
+    'kppppppPk',
+    '.kppppPk.',
+    '..kppPk..',
+    '...kPk...',
+    '....k....',
+], {'k': rgb15('#c25a82'), 'p': rgb15('#ff9fbd'), 'P': rgb15('#f07aa0'), 'w': C['white']})
+
+
+# ------------------------------------------------------------- A button
+def a_button_big(pressed=False):
+    """24px A button prompt for the open screen."""
+    rp = [rgb15('#fff0f4'), rgb15('#ffc6d6'), rgb15('#ffa8c0'), rgb15('#f085a6'), rgb15('#d86a8e')]
+    ink = rgb15('#9a4a70')
+    oy = 2 if pressed else 0
+    base = [P(Ellipse(12, 15, 10.5, 7.5), [rp[4]] * 5, z=0, flat=True)]
+    top = [P(Ellipse(12, 11 + oy, 10, 9.2), rp, z=1, k=2.2, levels=(0.95, 0.78, 0.45, 0.2))]
+    img = shade_parts(24, 25, base + top, outline=ink)
+    glyph = ['.####.', '##..##', '##..##', '######', '##..##', '##..##']
+    for y, row in enumerate(glyph):
+        for x, ch in enumerate(row):
+            if ch == '#':
+                img[9 + y + oy, 9 + x, :3] = rp[4]
+    for y, row in enumerate(glyph):
+        for x, ch in enumerate(row):
+            if ch == '#':
+                img[8 + y + oy, 9 + x, :3] = C['white']
+    return img
+
+
+def a_button(pressed=False):
+    rp = [rgb15('#fff0f4'), rgb15('#ffc6d6'), rgb15('#ffa8c0'), rgb15('#f085a6'), rgb15('#d86a8e')]
+    ink = rgb15('#9a4a70')
+    parts = [P(Ellipse(8, 8 if not pressed else 9, 6.6, 6.2), rp, k=3.0, levels=(0.95, 0.78, 0.45, 0.2))]
+    img = shade_parts(16, 17, parts, outline=ink)
+    if not pressed:
+        # base rim under the button
+        for x in range(3, 14):
+            img[15, x, :3] = ink
+            img[15, x, 3] = 255
+        for x in range(2, 14):
+            if img[14, x, 3] and tuple(img[14, x, :3]) != ink:
+                img[14, x, :3] = rp[4]
+    oy = 0 if not pressed else 1
+    glyph = ['.##.', '#..#', '####', '#..#', '#..#']
+    for y, row in enumerate(glyph):
+        for x, ch in enumerate(row):
+            if ch == '#':
+                img[5 + y + oy, 6 + x, :3] = C['white']
+    return img
+
+
+# ---------------------------------------------------------------- pills
+def pill(w, h, fill, edge, ink, light=None):
+    """Rounded pill panel with a soft bevel."""
+    img = new(w, h)
+    r = h / 2
+    for y in range(h):
+        for x in range(w):
+            cx = min(max(x + 0.5, r), w - r)
+            if (x + 0.5 - cx) ** 2 + (y + 0.5 - r) ** 2 <= (r - 0.2) ** 2:
+                img[y, x, :3] = fill
+                img[y, x, 3] = 255
+    m = img[..., 3] > 0
+    out = np.zeros_like(m)
+    out[1:] |= m[:-1] & ~m[1:]
+    inner = np.zeros_like(m)
+    # outline: pixels in m whose 4-neighbour is outside
+    for y in range(h):
+        for x in range(w):
+            if not m[y, x]:
+                continue
+            nb = [(y - 1, x), (y + 1, x), (y, x - 1), (y, x + 1)]
+            if any(not (0 <= a < h and 0 <= b < w) or not m[a, b] for a, b in nb):
+                img[y, x, :3] = ink
+    for y in range(h):
+        for x in range(w):
+            if m[y, x] and tuple(img[y, x, :3]) != ink:
+                if y + 1 < h and tuple(img[y + 1, x, :3]) == ink and y > h // 2:
+                    img[y, x, :3] = edge
+                elif light is not None and y - 1 >= 0 and tuple(img[y - 1, x, :3]) == ink and y < h // 2:
+                    img[y, x, :3] = light
+    return img
+
+
+def badge_new():
+    """Star badge that says NEW."""
+    rp = [C['white'], rgb15('#fff6c0'), rgb15('#ffe27e'), rgb15('#f7c860'), rgb15('#e6aa48')]
+    img = shade_parts(34, 32, [P(Star(17, 17, 16.5, rf=0.62, round_r=2.5, R=6), rp, k=1.2,
+                                 levels=(0.99, 0.9, 0.45, 0.2))], outline=rgb15('#b27a30'))
+    draw_text(img, 'NEW', 17 - text_width('NEW') // 2, 14, rgb15('#e0607e'), outline=C['white'])
+    return img
+
+
+CONFETTI_COLS = ['#ff9fbd', '#ffe07a', '#9ee2c8', '#b9a4f0', '#9cccf5', '#ffb08a']
+
+
+CONFETTI_DARK = ['#e07a9c', '#e8b44a', '#62c0a0', '#9178d8', '#6fa8e0', '#e88a60']
+
+
+def confetti_piece(i):
+    col = rgb15(CONFETTI_COLS[i % len(CONFETTI_COLS)])
+    dk = rgb15(CONFETTI_DARK[i % len(CONFETTI_DARK)])
+    shapes = [['ccc', 'ccd', 'cdd'], ['cccc', 'cddd'], ['cc', 'cd', 'cd', 'dd'], ['.cc.', 'ccdc', '.dd.'],
+              ['cc...', 'dccc.', '..ddd'], ['c..', 'cc.', '.cd', '..d']]
+    return from_ascii(shapes[i % len(shapes)], {'c': col, 'd': dk})
+
+
+PAW = from_ascii([
+    '..kk.kk...',
+    '.kppkppk..',
+    '.kppkppk..',
+    'kk.kk.kkk.',
+    'kpkkkkkppk',
+    'kpkpppkppk',
+    '.kpppppppk',
+    '.kppwwpppk',
+    '..kppppkk.',
+    '...kkkk...',
+], {'k': rgb15('#9a4a70'), 'p': rgb15('#ffb3c8'), 'w': C['white']})
+
+CROWN = from_ascii([
+    'k...k...k',
+    'kyk.kyk.k'[:9],
+    'kyykyyyk.'[:9],
+    'kyyyyyyyk',
+    'kywyyyyyk',
+    'kkkkkkkkk',
+], {'k': rgb15('#b27a30'), 'y': rgb15('#ffe07a'), 'w': C['white']})
+
+
+def acorn16():
+    cap = [rgb15(h) for h in ('#e8c9a8', '#d8ae88', '#c49276', '#a0725f', '#8a5e4e')]
+    nut = [rgb15(h) for h in ('#fff0d8', '#ffdcb0', '#f5c28c', '#e0a470', '#c8895a')]
+    ink = rgb15('#6e4a4a')
+    parts = [
+        P(Ellipse(8, 9.5, 5.2, 5.5), nut, z=0, k=2.5),
+        P(Ellipse(8, 7, 6.8, 3.6), cap, z=1, k=2.5, line=ink),
+        P(Poly([(7.3, 1.5), (8.7, 1.5), (8.7, 4), (7.3, 4)], 0.2), cap, z=0.5, bevel=True),
+    ]
+    img = shade_parts(16, 16, parts, outline=ink)
+    for (x, y) in ((4, 6), (7, 6), (10, 6), (5, 8), (9, 8), (12, 7)):
+        if img[y, x, 3] and tuple(img[y, x, :3]) != ink:
+            img[y, x, :3] = cap[3]
+    img[10, 5, :3] = C['white']
+    img[11, 5, :3] = nut[1]
+    return img
+
+
+def capsule16(top='#ffb6cb', top_dk='#ec8fae'):
+    t = [C['white'], rgb15('#ffe0ea'), rgb15(top), rgb15(top_dk), rgb15(top_dk)]
+    b = [C['white'], C['white'], rgb15('#fbf6ff'), rgb15('#e4dcf2'), rgb15('#cfc4e4')]
+    ink = rgb15('#8a5a7a')
+    from squishies import Clip, HalfPlane
+    ball = Ellipse(8, 8.5, 6.2, 6.2)
+    parts = [P(Clip(ball, HalfPlane(0, -1, -8.5)), t, z=1, k=2.5),
+             P(Clip(ball, HalfPlane(0, 1, 8.5)), b, z=1, k=2.5)]
+    img = shade_parts(16, 16, parts, outline=ink)
+    for x in range(2, 15):
+        if img[8, x, 3]:
+            img[8, x, :3] = ink
+    return img
