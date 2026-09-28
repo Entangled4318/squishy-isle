@@ -44,6 +44,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  6.4 (with 10 woods friends Momo wakes in the woods and the east trail
+  leads onto the shore boardwalk; the sea glints; shells read as
+  shells; the shore song plays), step
   6.3 (Momo the panda sleeps on the meadow bridge; walking up shows
   the "n/10" bubble; on the 10th meadow friend the friends tickle Momo
   awake and it waddles off east: pace feels right, not too long; Momo
@@ -86,7 +89,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 6.4 (Seashell Shore), see "Step 6 progress". Owner
+- Next: step 6.5 (Cloud Hill), see "Step 6 progress". Owner
   answers for 6.7: mailbox = a letter with a happy message from the
   newest friend (flag up after each new friend; A reads it; no new mail
   re-reads the last one); picnic basket = snack time (A opens the lid, a
@@ -568,7 +571,24 @@ Plan, one sub-step at a time, merge after each:
    the vanilla outline). Screenshots `docs/step6_3b_momo.png`. Score 8.5
    (first pass 7: 15 colors, pale patches read as a cat, nose and mouth
    stacked into "=").
-4. Seashell Shore map, boardwalk from the Woods.
+4. Seashell Shore. **Done.** `areas.shore()` (480x320) from the 07
+   mockup: wavy sea along the north (`Sea` SDF, solid), sand, a
+   boardwalk from the west edge (arrival from the woods at 20,200), tide
+   pool with rocks, palms, umbrella and towel, sandcastle, bucket, beach
+   ball, starfish, tiny shells, footprints, two sailboats. Pen at
+   290..410 x 184..268 with its sign. East exit to Cloud Hill with Momo
+   (to area 3, not built yet, so Momo sleeps there and shows n/10).
+   498 tiles, 8 palettes. Seashells in pink, peach, mint, lav, yellow
+   (`props.shell` got mint and yellow). Per-area glint: `Area.shimmer`
+   names the color (`sea_lt` on the shore) and each area exports its
+   own `<name>_shimmer_cycle` (in `AreaMap`). Woods and shore east exits
+   widened to 12 px (a 6 px exit at the map edge left one reachable
+   column); Momo's bubble is clamped to the screen near map edges.
+   Tests: `shore.txt`, `check_shore.py` (Momo's woods scene at 10 woods
+   friends, onto the boardwalk, a shell gives a shore friend, shelf page
+   2, shore song, Momo at the way on with 1/10, back to the woods).
+   13 suites. Screenshots `docs/step6_4_shore.png`. Score 8.5 (first
+   pass 8: Momo's bubble cut at the edge, a palm over Momo).
 5. Cloud Hill map, stairs from the Shore.
 6. Open screen per container (64 px acorn, shell, capsule).
 7. Mailbox and picnic basket (ask the owner first).

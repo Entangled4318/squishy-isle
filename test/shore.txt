@@ -1,0 +1,42 @@
+# 10 meadow + 10 woods friends, the way to the shore not built yet:
+# into the woods (Momo's scene plays there), east to the shore, a shell
+wait 20
+tap A
+wait 15
+tap A
+wait 25
+walkto 470 200 900
+wait 150
+shot s01_woods_scene
+wait 200
+walkto 472 120 900
+wait 30
+shot s02_shore_arrive
+seek 3000
+shot s03_touch_shell
+tap A
+wait 50
+tap A
+wait 29
+tap B
+wait 31
+tap A
+wait 140
+tap A
+wait 20
+tap B
+wait 20
+tap A
+wait 120
+shot s04_shore_after
+hold START 1
+wait 30
+shot s05_shelf_shore
+tap B
+wait 40
+walkto 440 150 900
+wait 20
+shot s06_momo_shore
+walkto 2 200 900
+wait 30
+shot s07_woods_back

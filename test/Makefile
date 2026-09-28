@@ -63,6 +63,9 @@ run: $(HARNESS) $(UNIT)
 	./$(HARNESS) $(ROM) $(OUT)/gate.sav gate.txt $(OUT) > $(OUT)/gate.log
 	./$(HARNESS) $(ROM) $(OUT)/gate.sav gate_again.txt $(OUT) > $(OUT)/gate_again.log
 	python3 check_woods.py $(OUT)
+	python3 make_save.py $(OUT)/shore.sav $$(seq -s, 0 9),$$(seq -s, 20 29) 0,1,2 1
+	./$(HARNESS) $(ROM) $(OUT)/shore.sav shore.txt $(OUT) > $(OUT)/shore.log
+	python3 check_shore.py $(OUT)
 	python3 check_music.py $(OUT) $(ROM)
 
 .PHONY: run

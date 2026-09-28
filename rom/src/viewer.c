@@ -693,6 +693,8 @@ static void draw_gates(void) {
         if (npc_near == i && gate_shut(g[4])) {                          /* bubble: the area's icon and "7/10" */
             int bob = isin((int)(frame_count * 2)) * 2 / 256;
             int x = gx - COUNT_PILL_W / 2 - cam_x, y = gy - 58 - cam_y + bob;
+            if (x > SCREEN_W - 2 - COUNT_PILL_W) x = SCREEN_W - 2 - COUNT_PILL_W;   /* Momo sleeps near map edges */
+            if (x < 2) x = 2;
             hud_spr(x + COUNT_TEXT_X, y + 1, A0_WIDE, 2, 0, T_NPC_TXT, P_COUNT);
             hud_spr(x, y, A0_WIDE, 2, 0, T_COUNT, P_COUNT);
             hud_spr(x + 32, y, A0_WIDE, 2, 0, T_COUNT + 8, P_COUNT);
@@ -845,7 +847,7 @@ static void update_boxes(u16 hit) {
 /* water highlights glint softly: cycle the shimmer color every 12 frames */
 static void shimmer(void) {
     if ((frame_count % 12) != 0) return;
-    u16 c = water_shimmer_cycle[(frame_count / 12) & 3];
+    u16 c = A->shimmer_cycle[(frame_count / 12) & 3];
     for (int i = 0; i < A->nshimmer; i++) PAL_BG[A->shimmer[i]] = c;
 }
 
