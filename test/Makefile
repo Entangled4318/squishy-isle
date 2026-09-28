@@ -66,6 +66,10 @@ run: $(HARNESS) $(UNIT)
 	python3 make_save.py $(OUT)/shore.sav $$(seq -s, 0 9),$$(seq -s, 20 29) 0,1,2 1
 	./$(HARNESS) $(ROM) $(OUT)/shore.sav shore.txt $(OUT) > $(OUT)/shore.log
 	python3 check_shore.py $(OUT)
+	python3 make_save.py $(OUT)/clouds.sav $$(seq -s, 0 9),$$(seq -s, 20 29),$$(seq -s, 40 49) 40,41 3 2
+	./$(HARNESS) $(ROM) $(OUT)/clouds.sav clouds.txt $(OUT) > $(OUT)/clouds.log
+	./$(HARNESS) $(ROM) $(OUT)/clouds.sav clouds_continue.txt $(OUT) > $(OUT)/clouds_continue.log
+	python3 check_clouds.py $(OUT)
 	python3 check_music.py $(OUT) $(ROM)
 
 .PHONY: run

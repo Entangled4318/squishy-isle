@@ -306,8 +306,9 @@ def main():
             cont_tiles.append(b''.join(tile4(idx[ty:ty + 8, tx:tx + 8]) for ty in (0, 8) for tx in (0, 8)))
             cont_pals += box_pals
             continue
-        variants = {'acorn': [props.acorn16(c) for c in ('cream', 'pink', 'mint', 'lav', 'gold')],
-                    'shell': [props.shell(c, 16) for c in ('pink', 'peach', 'mint', 'lav', 'yellow')]}[kind]
+        variants = {'acorn': lambda: [props.acorn16(c) for c in ('cream', 'pink', 'mint', 'lav', 'gold')],
+                    'shell': lambda: [props.shell(c, 16) for c in ('pink', 'peach', 'mint', 'lav', 'yellow')],
+                    'capsule': lambda: [props.capsule16(b, d, l) for l, b, d in props.CAPSULE_COLORS.values()]}[kind]()
         index, pals = shared_index(variants)
         cont_tiles.append(b''.join(tile4(index[ty:ty + 8, tx:tx + 8]) for ty in (0, 8) for tx in (0, 8)))
         for pal in pals:
@@ -320,7 +321,7 @@ def main():
     # asleep, awake, then two 8x8 z's). Its colors go after the small
     # shadow's in the same OBJ palette (the maps use all 16)
     mf = npc.frames()
-    parts = [mf['sleep'], mf['awake']] + npc.zz()
+    parts = [mf['sleep'], mf['awake']] + npc.zz() + [npc.blanket()]
     npc_cols = sorted({tuple(int(v) for v in p) for im in parts for p in im[..., :3][im[..., 3] > 0]})
     if len(npc_cols) > 14:
         raise ValueError(f'Momo: {len(npc_cols)} colors')
@@ -328,6 +329,7 @@ def main():
     cw.u32_bytes('npc_tiles', b''.join(obj(im, nlk) for im in parts))
     cw.define('NPC_AWAKE', 16)
     cw.define('NPC_ZZ', 32)
+    cw.define('NPC_BLANKET', 34)           # 64x32 (quilt in its rows 17..30): tucks Momo in on its cloud bed
     shadow_npc_pal = [0, bgr555(rgb15('#6a5a88'))] + [bgr555(c) for c in npc_cols]
     cw.u16('shadow16_pal', shadow_npc_pal + [0] * (16 - len(shadow_npc_pal)))
     save_scaled(np.concatenate(parts[:2], axis=1), os.path.join(OUT, 'npc_momo.png'), 6)
@@ -357,6 +359,7 @@ def main():
                 '    const uint16_t *doors; uint8_t ndoors;   /* x, y, w, h: up here opens the shelf */\n'
                 '    const uint16_t *exits; uint8_t nexits;   /* x, y, w, h, to area, arrive x, arrive y */\n'
                 '    const uint16_t *gates; uint8_t ngates;   /* x, y, w, h, to area: Momo lies there while it is shut */\n'
+                '    uint16_t momo_x, momo_y;             /* Momo sleeps on its bed here once every way is open (0 = none) */\n'
                 '} AreaMap;\n')
     built = [b() for b in AREA_BUILDERS]
     names = [a[0] for a in AREAS]
@@ -371,7 +374,7 @@ def main():
     cw.save(OUT)
 
 
-AREA_BUILDERS = [areas.meadow, areas.woods, areas.shore]       # maps built so far, in play order
+AREA_BUILDERS = [areas.meadow, areas.woods, areas.shore, areas.clouds]       # every map, in play order
 
 
 def shared_index(variants):
@@ -461,12 +464,13 @@ def export_area(cw, a, index):
     print(f'{a.name}: {b["ntiles"]} tiles, {len(b["palettes"])} palettes')
     pen = a.pen or (0, 0, 0, 0)
     sign = a.sign or (0, 0)
+    momo = a.momo or (0, 0)
     n = a.name
     return (f'    {{{index}, {n}_tiles, {len(b["tiles"])}, {n}_pal, {len(b["palettes"]) * 32}, {n}_ground, {n}_overlay,\n'
             f'     {n}_solid, {areas.CELL.bit_length() - 1}, {a.w}, {a.h}, {a.spawn[0]}, {a.spawn[1]},\n'
             f'     {n}_spots, {len(a.spots)}, {a.first_spot}, {pen[0]}, {pen[1]}, {pen[2]}, {pen[3]}, {sign[0]}, {sign[1]},\n'
             f'     {n}_shimmer, {len(slots)}, {n}_shimmer_cycle, {n}_doors, {len(a.doors)}, {n}_exits, {len(a.exits)},\n'
-            f'     {n}_gates, {len(a.gates)}}}')
+            f'     {n}_gates, {len(a.gates)}, {momo[0]}, {momo[1]}}}')
 
 
 if __name__ == '__main__':

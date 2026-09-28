@@ -415,8 +415,17 @@ def acorn16(nut_color='cream'):
     return img
 
 
-def capsule16(top='#ffb6cb', top_dk='#ec8fae'):
-    t = [C['white'], rgb15('#ffe0ea'), rgb15(top), rgb15(top_dk), rgb15(top_dk)]
+CAPSULE_COLORS = {      # top half: light, base, dark (5 capsule colors, as in the machine)
+    'pink': ('#ffe0ea', '#ffb3c8', '#ec8fae'),
+    'blue': ('#e2f1ff', '#bfe0ff', '#86b4e6'),
+    'yellow': ('#fff8d0', '#fff0a0', '#e8c060'),
+    'mint': ('#e0f8e8', '#bff0cc', '#7cc8a0'),
+    'lav': ('#f0e8ff', '#d8c6fa', '#a890e0'),
+}
+
+
+def capsule16(top='#ffb6cb', top_dk='#ec8fae', top_lt='#ffe0ea'):
+    t = [C['white'], rgb15(top_lt), rgb15(top), rgb15(top_dk), rgb15(top_dk)]
     b = [C['white'], C['white'], rgb15('#fbf6ff'), rgb15('#e4dcf2'), rgb15('#cfc4e4')]
     ink = rgb15('#8a5a7a')
     from squishies import Clip, HalfPlane

@@ -30,7 +30,7 @@
 #define T_COUNT   128      /* found counter: pill with icon (two 32x16), then text 32x16 */
 #define T_COUNT_TXT (T_COUNT + 16)
 #define T_NPC     160      /* Momo: asleep, awake (32x32 each), two z's; palette P_SHADOW */
-#define T_NPC_TXT 200      /* "7/10" in Momo's bubble, 32x16 */
+#define T_NPC_TXT 232      /* "7/10" in Momo's bubble, 32x16 (after Momo's 66 tiles) */
 #define P_SQ      10       /* 10..14: the area's 5 flavor palettes */
 #define P_COUNT   15
 
@@ -392,7 +392,11 @@ static void restore_pos(void) {
     if (pos_restored) return;
     pos_restored = true;
     int x = game_save.pip_x, y = game_save.pip_y;
-    if ((x || y) && x < A->w && y < A->h && !blocked(x, y)) {
+    if (!x && !y) {                            /* no spot saved: the area's start */
+        x = A->spawn_x;
+        y = A->spawn_y;
+    }
+    if (x < A->w && y < A->h && !blocked(x, y)) {
         pip_x = x << 8;
         pip_y = y << 8;
         dbg("restore pip=%d,%d", x, y);
@@ -702,8 +706,44 @@ static void draw_gates(void) {
     }
 }
 
+/* Once every way is open Momo sleeps happily on its cloud bed (Cloud Hill).
+ * Pip close by: Momo wakes, hops for joy and hearts float up. */
+static bool momo_home_near;
+static int momo_home_t;             /* frames since Pip came close, for the hops */
+
+static void draw_momo_home(void) {
+    if (!A->momo_x || !gate_built(AREA_COUNT - 1)) return;
+    int x = A->momo_x, y = A->momo_y, hop = 0;
+    if (momo_home_near) {
+        int t = momo_home_t % 48;                                       /* two quick hops, then a rest */
+        if (t < 24) hop = (t % 12) * (12 - t % 12) / 6;
+    }
+    int sx = x - cam_x, sy = y - cam_y;
+    if (on_screen(sx - 32, sy - 24, 64, 32))                            /* the blanket tucks Momo in (64x32, */
+        world_spr(y + 1, sx - 32, sy - 24, A0_WIDE, 3, 0, T_NPC + NPC_BLANKET, P_SHADOW);   /* quilt in rows 17..30) */
+    draw_momo(x, y, momo_home_near, hop, 0);
+    if (!momo_home_near) return;
+    for (int k = 0; k < 3; k++) {                                        /* hearts drift up and fade out */
+        int t = (momo_home_t + k * 30) % 90;
+        if (t > 72) continue;
+        int wob = isin(t * 2 + k * 20) * 3 / 256;
+        ui_spr(x - cam_x - 4 + (k - 1) * 10 + wob, y - cam_y - 38 - t / 3, A0_SQUARE, 0, 0, T_SPARK + 3, P_SPARK);
+    }
+}
+
 static void update_npc(void) {
     int px = pip_x >> 8, py = pip_y >> 8, was = npc_near;
+    if (A->momo_x && gate_built(AREA_COUNT - 1)) {                      /* Momo at home on Cloud Hill */
+        int dx = px - A->momo_x, dy = py - A->momo_y;
+        bool near = dx * dx + dy * dy < 40 * 40;
+        if (near && !momo_home_near) {
+            momo_home_t = 0;
+            sfx_chime(4);
+            dbg("momo home near");
+        }
+        momo_home_near = near;
+        momo_home_t++;
+    }
     npc_near = -1;
     for (int i = 0; i < A->ngates; i++) {
         const u16 *g = &A->gates[i * 5];
@@ -785,6 +825,7 @@ static void gate_scene_update(void) {
 static void draw(void) {
     n_world = n_oam = 0;
     draw_gates();
+    draw_momo_home();
     if (gs.t >= 0) draw_gate_scene();
     draw_counter();
     draw_arrow();

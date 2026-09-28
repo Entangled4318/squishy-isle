@@ -65,6 +65,8 @@ _add(s_hi='#fff8ea', s_lt='#fff0d6', s_base='#fce4bf', s_dk='#f1cfa3',
 _add(sky_top='#c9c6f5', sky_mid='#dcd6fa', sky_lo='#f2dcf2', sky_pk='#ffe2ec',
      sky_pch='#ffe9dc', cl_hi='#ffffff', cl_base='#f6f2ff', cl_dk='#e2dcf6',
      cl_dk2='#cbc2ec', cl_ink='#a79ad6')
+# Cloud Hill stars and moon: their fill glints at run time (st_lt -> st_hi)
+_add(st_lt='#fff2b0', st_hi='#fffdfa', st_ink='#e0b050')
 
 # UI.
 _add(ui_bg='#fff4f7', ui_pk='#ffd2df', ui_pk2='#ffb6ca', ui_line='#e088a8',

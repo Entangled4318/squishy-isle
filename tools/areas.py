@@ -39,6 +39,7 @@ class Area:
         self.shimmer = 'w_lt'    # palette color that glints (cycled at run time)
         self.gates = []          # (x, y, w, h, to_area): solid while that area is shut; Momo the
                                  # sleepy panda (32x32, feet at x + w/2, y + h) lies there
+        self.momo = None         # (x, y): Momo's feet on its bed here, once every way is open (Cloud Hill)
 
     def block(self, x0, y0, x1, y1):
         """Mark pixel rect [x0,x1) x [y0,y1) solid (rounded to cells)."""
@@ -372,13 +373,128 @@ def shore():
     a.block(476, 164, 480, 320)
     a.block(0, 316, 480, 320)
     a.exits.append((0, 186, 6, 28, 1, 456, 120))       # west: the boardwalk back to the woods
-    a.exits.append((468, 136, 12, 28, 3, 24, 200))     # east: on to Cloud Hill
+    for i, (x, y) in enumerate(((440, 160), (452, 148), (464, 136), (474, 124))):   # cloud steps up to Cloud Hill
+        a.decor(world.cloud_puff(20, 11, i), x, y)
+    a.exits.append((468, 136, 12, 28, 3, 24, 204))     # east: on to Cloud Hill
     a.gates.append((450, 136, 28, 28, 3))              # Momo sleeps here until Cloud Hill opens
     a.spawn = (24, 200)
     a.spots = [(70, 176), (120, 110), (220, 176), (300, 110), (380, 150), (60, 120), (250, 240),
                (160, 214), (200, 300), (300, 300), (420, 296), (100, 240)]
     a.first_spot = 0                                   # in view of the arrival on the boardwalk
     return a
+
+
+class CloudMask(SDF):
+    """Signed distance of a union of shapes, for the cloud islands."""
+
+    def __init__(self, *s):
+        self.s = s
+
+    def d(self, X, Y):
+        d = self.s[0].d(X, Y)
+        for t in self.s[1:]:
+            d = np.minimum(d, t.d(X, Y))
+        return d
+
+
+def clouds():
+    """Cloud Hill: puffy cloud islands in a lavender to pink sky. Cloud
+    steps come up from the shore (west); the big island has the capsule
+    machine under a rainbow, candy trees and the friend pen (the meadow's
+    size). Puff bridges lead to a small garden island (south-west) and to
+    Momo's bed (north-east), where Momo sleeps happily once every way is open."""
+    from world import CloudBlob
+    W_, H_ = 480, 320
+    a = Area('clouds', W_, H_)
+    sky = world.sky_map(W_, H_, [(0, rgb15('#c4c0f2')), (48, rgb15('#cfc8f6')), (104, rgb15('#dbd0f8')),
+                                 (168, rgb15('#e8d6f6')), (232, rgb15('#f4dcf2')), (288, rgb15('#fde2ee'))])
+    # far sky: rainbow behind the big island, moon, stars, soft clouds
+    blit(sky, world.rainbow(208, 100, 5), 132, 6)
+    blit(sky, world.glint_moon(), 44, 18)
+    for i, (w_, h_, x, y) in enumerate(((52, 20, 6, 60), (44, 16, 404, 128), (40, 16, 196, 292), (56, 20, 352, 280),
+                                        (36, 14, 20, 150))):
+        blit(sky, mockups_cloud(w_, h_, i + 7), x, y)
+    for (x, y) in ((110, 30), (360, 20), (18, 108), (300, 8), (452, 110), (150, 300), (440, 230), (8, 250),
+                   (250, 100)):
+        sky[y, x, :3] = C['st_lt']
+    main = CloudBlob(244, 194, 172, 88, bump=9, seed=2)
+    garden = CloudBlob(76, 282, 50, 24, bump=7, seed=5)                # small island, south-west
+    bed = CloudBlob(416, 86, 52, 32, bump=7, seed=4)                   # Momo's island, north-east
+    puffs = (puff_bridge(-14, 208, 92, 200, 13, 6, 3) +                # cloud steps up from the shore
+             puff_bridge(98, 252, 84, 270, 11, 2, 11) +
+             puff_bridge(360, 138, 398, 108, 14, 3, 13))
+    lab = shape_labels(W_, H_, 'x', [('c', CloudMask(main, garden, bed, *puffs))])
+    a.ground = world.cloud_ground(lab, sky)
+    walk = lab == 'c'
+    for r in range(H_ // CELL):
+        for c in range(W_ // CELL):
+            if walk[r * CELL:(r + 1) * CELL, c * CELL:(c + 1) * CELL].mean() < 0.7:
+                a.solid[r, c] = True
+    a.shimmer = 'st_lt'
+
+    # ---- stars on the clouds (they twinkle), lollipops, tree shadows
+    for i, (x, y) in enumerate(((130, 170), (206, 262), (300, 140), (400, 236), (84, 214), (206, 176), (164, 132),
+                                (400, 160), (60, 292), (440, 110), (330, 118), (146, 262), (30, 196), (250, 116))):
+        a.decor(world.star_glint(i % 3 == 0), x, y)
+    for kind, x, y in (('pink', 190, 148), ('blue', 150, 190), ('mint', 110, 290), ('pink', 380, 96),
+                       ('mint', 408, 206), ('blue', 238, 214), ('pink', 396, 132)):
+        a.decor(world.lollipop(kind), x, y)
+    trees = [('pink', 96, 116), ('blue', 150, 100), ('blue', 330, 100), ('blue', 112, 196), ('pink', 176, 232),
+             ('blue', 36, 250), ('pink', 104, 250), ('blue', 256, 240)]
+    trees = [(k, x // 8 * 8, y // 8 * 8) for k, x, y in trees]
+    for kind, x, y in trees:
+        a.decor(world.tree_shadow(26, C['cl_dk']), x + 3, y + 38)
+
+    # ---- the capsule machine under the rainbow, candy trees
+    g = world.gacha()
+    a.place(g, 216, 84, block_w=34, tall=10)
+    for kind, x, y in sorted(trees, key=lambda t: t[2]):
+        t = world.candy_tree(kind)
+        a.place(t, x, y, block_w=8, tall=6)
+
+    # ---- Momo's bed on the north-east island
+    bed_img = world.cloud_bed()
+    bx, by = 390, 76
+    a.place(bed_img, bx, by)
+    a.block(bx + 2, by + 4, bx + 46, by + 22)
+    a.momo = (bx + 26, by + 18)
+
+    # ---- friend pen (the meadow's size), east of the machine; sign by its top-left corner
+    px0, py0, px1, py1 = 282, 168, 402, 252
+    top = world.fence(7)
+    a.place(top, px0, py0 - 6, block_w=top.shape[1], tall=6)
+    a.place(top, px0, py1 - top.shape[0], block_w=top.shape[1], tall=6)
+    side = world.fence_side(py1 - py0 - 6)
+    a.place(side, px0 - 3, py0, block_w=7, tall=side.shape[0])
+    a.place(side, px1 - 4, py0, block_w=7, tall=side.shape[0])
+    a.pen = (px0 + 8, py0 + 20, px1 - 8, py1 - 14)
+    sign_img = world.signpost(world.mini_heart())
+    a.place(sign_img, px0 - 26, py0 - 4, block_w=8, tall=6)
+    a.sign = (px0 - 26 + sign_img.shape[1] // 2, py0 + 19)
+
+    a.block(0, 0, 4, 190)                              # map edge beside the way down
+    a.block(0, 218, 4, 320)
+    a.exits.append((0, 190, 12, 28, 2, 452, 150))     # west: down the cloud steps to the shore (12 px: see woods)
+    a.spawn = (24, 204)
+    a.spots = [(96, 190), (170, 160), (216, 200), (150, 226), (300, 130), (392, 146), (64, 296),
+               (138, 280), (446, 100), (232, 262), (330, 272), (196, 118)]
+    a.first_spot = 0                                   # in view of the arrival
+    return a
+
+
+def puff_bridge(x0, y0, x1, y1, r, n, seed):
+    """A walkable chain of overlapping cloud puffs from (x0,y0) to (x1,y1)."""
+    from world import CloudBlob
+    out = []
+    for i in range(n + 1):
+        t = i / n
+        out.append(CloudBlob(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, r + 3, r, bump=4.5, seed=seed + i))
+    return out
+
+
+def mockups_cloud(w, h, seed):
+    import mockups
+    return mockups.cloud(w, h, seed)
 
 
 def collision_preview(a):
