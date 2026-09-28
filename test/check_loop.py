@@ -46,6 +46,18 @@ check('scene shelf page=0 pick=0' in la, 'START after a catch opens the shelf, n
 check(20 <= cu_y <= 36, f'shelf close-up after a catch: the friend sits on the cushion (sprite y {cu_y}, 28 expected)')
 check(re.search(r'scene shelf page=0 pick=0\n\[game f\d+\] scene closeup', la) is not None, 'the shelf cursor starts on a found friend: START then A opens a close-up')
 check(re.search(r'closeup squish 3\n\[game f\d+\] scene shelf', la) is not None, '3 squishes in the close-up go back to the shelf')
+playing, bad = -1, []                          # music per scene: meadow song on the map and shelf, none on the box
+for ln in la.splitlines():
+    m = re.search(r'song (start|stop) (\d+)|scene (\w+)', ln)
+    if not m:
+        continue
+    if m.group(1):
+        playing = int(m.group(2)) if m.group(1) == 'start' else -1
+    elif m.group(3) in ('meadow', 'shelf', 'closeup') and playing != 1 or m.group(3) == 'open' and playing != -1:
+        bad.append(f'{m.group(3)} with song {playing}')
+check(not bad and la.count('song start 1') >= 5, f'the meadow song plays on the map, the shelf and the close-up, stops for the box {bad[:3]}')
+trips = re.findall(r'scene shelf.*?scene meadow', la, re.S)
+check(trips and not any('song ' in t for t in trips), f'the meadow song goes on through the shelf, no stop or restart ({len(trips)} trips)')
 check('friends pen=17 follow=3' in lc, 'full meadow: 3 friends follow Pip, 17 live in the pen')
 
 sym, size = {}, {}

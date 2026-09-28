@@ -17,7 +17,12 @@ shelf. No battles, no fail states, no reading needed. Full design:
 - Score each part X/10 and iterate until it is 8.5 or higher. Report
   scores honestly, including the first pass and what was fixed.
 - Send screenshots in chat (from the real emulator, not mockups).
-- Work step by step. Give an overview, then ask before starting each step.
+- Work step by step. Give an overview, then go ahead with the coding.
+- For music, send the piano roll `check_music.py` writes (`roll_KEY.png`).
+- Commit and push after each task and update this file. Merge to main
+  when a sub-step is done, so the owner can download
+  `release/squishy-isle.gba`.
+- Ask the owner one question at a time.
 - Build to a high standard.
 
 ## Status
@@ -29,7 +34,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
-| 5. Music and sound set | In progress; see "Step 5 progress" |
+| 5. Music and sound set | In progress (5.1 to 5.3 done); see "Step 5 progress" |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
 | 7. QA and final ROM with Brick instructions | To do |
 
@@ -39,7 +44,12 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
-  5.3 (title music: starts after the hello jingle, bright and bouncy,
+  5.3 B (meadow lullaby: starts when the meadow shows, slow and sleepy
+  3/4 rocking, softer than the title song, melody clear over the bass,
+  bass audible on the Brick speaker (lowest note F2, 87 Hz), loop at
+  58 s is seamless, keeps playing in the shelf and close-up, stops when
+  a box opens and starts again back on the map; also in the sound test),
+  step 5.3 (title music: starts after the hello jingle, bright and bouncy,
   melody clearly over the bass, loop at 34 s is seamless, stops when
   the game starts; also in the sound test), step
   5.2 (hold L + R + START at power-on: the sound test opens; A plays
@@ -57,7 +67,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 5.3 task B (meadow lullaby), then 5.4 to 5.6 (see "Step 5
+- Next: step 5.4 (box-opening tune, reveal jingle, shelf music box
+  theme unless the owner says no), then 5.5 and 5.6 (see "Step 5
   progress"). Step 5 owner request: title music, meadow
   music, a different tune per area, a tune for opening boxes. Then
   step 6 (3 more areas with 20 unique friends each, a way to get there,
@@ -346,7 +357,25 @@ Plan agreed with the owner, one sub-step per turn, stop after each task:
    pitch heard in the emulator). Mix: bass/lead loudness 0.47 (check
    0.25..0.65). Score 8.5 (first pass 7: 4 clashing beat notes, slow
    first loop, bass too loud at 0.70). Screenshot
-   `docs/step5_3_title_roll.png`. Task B (next): meadow lullaby.
+   `docs/step5_3_title_roll.png`. Task B **done**: "Meadow: Sleepy
+   clover" (`song('meadow', ...)`): F major waltz, 3/4 (`bar=12`, 12
+   ticks a bar), 75 bpm (tick 12), 24 bars A B A' (A rises by broken
+   chords, B steps down in pairs and rests on F, A' climbs to a high D
+   and settles on A), 57.6 s a loop. Hollow (flute) lead at 50% with a
+   slow fade on long notes (`lead_decay` 40); bass rocks root, fifth,
+   third on a 50% square, soft pluck that rings about half a beat
+   (`bass_vol` 4, `bass_step` 7). `music_play(SONG_MEADOW)` in the
+   meadow's `enter()`; it plays on through the shelf and close-up (no
+   restart); `open.c` stops it (5.4 gives the box its own tune). The
+   sound engine logs `song start N` / `song stop N`; `check_loop.py`
+   checks the song per scene. `check_music.py` draws bar lines from the
+   song's `bar`. `step3_boxes.txt` records the arrow wait on channel 1
+   only (`solo 1`, then 4 frames for the filter to settle), since the
+   music now plays there. Mix: peak 5889 (title 8808), bass/lead 0.42.
+   Score 8.5 (first pass 7.5: lead louder than the title song, lead click
+   step on the limit, bass plucks died by mid-beat; fixed by lead 75% to
+   50%, longer bass ring, a 4-3 suspension in bar 18). Piano roll
+   `docs/step5_3_meadow_roll.png`.
 4. Box-opening tune (open screen), reveal jingle; shelf music box theme
    (DESIGN.md) unless the owner says no.
 5. Shore, Woods and Cloud Hill tunes (played once step 6 builds them).

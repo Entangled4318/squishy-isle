@@ -34,6 +34,7 @@ static int presses, idle_t, cool, jump_t, jump_h, land_t, pop_t, press_anim;
 static int lid_x, lid_y, lid_vx, lid_vy, lid_spin;   /* 8.8 fixed while flying */
 
 static void enter(void) {
+    music_stop();                    /* the box has its own sounds (its tune comes in step 5.4) */
     dma3_copy32(CHARBLOCK(0), openbg_tiles, sizeof openbg_tiles);
     dma3_copy32(SCREENBLOCK(30), openbg_map0, sizeof openbg_map0);
     dma3_copy16(PAL_BG, openbg_pal, sizeof openbg_pal);

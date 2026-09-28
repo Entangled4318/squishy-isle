@@ -83,8 +83,9 @@ def song(key, title, tick, lead, bass, bar=16, loop=True, wave='sine', lead_leve
     bass_gap: frames of silence at the end of each bass note (0 = none;
     a hard cut clicks, so prefer a fading envelope).
     bass_vol, bass_step: square envelope start (0..15) and fade step (0 = hold).
-    bass_duty: 0 = 12.5%, 1 = 25%, 2 = 50%."""
-    SONGS[key] = dict(title=title, tick=tick, lead=parse(lead, bar), bass=parse(bass, bar), loop=loop, wave=wave,
+    bass_duty: 0 = 12.5%, 1 = 25%, 2 = 50%.
+    bar: ticks per bar (16 = 4/4 in sixteenths, 12 = 3/4)."""
+    SONGS[key] = dict(title=title, tick=tick, bar=bar, lead=parse(lead, bar), bass=parse(bass, bar), loop=loop, wave=wave,
                       lead_level=lead_level, lead_decay=lead_decay, lead_gap=lead_gap,
                       bass_vol=bass_vol, bass_duty=bass_duty, bass_step=bass_step, bass_gap=bass_gap)
 
@@ -109,6 +110,29 @@ song('title', 'Title: Hello island', 8,
           'F2 C3 F2 C3 | C3 G2 C3 G2 | F2 C3 F2 C3 | C3 G2 C3 G2 | '
           'D3 A2 D3 A2 | G2 D3 G2 D3 | C3 G2 A2 E3 | G2 D3 G2 D3',
      wave='bell', lead_level=1, lead_decay=10, lead_gap=2, bass_vol=6, bass_duty=1, bass_step=3)
+
+
+# Meadow: a sleepy waltz, F major, 3/4 (12 ticks a bar), 75 bpm (12 frames
+# per sixteenth), 24 bars, about 58 s per loop. A (1-8) rises by broken
+# chords, B (9-16) steps down in pairs and rests on F, A' (17-24) climbs
+# to a high D and settles on A. Chords: F F Bb F Gm C F C | Dm Am Bb F Gm
+# F C7 F | F F Bb F Bb F C7 F. Hollow (flute-like) lead that fades on long
+# notes, at 50% so it sits under the title song; the bass rocks root -
+# fifth - third, soft and round (50% duty), each note ringing most of a beat.
+song('meadow', 'Meadow: Sleepy clover', 12,
+     lead='C5:4 F5:4 A5:4 | G5:8 F5:4 | D5:4 F5:4 Bb5:4 | A5:12 | '
+          'G5:4 Bb5:4 D6:4 | C6:6 Bb5:2 G5:4 | A5:4 G5:4 F5:4 | E5:8 G5:4 | '
+          'A5:8 F5:4 | E5:8 C5:4 | D5:4 F5:4 Bb5:4 | A5:8 C6:4 | '
+          'Bb5:6 A5:2 G5:4 | A5:6 G5:2 F5:4 | E5:4 G5:4 Bb5:4 | F5:8 r:4 | '
+          'C5:4 F5:4 A5:4 | Bb5:6 A5:2 G5:4 | D5:4 F5:4 Bb5:4 | A5:8 C6:4 | '
+          'D6:8 Bb5:4 | C6:4 A5:4 F5:4 | G5:6 A5:2 Bb5:4 | A5:8 r:4',
+     bass='F2:4 C3 A2 | F2 C3 A2 | Bb2 F3 D3 | F2 C3 A2 | '
+          'G2 D3 Bb2 | C3 G3 E3 | F2 C3 A2 | C3 G3 E3 | '
+          'D3 A3 F3 | A2 E3 C3 | Bb2 F3 D3 | F2 C3 A2 | '
+          'G2 D3 Bb2 | F2 C3 A2 | C3 G3 E3 | F2 C3 A2 | '
+          'F2 C3 A2 | F2 C3 A2 | Bb2 F3 D3 | F2 C3 A2 | '
+          'Bb2 F3 D3 | F2 C3 A2 | C3 G3 E3 | F2 C3 A2',
+     bar=12, wave='hollow', lead_level=2, lead_decay=40, lead_gap=2, bass_vol=4, bass_duty=2, bass_step=7)
 
 
 # ---------------------------------------------------------------- export

@@ -7,6 +7,7 @@
 #include "collection.h"
 #include "game.h"
 #include "game_assets.h"
+#include "music_data.h"
 #include "squishy.h"
 #include "sound.h"
 #include "system.h"
@@ -353,6 +354,7 @@ static void save_pos(bool now) {
 
 static void enter(void) {
     restore_pos();
+    music_play(SONG_MEADOW);         /* goes on through the shelf; no restart when it already plays */
     dma3_copy32(CHARBLOCK(0), meadow_tiles, sizeof meadow_tiles);
     dma3_copy16(PAL_BG, meadow_pal, sizeof meadow_pal);
     dma3_copy32(SCREENBLOCK(24), meadow_ground, sizeof meadow_ground);
