@@ -39,8 +39,10 @@ def count(im, box, color):
 
 shut = open(os.path.join(OUT, 'woods_shut.log')).read()
 m = re.search(r'\[walkto\] stopped at (\d+),(\d+)', shut)
-check('exit to area' not in shut and m and int(m.group(1)) <= 446,
-      f'9 meadow friends: the log stops Pip on the bridge (at x {m and m.group(1)}, log from 450)')
+check('exit to area' not in shut and m and int(m.group(1)) <= 438,
+      f'9 meadow friends: sleeping Momo stops Pip at the bridge (at x {m and m.group(1)}, Momo from 442)')
+nm = re.search(r'npc near 0 found (\d+)', shut)
+check(nm and nm.group(1) == '9', 'Momo peeks when Pip comes close (the bubble shows 9/10)')
 log = open(os.path.join(OUT, 'woods.log')).read()
 check('exit to area 1' in log and 'scene meadow pip=20,200 area=1' in log,
       '10 meadow friends: over the bridge into the woods, arriving on the west trail')
@@ -58,10 +60,13 @@ songs = re.findall(r'song (?:start|resume) (\d+)\n\[game f\d+\] scene meadow pip
 check(('6', '1') in songs and ('1', '0') in songs, f'the woods play their own song, the meadow its own ({songs[:4]})')
 
 w1, w2 = shot('w01_log_shut'), shot('w02_bridge_open')
-gate = (206, 70, 228, 108)                      # the log's place on screen (camera at 240,108 in both)
-ink = gba('#704c52')
+gate = (198, 70, 234, 108)                      # Momo's place on screen (camera at 240,108 in both)
+ink = gba('#8f84aa')                            # Momo's ears and eye patches (no friend uses it)
 check(count(w1, gate, ink) >= 20 and count(w2, gate, ink) == 0,
-      f'the log shows on the bridge while shut and is gone once open ({count(w1, gate, ink)} / {count(w2, gate, ink)} px)')
+      f'Momo sleeps on the bridge while shut and is gone once open ({count(w1, gate, ink)} / {count(w2, gate, ink)} px)')
+bubble = (170, 30, 240, 60)
+fill = gba('#fff4f7')
+check(count(w1, bubble, fill) >= 150, f'the count bubble floats over Momo while Pip is close ({count(w1, bubble, fill)} px)')
 w5, w8 = shot('w05_woods_after'), shot('w08_meadow_back')
 pill = (180, 2, 236, 18)
 cap = gba('#c49276')
@@ -77,12 +82,12 @@ check(st and int(st.group(1)) - int(re.search(r'\[game f(\d+)\] scene meadow', g
 check('exit to area 1' in gl, 'after the scene the bridge leads to the woods')
 check('gate scene' not in open(os.path.join(OUT, 'gate_again.log')).read(), 'after a reboot the scene does not play again (saved)')
 g3, g4, g5 = shot('g03_push'), shot('g04_roll'), shot('g05_cheer')
-at = (206, 60, 228, 98)                         # the log's place with the camera on it
-below = (200, 98, 240, 160)
-check(count(g3, at, ink) >= 20, f'the log lies on the bridge while the friends push ({count(g3, at, ink)} px)')
-check(count(g4, at, ink) < count(g3, at, ink) // 2 and count(g4, below, ink) >= 10,
-      f'then it tumbles off the way ({count(g4, at, ink)} px left, {count(g4, below, ink)} px below)')
-check(count(g5, at, ink) == 0 and count(g5, below, ink) == 0, 'and it is gone')
+at = (196, 52, 236, 100)                        # Momo's place with the camera on it
+check(count(g3, at, ink) >= 20, f'Momo sleeps on the bridge while the friends tickle ({count(g3, at, ink)} px)')
+check(count(g4, at, ink) >= 20, f'Momo wakes and hops ({count(g4, at, ink)} px)')
+left = (196, 52, 222, 100)                      # where Momo's left half slept
+check(count(g4, left, ink) >= 10 and count(g5, left, ink) < 5,
+      f'then waddles off east toward the woods ({count(g4, left, ink)} -> {count(g5, left, ink)} px where Momo slept)')
 for n in ('g01_pan', 'g02_helpers', 'g06_back'):
     shot(n)
 for n in ('w03_woods_arrive', 'w04_touch_acorn', 'w06_shelf_woods', 'w07_pen_sign', 'w09_continue_woods'):

@@ -29,7 +29,8 @@
 #define P_ARROW   9
 #define T_COUNT   128      /* found counter: pill with icon (two 32x16), then text 32x16 */
 #define T_COUNT_TXT (T_COUNT + 16)
-#define T_GATE    160      /* log across a way that is still shut, 16x32 (palette P_SHADOW) */
+#define T_NPC     160      /* Momo: asleep, awake (32x32 each), two z's; palette P_SHADOW */
+#define T_NPC_TXT 200      /* "7/10" in Momo's bubble, 32x16 */
 #define P_SQ      10       /* 10..14: the area's 5 flavor palettes */
 #define P_COUNT   15
 
@@ -71,7 +72,7 @@ static int seek_t;                 /* frames since the last open */
 static int arrow_box = -1;         /* box the arrow points at, -1 = none */
 static int arrow_t;                /* frames since the arrow showed, for the blink */
 static int touch_box = -1;
-EWRAM_BSS static TextStrip st_count;   /* rendered into OBJ tiles: the meadow has no free BG palette */
+EWRAM_BSS static TextStrip st_count, st_npc;   /* rendered into OBJ tiles: the meadow has no free BG palette */
 static int count_last = -1, count_hop;   /* the counter hops when a new friend is counted */
 static bool at_sign;               /* Pip stands by the pen sign: A opens the picker */
 static bool pos_restored;          /* the saved position is used once, on the first visit after boot */
@@ -331,11 +332,11 @@ static bool blocked(int fx, int fy) {
     return false;
 }
 
-/* ---- gate scene: the first time a way opens, the area's friends roll the log away ---- */
-#define GS_PAN     50       /* frames: camera glides to the log */
+/* ---- gate scene: the first time a way opens, the area's friends wake Momo, who moves on ---- */
+#define GS_PAN     50       /* frames: camera glides to Momo */
 #define GS_IN      95       /* helpers have hopped in */
-#define GS_PUSH    165      /* three pushes, the log wobbles */
-#define GS_ROLL    215      /* the log tumbles off the way */
+#define GS_PUSH    165      /* three tickles; then Momo wakes and hops for joy */
+#define GS_ROLL    215      /* Momo waddles off toward the next area */
 #define GS_CHEER   255      /* sparkle, jingle, happy hops */
 #define GS_BACK    305      /* camera glides back to Pip; the scene ends */
 static struct {
@@ -346,7 +347,7 @@ static struct {
 
 static inline int lerp(int a, int b, int t, int n) { return a + (b - a) * t / n; }
 
-static void gate_center(int *x, int *y) {
+static void gate_center(int *x, int *y) {   /* where Momo's feet are */
     const u16 *g = &A->gates[gs.gate * 5];
     *x = g[0] + g[2] / 2;
     *y = g[1] + g[3];
@@ -436,7 +437,7 @@ static void enter(void) {
     dma3_copy16(PAL_OBJ + P_SHADOW * 16, shadow16_pal, sizeof shadow16_pal);
     dma3_copy32(OBJ_TILES + T_BOX * 16, cont16_tiles + A->area * 32, 4 * 32);
     dma3_copy16(PAL_OBJ + P_BOX * 16, cont16_pal + A->area * 5 * 16, 5 * 32);
-    dma3_copy32(OBJ_TILES + T_GATE * 16, gate_tiles, sizeof gate_tiles);
+    dma3_copy32(OBJ_TILES + T_NPC * 16, npc_tiles, sizeof npc_tiles);
     dma3_copy32(OBJ_TILES + T_SPARK * 16, ui_small_tiles, sizeof ui_small_tiles);
     dma3_copy16(PAL_OBJ + P_SPARK * 16, ui_small_pal, sizeof ui_small_pal);
     dma3_copy32(OBJ_TILES + T_ABTN * 16, abubble_tiles, sizeof abubble_tiles);
@@ -455,6 +456,13 @@ static void enter(void) {
     dma3_copy16(PAL_OBJ + P_COUNT * 16, count_pill_pal + A->area * 16, 32);
     st_count.tw = 4; st_count.th = 2; st_count.cbb = 4; st_count.first_tile = T_COUNT_TXT;
     strip_print(&st_count, buf, 1, 4, 1, 0);        /* centred after the icon */
+    k = 0;                   /* Momo's bubble: friends found here out of the GATE_NEED that wake Momo */
+    int need = n < GATE_NEED ? n : GATE_NEED;
+    if (need >= 10) buf[k++] = (char)('0' + need / 10);
+    buf[k++] = (char)('0' + need % 10);
+    buf[k++] = '/'; buf[k++] = (char)('0' + GATE_NEED / 10); buf[k++] = (char)('0' + GATE_NEED % 10); buf[k] = 0;
+    st_npc.tw = 4; st_npc.th = 2; st_npc.cbb = 4; st_npc.first_tile = T_NPC_TXT;
+    strip_print(&st_npc, buf, 1, 4, 1, 0);
 
     door_cool = 30;          /* do not walk straight back in */
     dbg("scene meadow pip=%d,%d area=%d", (int)(pip_x >> 8), (int)(pip_y >> 8), A->area);
@@ -658,50 +666,95 @@ static void draw_counter(void) {
     hud_spr(x + 32, y, A0_WIDE, 2, 0, T_COUNT + 8, P_COUNT);
 }
 
+/* Momo lies at the gate's bottom centre: 32x32, asleep with z's rising,
+ * awake for a peek while Pip stands close. */
+static void draw_momo(int x, int y, bool awake, int hop, u16 flip) {
+    int sx = x - cam_x, sy = y - cam_y;
+    if (!on_screen(sx - 16, sy - 32, 32, 34)) return;
+    int breathe = awake ? 0 : ((frame_count / 40) & 1);                  /* slow sleepy breathing */
+    world_spr(y, sx - 16, sy - 32 - hop + breathe, A0_SQUARE, 2, flip, T_NPC + (awake ? NPC_AWAKE : 0), P_SHADOW);
+    world_spr(y - 1, sx - 8, sy - 5, A0_WIDE | A0_BLEND, 0, 0, T_SHADOW, P_SHADOW);
+    if (awake) return;
+    for (int k = 0; k < 2; k++) {                                        /* z's drift up and away */
+        int t = (int)((frame_count + k * 45) % 90);
+        if (t > 70) continue;
+        ui_spr(sx + 8 + t / 10, sy - 36 - t / 3, A0_SQUARE, 0, 0, T_NPC + NPC_ZZ + k, P_SHADOW);
+    }
+}
+
+static int npc_near = -1;          /* gate whose Momo Pip stands by (shows the count bubble), -1 = none */
+
 static void draw_gates(void) {
     for (int i = 0; i < A->ngates; i++) {
         const u16 *g = &A->gates[i * 5];
         if (!gate_there(g[4]) || (gs.t >= 0 && gs.gate == i)) continue;
-        int sx = g[0] + g[2] / 2 - cam_x, sy = g[1] + g[3] - cam_y;
-        if (on_screen(sx - 8, sy - 32, 16, 32)) world_spr(g[1] + g[3], sx - 8, sy - 32, A0_TALL, 2, 0, T_GATE, P_SHADOW);
+        int gx = g[0] + g[2] / 2, gy = g[1] + g[3];
+        draw_momo(gx, gy, npc_near == i, 0, 0);
+        if (npc_near == i && gate_shut(g[4])) {                          /* bubble: the area's icon and "7/10" */
+            int bob = isin((int)(frame_count * 2)) * 2 / 256;
+            int x = gx - COUNT_PILL_W / 2 - cam_x, y = gy - 58 - cam_y + bob;
+            hud_spr(x + COUNT_TEXT_X, y + 1, A0_WIDE, 2, 0, T_NPC_TXT, P_COUNT);
+            hud_spr(x, y, A0_WIDE, 2, 0, T_COUNT, P_COUNT);
+            hud_spr(x + 32, y, A0_WIDE, 2, 0, T_COUNT + 8, P_COUNT);
+        }
+    }
+}
+
+static void update_npc(void) {
+    int px = pip_x >> 8, py = pip_y >> 8, was = npc_near;
+    npc_near = -1;
+    for (int i = 0; i < A->ngates; i++) {
+        const u16 *g = &A->gates[i * 5];
+        int dx = px - (g[0] + g[2] / 2), dy = py - (g[1] + g[3] - 8);
+        if (gate_there(g[4]) && dx * dx + dy * dy < 34 * 34) npc_near = i;
+    }
+    if (npc_near >= 0 && npc_near != was) {
+        sfx_blip();                                                      /* "hm?": Momo opens one eye */
+        dbg("npc near %d found %d", npc_near, found_in_area(A->area));
     }
 }
 
 static void draw_friend(int id, int x, int y, int hop);
 
-/* The helpers hop in from the west, push the log three times (squished
- * frame, the log wobbles), it tumbles south and away, they cheer. */
+/* The helpers hop in from the side Pip came from and tickle Momo (squished
+ * frame, squeaks) until Momo wakes up, hops for joy and waddles off toward
+ * the next area; sparkles, the ta-da, and the friends cheer. */
 static void draw_gate_scene(void) {
     int t = gs.t, gx, gy;
     gate_center(&gx, &gy);
-    int lx = gx, ly = gy;
-    u16 flip = 0;
-    if (t >= GS_IN && t < GS_PUSH) lx += ((t - GS_IN) % 24 < 8) ? 1 : 0;           /* a nudge on each push */
-    if (t >= GS_PUSH) {
-        int r = t - GS_PUSH;
-        ly += r * r / 40;                                                       /* tumbles off the way */
-        flip = ((r / 6) & 1) ? A1_VFLIP : 0;
-        flip |= ((r / 12) & 1) ? A1_HFLIP : 0;
+    int mx = gx, my = gy, hop = 0;
+    bool awake = t >= GS_PUSH;
+    if (t >= GS_IN && t < GS_PUSH) mx += ((t - GS_IN) % 24 < 8) ? 1 : 0;           /* wriggles when tickled */
+    if (t >= GS_PUSH && t < GS_ROLL) hop = ((t - GS_PUSH) % 16) < 8 ? ((t - GS_PUSH) % 16) * (8 - (t - GS_PUSH) % 16) / 4 : 0;
+    if (t >= GS_ROLL) {                                                          /* waddles off toward the exit */
+        int r = t - GS_ROLL, ex = gx, ey = gy;
+        for (int i = 0; i < A->nexits; i++)
+            if (A->exits[i * 7 + 4] == A->gates[gs.gate * 5 + 4]) {
+                ex = A->exits[i * 7] + A->exits[i * 7 + 2] / 2;
+                ey = A->exits[i * 7 + 1] + A->exits[i * 7 + 3];
+            }
+        int sx = ex > gx ? 1 : ex < gx ? -1 : 0, sy = ey > gy + 20 ? 1 : ey < gy - 20 ? -1 : 0;
+        mx += sx * r * 3 / 2;
+        my += sy * r * 3 / 2;
+        hop = (r % 10) < 5 ? 2 : 0;
     }
-    if (t < GS_ROLL) {
-        int sx = lx - cam_x, sy = ly - cam_y;
-        if (on_screen(sx - 8, sy - 32, 16, 32)) world_spr(ly, sx - 8, sy - 32, A0_TALL, 2, flip, T_GATE, P_SHADOW);
-    } else if (t < GS_CHEER) {                                                  /* sparkles where it lay */
-        static const s8 at[4][2] = {{-6, -24}, {5, -14}, {-4, -6}, {6, -30}};
+    if (t < GS_CHEER) draw_momo(mx, my, awake, hop, (t >= GS_ROLL && mx < gx) ? A1_HFLIP : 0);
+    if (t >= GS_ROLL && t < GS_CHEER) {                                         /* sparkles where Momo slept */
+        static const s8 at[4][2] = {{-10, -24}, {9, -14}, {-6, -6}, {8, -30}};
         int f = ((t - GS_ROLL) / 5) % 4;
         for (int k = 0; k < 4; k++)
             ui_spr(gx + at[k][0] - cam_x - 4, gy + at[k][1] - cam_y - 4, A0_SQUARE, 0, 0, T_SPARK + ((f + k) % 3), P_SPARK);
     }
     for (int k = 0; k < gs.n; k++) {
-        int hx = gx - 14 - (k == 1 ? 6 : 0), hy = gy - 20 + k * 10;                /* beside the log, feet on the way */
+        int hx = gx - 22 - (k == 1 ? 6 : 0), hy = gy - 16 + k * 9;                 /* beside Momo, feet on the way */
         int in = t < GS_PAN ? 0 : t < GS_IN ? t - GS_PAN : GS_IN - GS_PAN;
         int x = lerp(hx - 64, hx, in, GS_IN - GS_PAN);
-        int hop = 0;
-        if (t < GS_IN) hop = ((t + k * 7) / 5) % 4 == 1 ? 3 : 0;
-        else if (t >= GS_ROLL) hop = ((t + k * 5) / 6) % 3 == 0 ? 4 : 0;
+        int h = 0;
+        if (t < GS_IN) h = ((t + k * 7) / 5) % 4 == 1 ? 3 : 0;
+        else if (t >= GS_PUSH) h = ((t + k * 5) / 6) % 3 == 0 ? 4 : 0;
         if (t >= GS_BACK - 20) break;                                            /* they run off with Pip's camera */
         int before = n_world;
-        draw_friend(gs.ids[k], x, hy, hop);
+        draw_friend(gs.ids[k], x, hy, h);
         if (n_world == before + 2 && t >= GS_IN && t < GS_PUSH && (t - GS_IN) % 24 < 8) world[before].a2 += 4;   /* squished frame */
     }
 }
@@ -710,7 +763,10 @@ static void gate_scene_update(void) {
     int t = gs.t;
     if (t >= GS_IN && t < GS_PUSH && (t - GS_IN) % 24 == 0)
         for (int k = 0; k < gs.n; k++) sfx_squeak(friend_flavor(gs.ids[k]));
-    if (t == GS_PUSH) sfx_boing();
+    if (t == GS_PUSH) {                                                          /* Momo wakes up */
+        sfx_chime(2);
+        sfx_boing();
+    }
     if (t == GS_ROLL) {
         sfx_chime(4);
         song_play(tune_pop, tune_pop_len);
@@ -871,6 +927,7 @@ static void update(void) {
         scene_go(&scene_shelf);
     }
     u16 hit = fading ? 0 : key_hit();
+    update_npc();
     update_boxes(hit);
     if (scene_fading()) {              /* a box just opened: this A press is used up */
         draw();

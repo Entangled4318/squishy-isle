@@ -16,6 +16,7 @@ import mockups
 import props
 import areas
 import world
+import npc
 from pip import frames as pip_frames
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'build'
@@ -314,17 +315,21 @@ def main():
     cw.u32_bytes('cont16_tiles', b''.join(cont_tiles))
     cw.u16('cont16_pal', cont_pals)
 
-    # gate: a log lying across the way (16x32 sprite); its colors go after
-    # the small shadow's in the same OBJ palette (the map uses all 16)
-    glog = np.rot90(world.log(28), -1)            # the ring end faces the viewer
-    gate = pad_to(glog, 16, 32)
-    gate_cols = sorted({tuple(int(v) for v in p) for p in gate[..., :3][gate[..., 3] > 0]})
-    if len(gate_cols) > 14:
-        raise ValueError(f'gate log: {len(gate_cols)} colors')
-    glk = {c: i + 2 for i, c in enumerate(gate_cols)}
-    cw.u32_bytes('gate_tiles', obj(gate, glk))
-    shadow_gate_pal = [0, bgr555(rgb15('#6a5a88'))] + [bgr555(c) for c in gate_cols]
-    cw.u16('shadow16_pal', shadow_gate_pal + [0] * (16 - len(shadow_gate_pal)))
+    # Momo the sleepy panda lies across each way that is still shut (32x32
+    # asleep, awake, then two 8x8 z's). Its colors go after the small
+    # shadow's in the same OBJ palette (the maps use all 16)
+    mf = npc.frames()
+    parts = [mf['sleep'], mf['awake']] + npc.zz()
+    npc_cols = sorted({tuple(int(v) for v in p) for im in parts for p in im[..., :3][im[..., 3] > 0]})
+    if len(npc_cols) > 14:
+        raise ValueError(f'Momo: {len(npc_cols)} colors')
+    nlk = {c: i + 2 for i, c in enumerate(npc_cols)}
+    cw.u32_bytes('npc_tiles', b''.join(obj(im, nlk) for im in parts))
+    cw.define('NPC_AWAKE', 16)
+    cw.define('NPC_ZZ', 32)
+    shadow_npc_pal = [0, bgr555(rgb15('#6a5a88'))] + [bgr555(c) for c in npc_cols]
+    cw.u16('shadow16_pal', shadow_npc_pal + [0] * (16 - len(shadow_npc_pal)))
+    save_scaled(np.concatenate(parts[:2], axis=1), os.path.join(OUT, 'npc_momo.png'), 6)
 
     abtn = pad_to(props.a_button(), 16, 32)
     lk, pal = palette_and_lookup([abtn])
@@ -349,7 +354,7 @@ def main():
                 '    const uint16_t *shimmer; uint8_t nshimmer;\n'
                 '    const uint16_t *doors; uint8_t ndoors;   /* x, y, w, h: up here opens the shelf */\n'
                 '    const uint16_t *exits; uint8_t nexits;   /* x, y, w, h, to area, arrive x, arrive y */\n'
-                '    const uint16_t *gates; uint8_t ngates;   /* x, y, w, h, to area: solid while it is shut */\n'
+                '    const uint16_t *gates; uint8_t ngates;   /* x, y, w, h, to area: Momo lies there while it is shut */\n'
                 '} AreaMap;\n')
     built = [b() for b in AREA_BUILDERS]
     names = [a[0] for a in AREAS]

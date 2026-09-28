@@ -44,9 +44,10 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
-  6.3 (on the 10th meadow friend the friends roll the log off the
-  bridge: pace feels right, not too long, squeaks and ta-da sound
-  good), step
+  6.3 (Momo the panda sleeps on the meadow bridge; walking up shows
+  the "n/10" bubble; on the 10th meadow friend the friends tickle Momo
+  awake and it waddles off east: pace feels right, not too long; Momo
+  reads as a friendly panda at 4x), step
   6.2 (with 10 meadow friends walk east over the bridge into the Berry
   Woods and back; with fewer the log blocks the bridge; the woods feel
   different from the meadow; acorns read as acorns; woods song plays;
@@ -549,6 +550,24 @@ Plan, one sub-step at a time, merge after each:
    below it, then gone; no replay after a reboot). Screenshots
    `docs/step6_3_gate_scene.png`. Score 8.5 (the log drops into the
    stream with no splash; a splash could come with step 7 polish).
+   3b. Momo instead of logs (owner: "an NPC blocking the path, for all
+   maps"). **Done.** `tools/npc.py`: Momo, a sleepy pastel panda in a
+   sky-blue nightcap, drawn with the squishy renderer at 32 px (asleep
+   with the new `expr='sleep'` eyes, awake), plus two z tiles; 13 colors
+   in the shadow's OBJ palette (`npc_tiles`, `NPC_AWAKE`, `NPC_ZZ`;
+   `T_NPC` 160). One character for every gate: Momo lies across the
+   first way not yet opened, z's drifting up, breathing. Pip within
+   34 px: Momo opens its eyes (`sfx_blip`, log `npc near`) and a bubble
+   (the counter pill: area icon plus "7/10", `st_npc` at `T_NPC_TXT`)
+   floats over it. The gate scene: friends hop in and tickle Momo
+   (squeaks, wriggle) until it wakes (chime, boing), hops for joy three
+   times, then waddles off toward the area's exit for that gate while
+   sparkles and the ta-da play. Gate rects widened to Momo's 28 px. The
+   story reads: Momo moves on and sleeps across the next way. Checks in
+   `check_woods.py` use Momo's patch color `#8f84aa` (the helpers share
+   the vanilla outline). Screenshots `docs/step6_3b_momo.png`. Score 8.5
+   (first pass 7: 15 colors, pale patches read as a cat, nose and mouth
+   stacked into "=").
 4. Seashell Shore map, boardwalk from the Woods.
 5. Cloud Hill map, stairs from the Shore.
 6. Open screen per container (64 px acorn, shell, capsule).
