@@ -4,8 +4,8 @@ tap A
 wait 15
 tap A
 wait 25
-hold DOWN 30
-hold LEFT 80
+hold DOWN 50
+hold LEFT 30
 wait 2
 shot p01_walk_line
 wait 90

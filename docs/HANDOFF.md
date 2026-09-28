@@ -27,7 +27,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
-| 3. Game loop in the meadow | In progress: 1 to 7 done; 7b (bigger pen) and 8 next; see "Step 3 progress" |
+| 3. Game loop in the meadow | Done. `release/squishy-isle.gba`, `release/step3_screens.png`. Owner to test on the Brick; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
@@ -35,6 +35,10 @@ shelf. No battles, no fail states, no reading needed. Full design:
 
 ## Owner notes
 
+- Step 3 is merged to main. Brick test pending (owner): new game from
+  the title, open a few boxes (press and no-press), friends follow Pip,
+  pen sign picker, START shelf, power off and on (Continue keeps the
+  friends), 20/20 pen if time allows. Report anything odd before step 4.
 - Budget: the owner is on limited credit. Stop after each sub-step with a
   short report (score, screenshot when useful) and ask before going on.
   Commit, push and update this file at the end of every sub-step, so a new
@@ -136,18 +140,48 @@ per turn:
    missing friends are silhouettes named "Find me!". `step2.txt` now runs
    on a save with the Shore page found (`make_save.py`), since it opens
    Matcha Octo. Screenshot `docs/step3_7_counter.png`. Score 8.5/10.
-7b. **In progress (owner request).** Map done (task 1 of 4): outer fence
-   56..176 x 98..182, `fence(7)`, feet area 64..168 x 118..168, sign at
-   (187,183) by the path; box spots (60,206), (210,150), (140,88); rock,
-   mushrooms, tufts moved. Growing the pen left or lower than this needs
-   17 palettes (the big tree at the left edge). Next: tasks 3 and 4, fix
-   the `pen.txt` / `pick.txt` walks for the new sign, a 20-friend pen
-   test, scoring, commit. Old plan: Pen is 52x24 px of feet area: fine for 7
-   friends, a pile at 17. Make it about 100x48 in `tools/areas.py` (move
-   the sign, check `MEADOW_PEN_*`, box spots and paths), keep the tile and
-   palette budget. Each future area (Shore, Woods, Cloud Hill, 20 friends
-   each) gets its own pen of this size.
-8. Full-loop test with reboot, scoring pass, screenshots, release ROM.
+7b. Bigger friend pen (owner request). **Done.** Map: outer fence
+   56..176 x 98..182, `fence(7)`, feet area 64..168 x 118..168 (104x50,
+   was 52x24), sign at (187,183) by the path; box spots (60,206),
+   (210,150), (140,88); rock, mushrooms, tufts moved. Meadow: 16/16
+   palettes, 950 tiles. Growing the pen left or lower needs a 17th
+   palette (the big tree at the left edge). Roaming in `viewer.c`: each
+   new target is the roomiest of `PEN_TRIES` (10) random spots (farthest
+   from the other friends' spots and targets); a friend does not step
+   closer than `PEN_ROOM` (13 px) to a neighbor, sidesteps on one axis
+   first, and picks a new target after 30 blocked steps. Tests: walks
+   fixed for the new sign and box spots (`pen.txt`, `pick.txt`,
+   `step3_boxes.txt`, `check_step3.py`); `pen20.txt` / `check_pen20.py`
+   (20 found, 17 in the pen) read the pen array from the IWRAM part of
+   `dump` (symbol addresses and `sizeof(Roamer)` come from `nm -S`) and
+   check: all inside, at least 8 of 17 move every 2 s, at most 1 pair
+   under 10 px. Screenshot `docs/step3_7b_pen20.png`. Score 8.5/10
+   (first pass 6: up to 9 piled pairs; second 7.5: jams, fixed by the
+   sidestep). Known flaws: the top rail touches the cottage's tulip
+   fence (looks doubled; fixed in 8 by removing the tulip fence); the found
+   counter sits over the top rail when the whole pen is on screen; at
+   20/20 the 16 px sprites still overlap a little at the edges.
+   Each future area (Shore, Woods, Cloud Hill, 20 friends each) gets its
+   own pen of this size.
+8. Full loop, scoring, release. **Done.** Harness `seek N` walks Pip to
+   the nearest box: it waits for the meadow scene (`current` and
+   `pending` both `scene_meadow_view`, `fade_dir` 0), builds a distance
+   field on `meadow_solid` (other boxes and the door blocked) and holds
+   the keys that go downhill until `touch_box` >= 0. Symbols come from
+   `arm-none-eabi-nm -S` on the ROM's .elf. `loop_a/b/c.txt` +
+   `check_loop.py`: new game, 5 friends, reboot, 15 more (every third box
+   opens itself), reboot with a full meadow; checks no repeats, saves
+   survive, no boxes once full, 17 in the pen and 3 followers, 20/20.
+   Scoring pass (from the loop and test screenshots): boxes 8.5, open
+   8.5, reveal 8.7, arrow 8.5, counter 8.5, picker 8.5, title 8.6, pen
+   8.5. Two fixes: the follower line stacked on Pip's feet after a
+   reboot or a reveal (7/10); `trail_line()` now lays it out behind Pip,
+   away from where Pip faces, trying the other sides when blocked (8.5).
+   The cottage tulip fence doubled the pen's top rail (map 8/10); it is
+   removed, the tulips stay (8.5; meadow 942 tiles, 16 palettes).
+   Release ROM updated; screenshots `release/step3_screens.png`,
+   `docs/step3_8_line.png`. `make -C rom test` runs 9 suites in ~10 s.
+   A step 2 save on the Brick is version 1 and is replaced by a new game.
 
 The old notes below mention hearts and "rolls lean toward new"; the owner
 replaced those with the rules above.
@@ -206,7 +240,8 @@ The container needs these each new session:
     make -C rom test       # all headless checks on the real mGBA core
 
 `test/harness` runs a ROM with a script (`wait N`, `hold KEYS N`,
-`tap KEYS`, `shot NAME`, `audio NAME` / `audio end`, `dump NAME`), prints
+`tap KEYS`, `shot NAME`, `audio NAME` / `audio end`, `dump NAME`,
+`seek N`), prints
 the game's `dbg()` log lines, writes PPM screenshots, WAV audio and a
 memory dump. Checks read the log, pixels and audio pitch.
 
@@ -218,7 +253,7 @@ memory dump. Checks read the log, pixels and audio pitch.
   (0xCF56), so the ROM boots even with a real BIOS file.
 - Game code is `SQIS` (not in mGBA's override table). `SRAM_V113` is kept
   in ROM for save detection.
-- BG palette budget: the meadow uses 16 of 16 palettes and 909 of 1024
+- BG palette budget: the meadow uses 16 of 16 palettes and 950 of 1024
   tiles. Tiles that mix color families (green tree + pink tree, trees or
   lily pads + water) cost extra palettes. Lily pads and reeds use grass
   greens for that reason. Check every new map with `bg(..., max_pals=16)`.
@@ -230,6 +265,12 @@ memory dump. Checks read the log, pixels and audio pitch.
 - OAM powers up as 128 visible sprites at (0,0); `scene_run` hides them.
 - Scene fades ignore input for about 10 frames; test scripts wait 20
   frames before the first press.
+- Moving a box spot, the sign or the pen breaks the scripted walks in
+  `step3_boxes.txt`, `pen.txt`, `pick.txt`, `pen20.txt` and the spot in
+  `check_step3.py`. Probe Pip's position with a `dump` (IWRAM, `pip_x` /
+  `pip_y` from `nm`) instead of guessing frame counts.
+- The scene manager leaves `pending` equal to `current` after a switch
+  (it is not cleared to NULL); test drivers must compare, not test 0.
 - Map objects split at Pip's height (26 px): upper part on the overlay BG
   (over Pip), lower part on the ground BG, and tall objects block 26 px
   above their base. This keeps Pip correctly in front of or behind trees.

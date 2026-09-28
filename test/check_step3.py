@@ -41,8 +41,8 @@ frames = {k: int(f) for f, k in re.findall(r'\[game f(\d+)\] (arrow on box \d+|b
 
 # ---- boxes appear
 placed = re.findall(r'box (\d) at (\d+),(\d+)', log)
-check(len(placed) >= 3 and ('0', '200', '150') in placed[:3], 'three boxes out; the first sits in view below the cottage')
-first_color = BOX_COLORS[BOX_NAMES[int(re.search(r'box 0 at 200,150 color (\d)', log).group(1))]]
+check(len(placed) >= 3 and ('0', '210', '150') in placed[:3], 'three boxes out; the first sits in view below the cottage')
+first_color = BOX_COLORS[BOX_NAMES[int(re.search(r'box 0 at 210,150 color (\d)', log).group(1))]]
 front = screen_rgb(first_color[3])
 ribbon = screen_rgb(first_color[6])
 spots = [(x, y) for _, x, y in placed[:3]]
@@ -54,7 +54,7 @@ check(m is not None, 'walking into the box counts as touching it')
 m = re.search(r'box 0 open friend (\d+) pip=(\d+),(\d+)', log)
 check(m is not None and 0 <= int(m.group(1)) < 20, 'A opens it with a meadow friend inside')
 check(m is not None and int(m.group(2)) >= 212, f'the box is solid (Pip stopped at x={m and m.group(2)}, box edge 207)')
-check(re.search(r'\[game f(\d+)\] box 0 at (?!200,150)', log) is not None, 'a new box appears at another spot after the open')
+check(re.search(r'\[game f(\d+)\] box 0 at (?!210,150)', log) is not None, 'a new box appears at another spot after the open')
 
 # ---- open screen, pressed by the child
 fr = lambda pat: [int(f) for f in re.findall(r'\[game f(\d+)\] ' + pat, log)]
