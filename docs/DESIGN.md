@@ -44,9 +44,13 @@ Squishy Shelf.
 ## Session loop (5 to 15 minutes)
 
 Each area has its own container and four species, so 20 friends and
-exactly 20 containers. When the child finds six
-friends in an area, the squishies build the way to the next area (bridge,
-boardwalk, stairs, rainbow). The shelf (Start) shows every friend found.
+exactly 20 containers. The areas open in a line: Blossom Meadow, Berry
+Woods, Seashell Shore, Cloud Hill. When the child finds 10 friends in an
+area, the squishies build the way to the next one (clear the log over the
+meadow bridge, lay the boardwalk, build the stairs); until then the way
+is visibly blocked. Only the next area opens, never two at once. Opened
+areas keep their boxes until all 20 friends are found. The shelf (Start)
+shows every friend found.
 
 ## Long loop
 
@@ -71,9 +75,11 @@ button-mashing toddler cannot erase the collection.
 | Area | Container | Squishies |
 | --- | --- | --- |
 | Blossom Meadow | Gift box | Bunny, Kitty, Bear, Chick |
-| Seashell Shore | Seashell | Whale, Octo, Seal, Crab |
 | Berry Woods | Acorn | Frog, Fox, Dino, Shroom |
+| Seashell Shore | Seashell | Whale, Octo, Seal, Crab |
 | Cloud Hill | Capsule machine | Cloud, Star, Planet, Uni |
+
+Areas are listed in play order (owner decision, step 6).
 
 4 areas x 4 species x 5 flavors = 80 squishies.
 

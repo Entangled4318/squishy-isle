@@ -645,9 +645,11 @@ _add(Species('uni', 'Uni', [
     Part(Ellipse(40, 25, 5.5, 5), z=2.1, mat='lav2', line='ink', clip=3),
 ], eyes=(21, 42), mouth=('u', 48), blush=(14, 48), shine=(15, 35, 3, 1.8, -35)))
 
+# In play order: each area opens after 10 friends are found in the one
+# before it (owner decision, step 6). Friend ids follow this order.
 AREAS = [
     ('meadow', 'Blossom Meadow', 'box', ['bunny', 'kitty', 'bear', 'chick']),
-    ('shore', 'Seashell Shore', 'shell', ['whale', 'octo', 'seal', 'crab']),
     ('woods', 'Berry Woods', 'acorn', ['frog', 'fox', 'dino', 'shroom']),
+    ('shore', 'Seashell Shore', 'shell', ['whale', 'octo', 'seal', 'crab']),
     ('clouds', 'Cloud Hill', 'capsule', ['cloud', 'star', 'planet', 'uni']),
 ]

@@ -16,7 +16,7 @@ tap RIGHT
 tap RIGHT
 tap R
 wait 10
-shot s03_shelf_shore
+shot s03_shelf_woods
 tap A
 wait 30
 shot s04_closeup

@@ -254,7 +254,7 @@ def main():
     # found counter pill, top right, as in the mockups: the area's container
     # icon at the left end, the count ("7/20") printed over it at run time in
     # color 1 (ui_ink). Two 32x16 sprites and one palette per area.
-    icons = [props.icon12(k) for k in ('box', 'shell', 'acorn', 'capsule')]
+    icons = [props.icon12(a[2]) for a in AREAS]     # one pill per area, in play order
     pills, pals = [], []
     for ic in icons:
         img = new(64, 16)
@@ -308,13 +308,32 @@ def main():
     save_scaled(np.concatenate(arrows + [pad_to(props.box16(c), 16, 16) for c in ('pink', 'lav', 'mint', 'yellow', 'sky')], axis=1),
                 os.path.join(OUT, 'meadow_sprites.png'), 8)
 
-    # ---------------- areas
-    for area in (areas.meadow(),):
-        export_area(cw, area)
+    # ---------------- areas, in play order (only the ones built so far)
+    cw.h.append('\n/* One walkable area: maps, collision, container spots, pen, doors. */\n'
+                'typedef struct {\n    uint8_t area;                        /* index in play order (friend ids area*20..) */\n'
+                '    const uint32_t *tiles; uint32_t tiles_bytes;\n    const uint16_t *pal; uint16_t pal_bytes;\n'
+                '    const uint16_t *ground, *overlay;    /* 64x64 maps, 4 screenblocks each */\n'
+                '    const uint8_t *solid; uint8_t cell_shift;\n    uint16_t w, h, spawn_x, spawn_y;\n'
+                '    const uint16_t *spots; uint8_t nspots, first_spot;   /* x, y pairs */\n'
+                '    uint16_t pen_x0, pen_y0, pen_x1, pen_y1, sign_x, sign_y;\n'
+                '    const uint16_t *shimmer; uint8_t nshimmer;\n'
+                '    const uint16_t *doors; uint8_t ndoors;   /* x, y, w, h: up here opens the shelf */\n'
+                '} AreaMap;\n')
+    built = [areas.meadow()]
+    names = [a[0] for a in AREAS]
+    rows = []
+    for i, area in enumerate(built):
+        if area.name != names[i]:
+            raise ValueError(f'area maps must follow the play order: {area.name} at {i}, expected {names[i]}')
+        rows.append(export_area(cw, area, i))
+    cw.c.append(f'const AreaMap area_maps[{len(rows)}] = {{\n' + ',\n'.join(rows) + '\n};\n')
+    cw.h.append(f'extern const AreaMap area_maps[{len(rows)}];\n')
+    cw.define('AREA_MAPS', len(rows))
     cw.save(OUT)
 
 
-def export_area(cw, a):
+def export_area(cw, a, index):
+    """Writes one area's data and returns its AreaMap initializer."""
     stack = np.concatenate([a.ground, a.overlay], axis=0)
     b = bg(stack, pal_bank=0, max_pals=16)
     if b['ntiles'] > 1024:
@@ -361,7 +380,8 @@ def export_area(cw, a):
     cw.define(f'{up}_NSHIMMER', len(slots))
     lo, hi = C['w_lt'], C['w_hi']
     mid = tuple((x + y) // 2 for x, y in zip(lo, hi))
-    cw.u16('water_shimmer_cycle', [bgr555(lo), bgr555(mid), bgr555(hi), bgr555(mid)])
+    if index == 0:                                   # one cycle shared by every area
+        cw.u16('water_shimmer_cycle', [bgr555(lo), bgr555(mid), bgr555(hi), bgr555(mid)])
     doors = [v for d in a.doors for v in d[:4]]
     cw.u16(f'{a.name}_doors', doors)
     cw.define(f'{up}_NDOORS', len(a.doors))
@@ -370,6 +390,13 @@ def export_area(cw, a):
     full[m] = a.overlay[m]
     save_scaled(full, os.path.join(OUT, f'preview_{a.name}.png'), 2)
     print(f'{a.name}: {b["ntiles"]} tiles, {len(b["palettes"])} palettes')
+    pen = a.pen or (0, 0, 0, 0)
+    sign = a.sign or (0, 0)
+    n = a.name
+    return (f'    {{{index}, {n}_tiles, {len(b["tiles"])}, {n}_pal, {len(b["palettes"]) * 32}, {n}_ground, {n}_overlay,\n'
+            f'     {n}_solid, {areas.CELL.bit_length() - 1}, {a.w}, {a.h}, {a.spawn[0]}, {a.spawn[1]},\n'
+            f'     {n}_spots, {len(a.spots)}, {a.first_spot}, {pen[0]}, {pen[1]}, {pen[2]}, {pen[3]}, {sign[0]}, {sign[1]},\n'
+            f'     {n}_shimmer, {len(slots)}, {n}_doors, {len(a.doors)}}}')
 
 
 if __name__ == '__main__':
