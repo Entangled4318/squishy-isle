@@ -253,6 +253,30 @@ dc, ac = frames(a, sr)
 before, after = ac[:100].max(), ac[100 + 30:].max()     # the boing plays at frame ~100 for 16 frames
 check(after > 0.7 * before, f'boing: the bass notes come back after it (peak {after:.0f}, before {before:.0f})')
 
+# mix: every effect is at least as loud as the songs usually are (the 90th
+# percentile of 100 ms loudness of each looping song's mix), so the music
+# never hides a chime, squeak or boing
+def loud100(a, sr):
+    n = int(sr / 10)
+    return np.array([a[i:i + n].std() for i in range(0, len(a) - n, n // 4)])
+
+
+song_loud = {}
+for key, s in SONGS.items():
+    if s['loop']:
+        a, sr = load(f'mus_{key}_mix')
+        r = loud100(a[int(sr * 0.4):], sr)
+        song_loud[key] = float(np.percentile(r[r > 50], 90))
+run('mus_levels', ['hold L+R+START 5', 'wait 30', 'audio mus_levels', 'wait 10', 'tap UP', 'wait 60',
+                   'tap DOWN', 'wait 60', 'tap L', 'wait 60', 'audio end'])
+a, sr = load('mus_levels')
+spf = sr / FPS
+top = max(song_loud.values())
+typical = float(np.median(list(song_loud.values())))
+for name, f0 in (('chime', 10), ('squeak', 71), ('boing', 132)):
+    fx = loud100(a[int(f0 * spf):int((f0 + 55) * spf)], sr).max()
+    check(fx >= typical, f'mix: the {name} is not hidden by the music (loudness {fx:.0f}, songs {typical:.0f} typical, {top:.0f} top)')
+
 if fails:
     sys.exit(1)
 print('all music checks passed')

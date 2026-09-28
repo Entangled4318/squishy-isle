@@ -53,7 +53,7 @@ void sfx_squeak(int pitch) {
     squeak_t = 0;
     squeak_pitch = 256 + (pitch % 5) * 20;     /* 8.8 multiplier */
     REG_SND1SWEEP = 0x0008;                    /* hardware sweep off */
-    REG_SND1CNT = DUTY_25 | ENV(11, 2);
+    REG_SND1CNT = DUTY_25 | ENV(13, 2);
     REG_SND1FREQ = RESTART | SQ_RATE((squeak_curve[0] * squeak_pitch) >> 8);
 }
 
@@ -70,7 +70,7 @@ void sfx_chime(int step) {
     static const u16 bell[5] = {1047, 1175, 1319, 1568, 1760};
     squeak_t = -1;
     REG_SND1SWEEP = 0x0008;
-    REG_SND1CNT = DUTY_12 | ENV(10, 2);
+    REG_SND1CNT = DUTY_12 | ENV(14, 2);
     REG_SND1FREQ = RESTART | SQ_RATE(bell[step % 5]);
 }
 

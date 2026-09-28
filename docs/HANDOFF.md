@@ -34,7 +34,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
-| 5. Music and sound set | In progress (5.1 to 5.5 done); see "Step 5 progress" |
+| 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
 | 7. QA and final ROM with Brick instructions | To do |
 
@@ -44,6 +44,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  5.6 (chimes, squeaks and boings are clear over every song but not
+  harsh; the title letter chimes are not too loud), step
   5.5 (sound test, hold L + R + START at power-on: Shore, Woods and
   Cloud Hill tunes each sound calm and different from the meadow; the
   woods reed and the cloud bell are pleasant on the speaker; loops are
@@ -76,13 +78,12 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 5.6 (mix pass, all suites, release ROM, Brick queue,
-  merge), then step 6 (see "Step 5
-  progress"). Step 5 owner request: title music, meadow
-  music, a different tune per area, a tune for opening boxes. Then
-  step 6 (3 more areas with 20 unique friends each, a way to get there,
-  a pen like the meadow's; mailbox and picnic basket do something: ask
-  the owner one question each), then step 7. Do not wait for the Brick
+- Next: step 6 (3 more areas). Ask the owner one question at a time
+  first: how to reach each area, then what the mailbox does, then what
+  the picnic basket does. Step 6 scope: Shore, Woods, Cloud Hill, each
+  with 20 unique friends, a way to get there, a pen the size of the
+  meadow's; play each area's song from step 5.5. Then step 7 (QA and
+  the final ROM). Do not wait for the Brick
   re-test; queue Brick checks above instead. Music can only be judged by
   ear on real hardware, so check it headless (pitch, tempo, loop,
   volume, no clicks) and queue it.
@@ -439,7 +440,17 @@ Plan agreed with the owner, one sub-step per turn, stop after each task:
    `docs/step5_5_area_rolls.png`. Note: high Ab6 (and other notes above
    ~1500 Hz) can miss the 12-cent limit on the wave channel; `music.py`
    says so at build time.
-6. Mix pass, all suites, release ROM, Brick queue, merge.
+6. Mix pass, all suites, release ROM, Brick queue, merge. **Done.**
+   Song loudness (90th percentile of 100 ms loudness of the mix): title
+   2627, reveal 2583, cloud 2471, shelf 2190, meadow 2161, open 2101,
+   shore 2051, woods 2020, so the songs sit within about 2 dB; title and
+   jingle a little brighter on purpose. Effects against them: the chime
+   was 1621, under the music (first pass 7/10); `sfx_chime` envelope
+   10 to 14 (2377) and `sfx_squeak` 11 to 13 (3143); boing 3207. Same
+   tone, only louder. `check_music.py` now checks each effect is at least
+   the songs' typical loudness. Box 1 audio peak 19868 (no clipping).
+   Sound test screen with 8 songs `docs/step5_6_sound_test.png` (the
+   status line is for the selected song). Score 8.5. 11 suites pass.
 
 ## What step 3 should do (as promised to the owner)
 
