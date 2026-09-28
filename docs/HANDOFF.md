@@ -27,7 +27,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
-| 3. Game loop in the meadow | Done. Brick feedback fixed (3.9); owner to re-test on the Brick; see "Step 3 progress" |
+| 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
@@ -35,15 +35,26 @@ shelf. No battles, no fail states, no reading needed. Full design:
 
 ## Owner notes
 
-- Step 3.9 (Brick feedback fixes) is merged to main. Brick re-test
-  pending (owner): walk past the pen's bottom-left corner and through
+- Brick test queue: the owner cannot test ROMs on the Brick for now.
+  Keep working in the emulator with headless tests, and add every item
+  that needs a Brick check (feel, sound, music) to this list. Ask the
+  owner to run the list when they can test again. Pending now: step
+  3.10 (dark shelf frame, no chime when the arrow shows, reading the
+  pen sign from the top), plus the 3.9 list: walk past the pen's bottom-left corner and through
   rocks, walk close beside bushes, walk the stream shore north to
   south, arrow next to Pip after 5 s (blinks), no chime near boxes,
   counter over trees, first 3 friends keep following, START then A on
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
-  Continue (Pip starts where he stood). Next after the re-test: step 5
-  music (owner request), then step 6 areas with mailbox and picnic.
+  Continue (Pip starts where he stood).
+- Next: step 5 music and sound (owner request: title music, meadow
+  music, a different tune per area, a tune for opening boxes), then
+  step 6 (3 more areas with 20 unique friends each, a way to get there,
+  a pen like the meadow's; mailbox and picnic basket do something: ask
+  the owner one question each), then step 7. Do not wait for the Brick
+  re-test; queue Brick checks above instead. Music can only be judged by
+  ear on real hardware, so check it headless (pitch, tempo, loop,
+  volume, no clicks) and queue it.
 - Budget: the owner is on limited credit. Stop after each sub-step with a
   short report (score, screenshot when useful) and ask before going on.
   Commit, push and update this file at the end of every sub-step, so a new
@@ -244,6 +255,14 @@ per turn:
    music (step 5); mailbox and picnic basket do something (step 6, ask
    the owner one question each); 3 more maps with their own friends
    (step 6).
+
+10. Second Brick feedback. **Done.** Shelf selection frame is a dark
+   2 px outline (`#2e1a2a`) with a light inner edge (`selection_frame`
+   in `mockups.py`), was gold. The guide arrow appears without a chime
+   (`check_step3.py` records the wait: peak 0, was 6701). The pen sign
+   zone reaches 18 px above its base, so Pip can read it from the top;
+   the A bubble rises over Pip's head there (`sign_top.txt`,
+   `check_pick.py`). 10 suites pass. Release ROM updated.
 
 The old notes below mention hearts and "rolls lean toward new"; the owner
 replaced those with the rules above.
