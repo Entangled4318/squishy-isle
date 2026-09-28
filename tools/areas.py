@@ -36,8 +36,8 @@ class Area:
         self.sign = None         # (x, y) of the pen sign's base centre
         self.doors = []          # (x, y, w, h, target)
         self.exits = []          # (x, y, w, h, to_area, arrive_x, arrive_y): feet in the box walk to that area
-        self.gates = []          # (x, y, w, h, to_area): solid while that area is shut; a log sprite
-                                 # (16x32, bottom centre at x + w/2, y + h) shows it
+        self.gates = []          # (x, y, w, h, to_area): solid while that area is shut; Momo the
+                                 # sleepy panda (32x32, feet at x + w/2, y + h) lies there
 
     def block(self, x0, y0, x1, y1):
         """Mark pixel rect [x0,x1) x [y0,y1) solid (rounded to cells)."""
@@ -197,7 +197,7 @@ def meadow():
     a.solid[(186 + 27) // CELL, 460 // CELL:] = True
     a.block(472, 0, 480, 320)                          # map edge beyond the stream
     a.exits.append((462, 186, 10, 28, 1, 20, 200))      # east end of the bridge: to the woods
-    a.gates.append((450, 186, 12, 28, 1))               # a log lies across the bridge until they open
+    a.gates.append((442, 186, 28, 28, 1))               # Momo sleeps across the bridge until the woods open
 
     a.spawn = (232, 124)
     a.spots = [(60, 206), (150, 212), (286, 180), (210, 150), (140, 88), (330, 210), (400, 220),
@@ -295,7 +295,7 @@ def woods():
     a.block(476, 134, 480, 320)
     a.exits.append((0, 186, 6, 28, 0, 450, 200))       # west: back over the bridge to the meadow
     a.exits.append((474, 106, 6, 28, 2, 20, 200))      # east: to the shore
-    a.gates.append((458, 106, 12, 28, 2))              # a log until the shore opens
+    a.gates.append((450, 106, 28, 28, 2))              # Momo sleeps here until the shore opens
     a.spawn = (24, 200)
     a.spots = [(96, 168), (326, 100), (150, 170), (200, 150), (292, 150), (230, 110), (352, 170),
                (410, 150), (190, 276), (250, 250), (180, 200), (40, 190)]

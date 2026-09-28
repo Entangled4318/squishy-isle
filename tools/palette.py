@@ -98,4 +98,5 @@ ACC = {
     'gold': [rgb15(h) for h in ('#fff6c8', '#ffe07a', '#e8b44a')],
     'red': [rgb15(h) for h in ('#ffd0d0', '#ff9a9a', '#e07074')],
     'lav': [rgb15(h) for h in ('#f2eaff', '#d8c6fa', '#b69be8')],
+    'panda': [rgb15(h) for h in ('#b4aac8', '#8f84aa', '#72688e')],   # Momo's ears and eye patches
 }

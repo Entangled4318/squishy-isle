@@ -233,6 +233,11 @@ EYE_HAPPY = {
     32: ['.k.', 'k.k'],
     16: ['kk'],
 }
+EYE_SLEEP = {                     # asleep: soft lines (the sleepy panda at the gates)
+    64: ['k...k', '.kkk.'],
+    32: ['k.k', '.k.'],
+    16: ['k'],
+}
 EYE_SQUISH_L = {
     64: ['kk...', '..kk.', '....k', '..kk.', 'kk...'],
     32: ['k..', '.kk', 'k..'],
@@ -427,6 +432,9 @@ def render(sp, flavor, size, expr='happy', squash=(1.0, 1.0)):
     elif expr == 'closed':
         put(EYE_HAPPY[N], ex, ey)
         put(EYE_HAPPY[N], ex, ey, True)
+    elif expr == 'sleep':
+        put(EYE_SLEEP[N], ex, ey)
+        put(EYE_SLEEP[N], ex, ey, True)
     else:
         e = EYE[N]
         put(e, ex, ey)
