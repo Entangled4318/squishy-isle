@@ -80,10 +80,6 @@ hold UP 30
 wait 10
 tap START
 wait 60
-tap RIGHT
-wait 6
-tap RIGHT
-wait 6
 tap A
 wait 60
 shot f08_closeup_after_catch
