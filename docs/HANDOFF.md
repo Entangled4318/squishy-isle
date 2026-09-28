@@ -35,7 +35,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
-| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | In progress (6.1 to 6.5 done); see "Step 6 progress" |
+| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | In progress (6.1 to 6.6 done); see "Step 6 progress" |
 | 7. QA and final ROM with Brick instructions | To do |
 
 ## Owner notes
@@ -44,6 +44,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  6.6 (open an acorn, a seashell and a capsule: each reads at 4x, the
+  cap, top shell and dome fly off, the pearl and the hollow nut read),
+  step
   6.5 (with 10 shore friends Momo wakes on the shore and waddles up the
   cloud steps; the east edge leads up to Cloud Hill and back down; the
   sky, rainbow and candy trees read well at 4x; the stars and moon
@@ -95,7 +98,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 6.6 (open screen per container), see "Step 6 progress".
+- Next: step 6.7 (mailbox and picnic basket), see "Step 6 progress".
   Owner (step 6 session 2): do all of step 6 without stopping (merge
   after each sub-step), then ask before step 7. Owner
   answers for 6.7: mailbox = a letter with a happy message from the
@@ -630,7 +633,27 @@ Plan, one sub-step at a time, merge after each:
    a bridge neck too narrow for Pip's feet; second 8: the west exit at
    6 px), Momo's bed 8.5 (first 7: Momo sat on the bed and the counter
    pill hid its z's; a first blanket read as a blue tub).
-6. Open screen per container (64 px acorn, shell, capsule).
+6. Open screen per container. **Done.** `props.acorn64`, `shell64`,
+   `capsule64` (like `box64`: parts `body`, `open`, `lid` in one 64x64
+   frame, bottom row 61). Acorn: pastel nut, brown cap with stem and
+   scales is the lid, open shows the hollow nut. Seashell: a scallop fan
+   (the lid) over a ridged dish; open shows the pearly inside and a
+   pearl. Capsule: colored dome with a rim band (the lid) on a white
+   half; open shows the inside. Each in its area's 5 colors, same order
+   as the map containers. `export_game.py` writes `cont64_tiles[20]` /
+   `cont64_pal[20]` (area * 5 + color, the meadow's gift boxes first;
+   `box64_*` are gone). `open.c` loads `cont64_*[area * 5 + open_color]`
+   and draws the lid before the body, so it is in front (an acorn cap
+   overlaps its nut). The lavender backdrop stays for every area (any
+   tint clashes with one of the 5 colors; the outlines keep the lavender
+   ones clear). Log: `scene open color C friend F area A` (area at the
+   end, older checks read the start). Tests: `open_woods/shore/clouds.txt`,
+   `check_open.py` (the area's container in the seed's color waits on the
+   cushion, its lid colors are gone after the pop, the inside shows, the
+   friend is from that area; colors compared exactly, the art is already
+   15-bit). 15 suites. Screenshots `docs/step6_6_open.png`, art sheet
+   `docs/step6_6_containers64.png`. Scores: acorn 8.5, seashell 8.5
+   (first 7.5: a tiny pearl on the rim, a small fan), capsule 8.5.
 7. Mailbox and picnic basket (ask the owner first).
 8. Full 80-friend loop, scores, release.
 

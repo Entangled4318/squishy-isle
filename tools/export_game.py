@@ -152,14 +152,28 @@ def main():
 
     # ---------------- open screen: box in 5 colors (closed body, open body, lid)
     export_multi_bg(cw, 'openbg', [open_background()])
-    for color in ('pink', 'lav', 'mint', 'yellow', 'sky'):
-        parts = [props.box64(color, 'body'), props.box64(color, 'open'), props.box64(color, 'lid')]
-        lk, pal = palette_and_lookup(parts)
-        cw.u32_bytes(f'box64_{color}_tiles', b''.join(obj(p, lk) for p in parts))
-        cw.u16(f'box64_{color}_pal', pal)
-    cw.h.append('extern const uint32_t *const box64_tiles[5];\nextern const uint16_t *const box64_pal[5];')
-    cw.c.append('const uint32_t *const box64_tiles[5] = {' + ', '.join(f'box64_{c}_tiles' for c in ('pink', 'lav', 'mint', 'yellow', 'sky')) + '};')
-    cw.c.append('const uint16_t *const box64_pal[5] = {' + ', '.join(f'box64_{c}_pal' for c in ('pink', 'lav', 'mint', 'yellow', 'sky')) + '};')
+    # each area's container at 64 px in its 5 colors (the map's color order):
+    # closed body, open body, lid (64 tiles each), one palette per color
+    kinds = {'box': (props.box64, ('pink', 'lav', 'mint', 'yellow', 'sky')),
+             'acorn': (props.acorn64, ('cream', 'pink', 'mint', 'lav', 'gold')),
+             'shell': (props.shell64, ('pink', 'peach', 'mint', 'lav', 'yellow')),
+             'capsule': (props.capsule64, tuple(props.CAPSULE_COLORS))}
+    names, sheet = [], []
+    for key, _, kind, _ in AREAS:
+        fn, colors = kinds[kind]
+        for color in colors:
+            parts = [fn(color, 'body'), fn(color, 'open'), fn(color, 'lid')]
+            lk, pal = palette_and_lookup(parts)
+            cw.u32_bytes(f'cont64_{key}_{color}_tiles', b''.join(obj(p, lk) for p in parts))
+            cw.u16(f'cont64_{key}_{color}_pal', pal)
+            names.append(f'cont64_{key}_{color}')
+            sheet.append(fn(color, 'all'))
+    cw.h.append('extern const uint32_t *const cont64_tiles[20];   /* area * 5 + color */\n'
+                'extern const uint16_t *const cont64_pal[20];\n')
+    cw.c.append('const uint32_t *const cont64_tiles[20] = {' + ', '.join(f'{n}_tiles' for n in names) + '};\n')
+    cw.c.append('const uint16_t *const cont64_pal[20] = {' + ', '.join(f'{n}_pal' for n in names) + '};\n')
+    save_scaled(np.concatenate([np.concatenate(sheet[i:i + 5], axis=1) for i in range(0, 20, 5)], axis=0),
+                os.path.join(OUT, 'containers64.png'), 2)
     abig = [pad_to(props.a_button_big(False), 32, 32), pad_to(props.a_button_big(True), 32, 32)]
     lk, pal = palette_and_lookup(abig)
     cw.u32_bytes('abig_tiles', b''.join(obj(a, lk) for a in abig))

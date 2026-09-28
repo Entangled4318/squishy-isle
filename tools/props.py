@@ -515,3 +515,158 @@ def icon12(kind):
         legend = {'k': rgb15('#8a5a7a'), 'T': rgb15('#ffb6cb'), 't': rgb15('#ec8fae'), 'w': C['white'],
                   'W': rgb15('#e4dcf2'), 'g': rgb15('#c8b8e4'), 'h': rgb15('#fbf6ff')}
     return from_ascii(_ICON12[kind], legend)
+
+
+# --------------------------------------- 64 px containers for the open screen
+# Each has three parts in one 64x64 frame (bottom row 61, on the cushion):
+# 'body' closed, 'open' after the pop (inside showing), 'lid' flies off.
+def _outline(img, ink):
+    m = img[..., 3] > 0
+    out = np.zeros_like(m)
+    out[1:] |= m[:-1]
+    out[:-1] |= m[1:]
+    out[:, 1:] |= m[:, :-1]
+    out[:, :-1] |= m[:, 1:]
+    out &= ~m
+    img[out, :3] = ink
+    img[out, 3] = 255
+    return img
+
+
+def acorn64(nut_color='cream', part='all'):
+    """Big acorn: a pastel nut under a brown cap with a stem; the cap is the lid."""
+    from squishies import Mochi
+    cap = [rgb15(h) for h in ('#f2dcc0', '#e8c9a8', '#d8ae88', '#c49276', '#a0725f')]
+    nut = [rgb15(h) for h in ACORN_NUTS[nut_color]]
+    ink = rgb15('#6e4a4a')
+    img = new(64, 64)
+    if part in ('all', 'body', 'open'):
+        body = shade_parts(64, 64, [P(Mochi(32, 40, 20, 20.5, nt=2.2, nb=1.75), nut, k=3.0)], outline=ink)
+        for (x, y) in ((20, 38), (21, 38), (20, 39), (19, 41)):          # glint
+            body[y, x, :3] = C['white']
+        if part == 'open':                                                # hollow top, seen from above
+            hole = shade_parts(64, 64, [P(Ellipse(32, 26, 16, 5), nut[2:] + [nut[4], nut[4]], k=2.0,
+                                          levels=(0.99, 0.95, 0.5, 0.2))], outline=ink)
+            m = hole[..., 3] > 0
+            body[m] = hole[m]
+            body[26:28, 22:42][body[26:28, 22:42, 3] > 0, :3] = nut[4]
+        blit(img, body, 0, 0)
+    if part in ('all', 'lid'):
+        parts = [P(Clip(Ellipse(32, 30, 25, 13), HalfPlane(0, -1, -33)), cap, z=1, k=2.5),
+                 P(Ellipse(32, 31.5, 24.5, 3.2), cap, z=2, k=2.0, levels=(0.99, 0.6, 0.3, 0.1)),
+                 P(Poly([(29.5, 9), (34.5, 8), (34, 19), (30, 19)], 1.2), cap, z=0, bevel=True)]
+        lid = shade_parts(64, 64, parts, outline=ink)
+        for y in range(19, 32):                                           # cross-hatch scales
+            for x in range(8, 57):
+                if lid[y, x, 3] and tuple(lid[y, x, :3]) != ink and (x + 2 * y) % 7 == 0 and y % 3 == 1:
+                    lid[y, x, :3] = cap[4]
+        for (x, y) in ((22, 21), (23, 20), (24, 20)):
+            lid[y, x, :3] = cap[0]
+        m = lid[..., 3] > 0
+        img[m] = lid[m]
+    return img
+
+
+SHELL64 = {     # hi, light, base, dark, darker, ink (as the 16 px shells)
+    'pink': ['#ffffff', '#ffe6ee', '#ffcadb', '#f5a7c2', '#e38aa9', '#b0607e'],
+    'peach': ['#ffffff', '#fff0e0', '#ffd9bb', '#f7bb90', '#e89f76', '#b0745a'],
+    'lav': ['#ffffff', '#f3ecff', '#e0d2fb', '#c6b0f0', '#aa92dc', '#7864ae'],
+    'mint': ['#ffffff', '#e8fbf2', '#c8f0dc', '#9edcc2', '#7cc4a8', '#4f8f76'],
+    'yellow': ['#ffffff', '#fff8d8', '#ffe9a8', '#f9d06c', '#e8b24e', '#b0823a'],
+}
+
+
+def shell64(color='pink', part='all'):
+    """Big clam: a scalloped fan (the lid) closed over a shallow dish; open,
+    the dish shows its pearly inside and a pearl."""
+    hi, lt, base, dk, dk2, ink = (rgb15(h) for h in SHELL64[color])
+    img = new(64, 64)
+    if part in ('all', 'body', 'open'):
+        dish = new(64, 64)
+        for y in range(44, 62):
+            for x in range(64):
+                dx, dy = (x + 0.5 - 32) / 29.0, (y + 0.5 - 52.5) / 9.0
+                if dx * dx + dy * dy <= 1:
+                    dish[y, x, 3] = 255
+                    ridge = int((x + 0.5 - 32) / 5.5 + 50) % 2
+                    dish[y, x, :3] = (base if ridge else lt) if dy < 0.45 else (dk if ridge else base)
+        dish = _outline(dish, ink)
+        if part == 'open':                                                # pearly inside and a pearl
+            for y in range(45, 56):
+                for x in range(6, 58):
+                    dx, dy = (x + 0.5 - 32) / 25.0, (y + 0.5 - 50) / 5.0
+                    if dx * dx + dy * dy <= 1 and dish[y, x, 3]:
+                        dish[y, x, :3] = hi if dy < -0.3 else lt
+            for y in range(36, 54):
+                for x in range(22, 42):
+                    d2 = (x + 0.5 - 32) ** 2 + (y + 0.5 - 45) ** 2
+                    if d2 <= 64:
+                        dish[y, x, :3] = ink if d2 > 49 else (C['white'] if d2 < 30 and x < 32 and y < 45 else
+                                                              rgb15('#eee6f8') if d2 < 36 else rgb15('#d8cce8'))
+                        dish[y, x, 3] = 255
+            for (x, y) in ((29, 41), (28, 42), (29, 42)):
+                dish[y, x, :3] = C['white']
+        blit(img, dish, 0, 0)
+    if part in ('all', 'lid'):
+        fan = new(64, 64)
+        hx, hy, n = 32.0, 53.0, 7
+        for y in range(8, 56):
+            for x in range(64):
+                dx, dy = x + 0.5 - hx, y + 0.5 - hy
+                if dy > -1:
+                    continue
+                r = math.hypot(dx, dy)
+                th = math.atan2(-dy, dx)
+                t = th / math.pi * n
+                ridge = abs((t % 1.0) - 0.5) * 2
+                R = 30.5 + 3.2 * (1 - ridge) ** 0.8
+                if r > R:
+                    continue
+                shade = 0.55 + 0.45 * math.cos(th - 2.2)
+                if ridge > 0.74 and r > 7:
+                    c = dk if shade > 0.45 else dk2
+                elif shade > 0.93 and r > 10:
+                    c = hi if r > R - 5 and ridge < 0.4 else lt
+                elif shade > 0.62:
+                    c = lt if ridge < 0.35 else base
+                elif shade > 0.3:
+                    c = base
+                else:
+                    c = dk
+                fan[y, x, :3] = c
+                fan[y, x, 3] = 255
+        for y in range(50, 57):                                           # hinge wings
+            for x in range(19, 45):
+                fan[y, x, :3] = base if y < 53 else dk
+                fan[y, x, 3] = 255
+        fan = _outline(fan, ink)
+        m = fan[..., 3] > 0
+        img[m] = fan[m]
+    return img
+
+
+def capsule64(color='pink', part='all'):
+    """Big toy capsule: a colored dome (the lid) on a white half."""
+    lt, top, dk = (rgb15(h) for h in CAPSULE_COLORS[color])
+    t = [C['white'], lt, top, dk, dk]
+    b = [C['white'], C['white'], rgb15('#fbf6ff'), rgb15('#e4dcf2'), rgb15('#cfc4e4')]
+    ink = rgb15('#8a5a7a')
+    ball = Ellipse(32, 38, 23.5, 23.5)
+    img = new(64, 64)
+    if part in ('all', 'body', 'open'):
+        body = shade_parts(64, 64, [P(Clip(ball, HalfPlane(0, 1, 38)), b, k=2.5)], outline=ink)
+        if part == 'open':
+            inside = shade_parts(64, 64, [P(Ellipse(32, 38.5, 22, 4.5), [b[3], b[3], b[4], b[4], b[4]], k=1.0)],
+                                 outline=ink)
+            m = inside[..., 3] > 0
+            body[m] = inside[m]
+        blit(img, body, 0, 0)
+    if part in ('all', 'lid'):
+        parts = [P(Clip(ball, HalfPlane(0, -1, -38)), t, z=1, k=2.5),
+                 P(Poly([(8.5, 35), (55.5, 35), (55.5, 40), (8.5, 40)], 1.0), [lt, top, dk, dk, dk], z=2, bevel=True)]
+        lid = shade_parts(64, 64, parts, outline=ink)
+        for (x, y) in ((20, 22), (21, 21), (22, 20), (19, 24), (24, 19)):   # shine
+            lid[y, x, :3] = C['white']
+        m = lid[..., 3] > 0
+        img[m] = lid[m]
+    return img
