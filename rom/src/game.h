@@ -11,6 +11,7 @@ extern const Scene scene_meadow_view;
 extern const Scene scene_title;
 extern const Scene scene_open;
 extern const Scene scene_reveal;
+extern const Scene scene_jukebox;
 
 extern int open_color, open_friend;
 extern bool shelf_pick;                   /* shelf opened from the pen sign: pick followers */

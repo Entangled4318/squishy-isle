@@ -20,7 +20,7 @@ LDFLAGS := $(ARCH) -nostartfiles -T gba.ld -Wl,--gc-sections \
            -Wl,-Map,$(BUILD)/$(NAME).map --specs=nano.specs --specs=nosys.specs
 
 SRCS    := $(wildcard src/*.c)
-GEN     := hw_assets font_data game_assets
+GEN     := hw_assets font_data game_assets music_data
 OBJS    := $(BUILD)/crt0.o $(SRCS:src/%.c=$(BUILD)/%.o) $(GEN:%=$(BUILD)/%.o)
 ART     := $(wildcard $(TOOLS)/*.py)
 
@@ -37,6 +37,10 @@ $(BUILD)/font_data.c $(BUILD)/font_data.h: $(TOOLS)/font.py $(TOOLS)/export_font
 $(BUILD)/game_assets.c $(BUILD)/game_assets.h: $(ART)
 	@mkdir -p $(BUILD)
 	cd $(TOOLS) && $(PYTHON) export_game.py $(abspath $(BUILD))
+
+$(BUILD)/music_data.c $(BUILD)/music_data.h: $(TOOLS)/music.py
+	@mkdir -p $(BUILD)
+	cd $(TOOLS) && $(PYTHON) music.py $(abspath $(BUILD))
 
 $(BUILD)/%.o: src/%.c $(GEN:%=$(BUILD)/%.h) $(wildcard src/*.h)
 	@mkdir -p $(BUILD)
