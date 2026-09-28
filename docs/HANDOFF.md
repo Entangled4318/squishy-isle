@@ -35,6 +35,10 @@ shelf. No battles, no fail states, no reading needed. Full design:
 
 ## Owner notes
 
+- Step 3 is merged to main. Brick test pending (owner): new game from
+  the title, open a few boxes (press and no-press), friends follow Pip,
+  pen sign picker, START shelf, power off and on (Continue keeps the
+  friends), 20/20 pen if time allows. Report anything odd before step 4.
 - Budget: the owner is on limited credit. Stop after each sub-step with a
   short report (score, screenshot when useful) and ask before going on.
   Commit, push and update this file at the end of every sub-step, so a new
