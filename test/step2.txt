@@ -1,0 +1,34 @@
+# Step 2: walk the meadow, visit the shelf through the door, open a friend.
+wait 30
+shot s01_meadow_spawn
+hold DOWN 30
+hold START 1
+wait 30
+shot s02_shelf
+tap DOWN
+tap RIGHT
+tap RIGHT
+tap R
+wait 10
+shot s03_shelf_shore
+tap A
+wait 30
+shot s04_closeup
+hold A 2
+wait 16
+shot s05_squish_hearts
+tap B
+wait 30
+tap B
+wait 30
+shot s06_back_in_meadow
+hold UP 40
+wait 30
+shot s07_door_to_shelf
+tap B
+wait 30
+hold DOWN 20
+hold RIGHT 110
+hold UP 120
+hold START 1
+wait 30

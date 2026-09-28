@@ -267,6 +267,11 @@ class Species:
         self.sym = sym
 
 
+# ROM export mode: accents use two shades and the tongue uses the blush
+# color, so every species of an area fits one shared 15-color palette layout.
+ROM_MODE = False
+
+
 def _mat_ramp(mat, flavor):
     fl = FL[flavor]
     if mat == 'body':
@@ -277,6 +282,8 @@ def _mat_ramp(mat, flavor):
         a = ACC[mat[:-1]]
         return {'hi': a[1], 'lt': a[1], 'base': a[1], 's1': a[2], 's2': a[2], 'line': fl[5]}
     a = ACC[mat]
+    if ROM_MODE:
+        return {'hi': a[1], 'lt': a[1], 'base': a[1], 's1': a[2], 's2': a[2], 'line': fl[5]}
     return {'hi': a[0], 'lt': a[0], 'base': a[1], 's1': a[2], 's2': a[2], 'line': fl[5]}
 
 
@@ -379,7 +386,7 @@ def render(sp, flavor, size, expr='happy', squash=(1.0, 1.0)):
     img[..., 3][out] = 255
 
     # face
-    face_color = {'k': C['ink'], 'w': C['white'], 'b': fl[6], 'p': C['blush_dk']}
+    face_color = {'k': C['ink'], 'w': C['white'], 'b': fl[6], 'p': fl[6] if ROM_MODE else C['blush_dk']}
     tw = sp.tweak.get(N, {})
 
     def put(pattern, cx, cy, mirror_x=False):

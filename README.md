@@ -14,22 +14,18 @@ No battles, no fail states, no reading needed.
 ## Status
 
 - Phase 1, mockups: done.
-- ROM step 1, toolchain and hardware check ROM: done.
-  [release/squishy-isle-hwcheck.gba](release/squishy-isle-hwcheck.gba)
-  tests display, sprites, squash, flavor palette swaps, every button,
-  sound and the battery save.
+- ROM step 1, toolchain and hardware check: done, tested on the Trimui
+  Brick (boot, buttons, sound, save).
+- ROM step 2, art in the ROM: done. [release/squishy-isle.gba](release/squishy-isle.gba)
+  - Walk Pip around the full Blossom Meadow (2x2 screens).
+  - START, or walking up into the cottage door, opens the Squishy Shelf:
+    all 80 friends over 4 pages.
+  - On the shelf: D-pad moves, L and R turn pages, A opens a friend big,
+    SELECT shows the "not found yet" silhouettes, B goes back outside.
+  - Big friend: A squishes, B goes back.
+  - Hold L + R + SELECT while the game starts to get the hardware check.
 
-## Try the hardware check ROM
-
-1. Open `release/squishy-isle-hwcheck.gba` in mGBA, or copy it to the
-   folder that holds your other GBA games on the handheld.
-2. A squishes, B hops, L and R change flavor, START plays a tune. Each
-   button lights up at the bottom while you hold it.
-3. Quit and start it again. "Boots" goes up by one and "Save" reads
-   "working" when the battery save works.
-4. The "Emulator" line shows "mGBA" or "other" (for example gpSP).
-5. The corners hold 1-pixel checkerboards. If they look uneven or blurry,
-   turn on integer scaling in the emulator.
+![Step 2 screens](release/step2_screens.png)
 
 ## Build the ROM
 

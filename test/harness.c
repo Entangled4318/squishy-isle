@@ -14,6 +14,8 @@
  *   shot NAME           save OUTDIR/NAME.ppm
  *   audio NAME          start recording OUTDIR/NAME.wav (until "audio end")
  *   audio end           stop recording
+ *   dump NAME           save VRAM, palettes, OAM and IO registers to
+ *                       OUTDIR/NAME.bin (for debugging)
  */
 #include <mgba/core/blip_buf.h>
 #include <mgba/core/core.h>
@@ -170,6 +172,16 @@ int main(int argc, char **argv) {
             run(0, 3);
         } else if (!strcmp(cmd, "shot")) {
             shot(a);
+        } else if (!strcmp(cmd, "dump")) {
+            char path[1024];
+            snprintf(path, sizeof path, "%s/%s.bin", outdir, a);
+            FILE *f = fopen(path, "wb");
+            static const struct { uint32_t base, size; } regions[] = {
+                {0x04000000, 0x400}, {0x05000000, 0x400}, {0x06000000, 0x18000}, {0x07000000, 0x400}};
+            for (unsigned r = 0; r < 4; r++)
+                for (uint32_t i = 0; i < regions[r].size; i++)
+                    fputc(core->busRead8(core, regions[r].base + i), f);
+            fclose(f);
         } else if (!strcmp(cmd, "audio")) {
             if (!strcmp(a, "end")) {
                 if (wav) { wav_header(wav, wav_samples); fclose(wav); wav = NULL; }

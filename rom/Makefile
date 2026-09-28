@@ -20,7 +20,8 @@ LDFLAGS := $(ARCH) -nostartfiles -T gba.ld -Wl,--gc-sections \
            -Wl,-Map,$(BUILD)/$(NAME).map --specs=nano.specs --specs=nosys.specs
 
 SRCS    := $(wildcard src/*.c)
-OBJS    := $(BUILD)/crt0.o $(SRCS:src/%.c=$(BUILD)/%.o) $(BUILD)/hw_assets.o $(BUILD)/font_data.o
+GEN     := hw_assets font_data game_assets
+OBJS    := $(BUILD)/crt0.o $(SRCS:src/%.c=$(BUILD)/%.o) $(GEN:%=$(BUILD)/%.o)
 ART     := $(wildcard $(TOOLS)/*.py)
 
 all: $(BUILD)/$(NAME).gba
@@ -33,14 +34,15 @@ $(BUILD)/font_data.c $(BUILD)/font_data.h: $(TOOLS)/font.py $(TOOLS)/export_font
 	@mkdir -p $(BUILD)
 	cd $(TOOLS) && $(PYTHON) export_font.py $(abspath $(BUILD))
 
-$(BUILD)/%.o: src/%.c $(BUILD)/hw_assets.h $(BUILD)/font_data.h $(wildcard src/*.h)
+$(BUILD)/game_assets.c $(BUILD)/game_assets.h: $(ART)
+	@mkdir -p $(BUILD)
+	cd $(TOOLS) && $(PYTHON) export_game.py $(abspath $(BUILD))
+
+$(BUILD)/%.o: src/%.c $(GEN:%=$(BUILD)/%.h) $(wildcard src/*.h)
 	@mkdir -p $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/hw_assets.o: $(BUILD)/hw_assets.c
-	$(CC) $(CFLAGS) -c $< -o $@
-
-$(BUILD)/font_data.o: $(BUILD)/font_data.c
+$(GEN:%=$(BUILD)/%.o): $(BUILD)/%.o: $(BUILD)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(BUILD)/crt0.o: src/crt0.s

@@ -1,0 +1,41 @@
+# Step 2 gallery walkthrough
+wait 20
+hold START 1
+wait 40
+shot g01_shelf_meadow
+tap DOWN
+tap RIGHT
+tap RIGHT
+wait 10
+shot g02_cursor
+tap A
+wait 40
+shot g03_closeup
+hold A 2
+wait 3
+shot g04_squish
+wait 14
+shot g05_hearts
+tap B
+wait 30
+tap R
+wait 10
+shot g06_shelf_shore
+tap R
+wait 10
+shot g07_shelf_woods
+tap R
+wait 10
+shot g08_shelf_clouds
+tap SELECT
+wait 10
+shot g09_silhouettes
+tap SELECT
+tap UP
+tap RIGHT
+tap RIGHT
+tap A
+wait 40
+shot g10_closeup_sparkle
+wait 20
+shot g11_closeup_sparkle2

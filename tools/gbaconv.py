@@ -27,22 +27,70 @@ def _colors(t):
     return frozenset(tuple(int(v) for v in p) for p in t[..., :3][m])
 
 
-def pack_palettes(sets, per_pal=15, max_pals=16):
-    """Greedy packing of color sets into palettes of per_pal colors."""
+def _greedy(sets, per_pal):
     pals = []
-    for s in sorted(set(sets), key=len, reverse=True):
-        if not s or any(s <= p for p in pals):
+    for s in sets:
+        if any(s <= p for p in pals):
             continue
-        fit = [p for p in pals if len(p | s) <= per_pal]
-        if fit:
-            p = min(fit, key=lambda p: len(p | s))
-            pals.remove(p)
-            pals.append(p | s)
+        best, best_cost = None, None
+        for p in pals:
+            u = len(p | s)
+            if u <= per_pal:
+                cost = (u - len(p), -len(p & s))
+                if best is None or cost < best_cost:
+                    best, best_cost = p, cost
+        if best is not None:
+            pals.remove(best)
+            pals.append(best | s)
         else:
             pals.append(set(s))
-    if len(pals) > max_pals:
-        raise ValueError(f'needs {len(pals)} palettes > {max_pals}')
-    return [sorted(p) for p in pals]
+    return pals
+
+
+def _eliminate(sets, pals, per_pal):
+    """Try to empty whole palettes by moving their tile sets elsewhere."""
+    improved = True
+    while improved and len(pals) > 1:
+        improved = False
+        # sets that fit only in a given palette decide what it must hold
+        for victim in sorted(range(len(pals)), key=lambda i: len(pals[i])):
+            others = [set(p) for j, p in enumerate(pals) if j != victim]
+            owned = [s for s in sets if s <= pals[victim] and not any(s <= o for o in others)]
+            ok = True
+            for s in sorted(owned, key=len, reverse=True):
+                fit = [o for o in others if len(o | s) <= per_pal]
+                if not fit:
+                    ok = False
+                    break
+                o = min(fit, key=lambda o: len(o | s) - len(o))
+                o |= s
+            if ok:
+                pals = others
+                improved = True
+                break
+    return pals
+
+
+def pack_palettes(sets, per_pal=15, max_pals=16, tries=60):
+    """Pack tile color sets into palettes of per_pal colors: greedy passes
+    over several orders, then palette elimination; keeps the best."""
+    import random
+    uniq = [s for s in set(sets) if s]
+    rnd = random.Random(1)
+    best = None
+    for t in range(tries):
+        if t == 0:
+            order = sorted(uniq, key=lambda s: (-len(s), sorted(s)))
+        else:
+            order = sorted(uniq, key=lambda s: (-len(s) + rnd.random() * 3))
+        pals = _eliminate(uniq, _greedy(order, per_pal), per_pal)
+        if best is None or len(pals) < len(best):
+            best = pals
+        if len(best) <= max_pals and t >= 3:
+            break
+    if len(best) > max_pals:
+        raise ValueError(f'needs {len(best)} palettes > {max_pals}')
+    return [sorted(p) for p in best]
 
 
 def bg(img, pal_bank=0, max_pals=16, tile_base=0, flips=True):

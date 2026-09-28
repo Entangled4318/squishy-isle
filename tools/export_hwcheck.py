@@ -173,8 +173,10 @@ def main():
 
     cw.u16('hw_text_pal', [0, bgr555(INK), bgr555(C['white']), bgr555(LINE)] + [0] * 12)
 
-    tiles, pals = squishy_export.export('bunny', 64, ('idle', 'squish'))
-    cw.u32_bytes('hw_bunny_tiles', tiles[0] + tiles[1])
+    ex = squishy_export.area_export('meadow')
+    frames64 = ex['tiles']['bunny'][64]
+    pals = ex['palettes']
+    cw.u32_bytes('hw_bunny_tiles', frames64[0] + frames64[3])     # idle, squish
     cw.u16('hw_bunny_pals', [c for fl in FLAVOR_ORDER for c in pals[fl]])
     for i, fl in enumerate(FLAVOR_ORDER):
         cw.define(f'FLAVOR_{fl.upper()}', i)

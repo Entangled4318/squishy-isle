@@ -1,4 +1,5 @@
 # First boot: fresh save, every feature once.
+hold L+R+SELECT 5
 wait 40
 shot 01_first_boot
 audio hwcheck_sfx

@@ -440,7 +440,8 @@ def decor(name):
     return from_ascii(DECOR[name], _DECOR_LEGEND)
 
 
-FENCE_LEGEND = {'k': rgb15('#a896b4'), 'w': C['white'], 's': rgb15('#ece4f4'), 'd': rgb15('#d6cae6')}
+# fence shares the stone greys so both fit the same background palette
+FENCE_LEGEND = {'k': rgb15('#a89cbe'), 'w': C['white'], 's': rgb15('#ebe6f4'), 'd': rgb15('#dcd5ea')}
 _FENCE = [
     '...k.......k....',
     '..kwk.....kwk...',
@@ -473,9 +474,10 @@ def lily_pad(flower_on=False):
         'lllllldd',
         '.ldddd..',
     ]
-    img = from_ascii(rows, {'l': C['t_lt'], 'h': C['t_hi'], 'd': C['t_dk']})
+    # grass greens, so pads share the pond's palette
+    img = from_ascii(rows, {'l': C['g_lt'], 'h': C['g_hi'], 'd': C['g_dk2']})
     if flower_on:
-        fl = from_ascii(['.P.', 'PWP', '.Q.'], {'P': C['f_pink'], 'W': C['white'], 'Q': C['f_pink_dk']})
+        fl = from_ascii(['.P.', 'PWP', '.P.'], {'P': C['f_pink'], 'W': C['white']})
         from gba import blit as _b
         _b(img, fl, 2, 0)
     return img
@@ -492,7 +494,7 @@ def reeds():
         'lgggl',
         '.lgl.',
     ]
-    return from_ascii(rows, {'b': C['tr_dk'], 'g': C['t_base'], 'l': C['t_lt']})
+    return from_ascii(rows, {'b': C['tr_dk'], 'g': C['g_dk2'], 'l': C['g_dk']})
 
 
 STONE = [rgb15(h) for h in ('#fbf9ff', '#ebe6f4', '#dcd5ea', '#c2b8d6', '#a89cbe')]

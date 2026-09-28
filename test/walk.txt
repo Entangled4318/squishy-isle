@@ -1,0 +1,20 @@
+# Walk around the meadow
+wait 40
+shot w01_spawn
+hold DOWN 40
+shot w02_down
+hold RIGHT 90
+shot w03_right
+hold RIGHT 80
+shot w04_bridge
+hold UP 60
+hold LEFT 40
+shot w05_pond
+hold UP 90
+shot w06_blocked_by_pond
+hold LEFT 120
+hold UP 60
+shot w07_cottage_side
+hold LEFT 110
+hold DOWN 150
+shot w08_orchard

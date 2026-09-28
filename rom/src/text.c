@@ -1,9 +1,14 @@
 #include "text.h"
 
 #include "font_data.h"
+#include "system.h"
 
 void strip_init(TextStrip *s, int cbb, int first_tile, int sbb, int col, int row,
                 int tw, int th, int pal) {
+    if (tw * th > STRIP_MAX_TILES) {
+        dbg("strip too big: %d x %d", tw, th);
+        th = STRIP_MAX_TILES / tw;
+    }
     s->tw = (u8)tw;
     s->th = (u8)th;
     s->first_tile = (u16)first_tile;

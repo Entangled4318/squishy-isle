@@ -5,7 +5,7 @@
 #define TEXT_H
 #include "gba.h"
 
-#define STRIP_MAX_TILES 32
+#define STRIP_MAX_TILES 64
 
 typedef struct {
     u32 pix[STRIP_MAX_TILES * 8];   /* 4bpp tile rows */
@@ -14,7 +14,8 @@ typedef struct {
     u8 cbb, sbb, col, row, pal;
 } TextStrip;
 
-/* set up a strip and write its map entries once */
+/* set up a strip and write its map entries once. Strips are 2 KB each:
+ * declare them EWRAM_BSS. tw * th must not exceed STRIP_MAX_TILES. */
 void strip_init(TextStrip *s, int cbb, int first_tile, int sbb, int col, int row,
                 int tw, int th, int pal);
 int text_width(const char *str);

@@ -2,17 +2,13 @@
  * swaps, every button, all four sound channels and the battery save work
  * on the target emulator before the real game is built on top. */
 #include "gba.h"
+#include "game.h"
 #include "hw_assets.h"
 #include "save.h"
 #include "sound.h"
 #include "system.h"
 #include "text.h"
 
-static const s16 sin64[64] = {
-    0, 25, 50, 74, 98, 121, 142, 162, 181, 198, 213, 226, 237, 245, 251, 255,
-    256, 255, 251, 245, 237, 226, 213, 198, 181, 162, 142, 121, 98, 74, 50, 25,
-    0, -25, -50, -74, -98, -121, -142, -162, -181, -198, -213, -226, -237, -245, -251, -255,
-    -256, -255, -251, -245, -237, -226, -213, -198, -181, -162, -142, -121, -98, -74, -50, -25};
 
 #define BUNNY_X      188     /* centre of the bunny on the cushion */
 #define BUNNY_FLOOR  110     /* screen y of the bunny's bottom edge */
@@ -40,7 +36,7 @@ static const Icon icons[10] = {
 #define ICON_Y 141
 
 static SaveData sd;
-static TextStrip st_boots, st_squish, st_save, st_emu, st_flavor;
+EWRAM_BSS static TextStrip st_boots, st_squish, st_save, st_emu, st_flavor;
 static int flavor;
 static int squish_t = -1, hop_t = -1, bounce_t = -1, nudge_x, breathe;
 

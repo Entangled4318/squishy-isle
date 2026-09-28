@@ -17,6 +17,7 @@ typedef volatile u32 vu32;
 
 #define IWRAM_CODE __attribute__((section(".iwram"), long_call, target("arm")))
 #define EWRAM_DATA __attribute__((section(".ewram")))
+#define EWRAM_BSS  __attribute__((section(".sbss")))      /* zeroed, in the 256 KB RAM */
 #define ALIGN4 __attribute__((aligned(4)))
 
 #define SCREEN_W 240

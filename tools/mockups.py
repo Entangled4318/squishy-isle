@@ -353,84 +353,58 @@ def tab(icon, active):
     return img
 
 
-def scene_shelf():
-    sc = Scene('shelf')
-    wall = new(W, H)
-    # mint wallpaper with tiny hearts
-    wall[..., :3] = rgb15('#dff5ec')
-    wall[..., 3] = 255
-    ys, xs = np.mgrid[0:H, 0:W]
-    wall[..., :3][((xs % 16) == 3) & ((ys % 16) == 4)] = rgb15('#c6ecdc')
-    wall[..., :3][((xs % 16) == 11) & ((ys % 16) == 12)] = rgb15('#c6ecdc')
-    sc.bg('wall', 3, wall)
+SHELF = dict(x0=11, y0=26, cw=44, ch=32, cols=5, rows=4)
+SHELF_BACKS = [('#fff0f4', '#fbdde6'), ('#ecf9f2', '#d4efe0'), ('#f3eefc', '#e2d8f6'), ('#fff8e4', '#f7e8c2')]
+SHELF_SIL = [('#f7d3de', '#ecbfcd'), ('#cfeadb', '#b9dfca'), ('#ddd3f1', '#cbbdea'), ('#f3e2b8', '#e8d09c')]
 
-    shelf = new(W, H)
-    x0, y0, cw, ch, cols, rows = 11, 26, 44, 32, 5, 4
-    wood = [C['wd_hi'], C['wd_lt'], C['wd_base'], C['wd_dk'], C['wd_dk2']]
+
+def shelf_background(active=0, locked=(), pill_w=None):
+    """Wall, wooden shelf, area tabs and an empty name pill (BG art)."""
+    img = new(W, H)
+    img[..., :3] = rgb15('#dff5ec')
+    img[..., 3] = 255
+    ys, xs = np.mgrid[0:H, 0:W]
+    img[..., :3][((xs % 16) == 3) & ((ys % 16) == 4)] = rgb15('#c6ecdc')
+    img[..., :3][((xs % 16) == 11) & ((ys % 16) == 12)] = rgb15('#c6ecdc')
+    x0, y0, cw, ch, cols, rows = (SHELF[k] for k in ('x0', 'y0', 'cw', 'ch', 'cols', 'rows'))
     X1, Y1 = x0 + cols * cw, y0 + rows * ch
-    # frame
-    shelf[y0 - 4:Y1 + 4, x0 - 5:X1 + 5, :3] = C['wd_base']
-    shelf[y0 - 4:Y1 + 4, x0 - 5:X1 + 5, 3] = 255
-    shelf[y0 - 4, x0 - 5:X1 + 5, :3] = C['wd_lt']
-    shelf[y0 - 4:Y1 + 4, x0 - 5, :3] = C['wd_lt']
-    shelf[y0 - 4:Y1 + 4, X1 + 4, :3] = C['wd_dk']
-    backs = [(rgb15('#fff0f4'), rgb15('#fbdde6')), (rgb15('#ecf9f2'), rgb15('#d4efe0')),
-             (rgb15('#f3eefc'), rgb15('#e2d8f6')), (rgb15('#fff8e4'), rgb15('#f7e8c2'))]
+    img[y0 - 4:Y1 + 4, x0 - 5:X1 + 5, :3] = C['wd_base']
+    img[y0 - 4, x0 - 5:X1 + 5, :3] = C['wd_lt']
+    img[y0 - 4:Y1 + 4, x0 - 5, :3] = C['wd_lt']
+    img[y0 - 4:Y1 + 4, X1 + 4, :3] = C['wd_dk']
     for r in range(rows):
-        back, back_top = backs[r]
+        back, back_top = (rgb15(h) for h in SHELF_BACKS[r])
         for c in range(cols):
             cx, cy = x0 + c * cw, y0 + r * ch
-            shelf[cy:cy + ch - 4, cx + 1:cx + cw - 1, :3] = back
-            shelf[cy:cy + 3, cx + 1:cx + cw - 1, :3] = back_top
-            shelf[cy:cy + ch - 4, cx + 1:cx + 2, :3] = back_top
-            shelf[cy + ch - 4:cy + ch, cx:cx + cw, :3] = C['wd_lt']
-            shelf[cy + ch - 3:cy + ch - 1, cx:cx + cw, :3] = C['wd_base']
-            shelf[cy + ch - 1, cx:cx + cw, :3] = C['wd_dk']
-            shelf[cy:cy + ch - 4, cx, :3] = C['wd_dk']
-            shelf[cy:cy + ch - 4, cx + cw - 1, :3] = C['wd_dk']
-    # outline around the whole unit
-    shelf[y0 - 5, x0 - 5:X1 + 5, :3] = C['wd_ink']
-    shelf[y0 - 5, x0 - 5:X1 + 5, 3] = 255
-    shelf[Y1 + 4, x0 - 5:X1 + 5, :3] = C['wd_ink']
-    shelf[Y1 + 4, x0 - 5:X1 + 5, 3] = 255
-    shelf[y0 - 5:Y1 + 5, x0 - 6, :3] = C['wd_ink']
-    shelf[y0 - 5:Y1 + 5, x0 - 6, 3] = 255
-    shelf[y0 - 5:Y1 + 5, X1 + 5, :3] = C['wd_ink']
-    shelf[y0 - 5:Y1 + 5, X1 + 5, 3] = 255
-    # scalloped trim along the top of the unit
+            img[cy:cy + ch - 4, cx + 1:cx + cw - 1, :3] = back
+            img[cy:cy + 3, cx + 1:cx + cw - 1, :3] = back_top
+            img[cy:cy + ch - 4, cx + 1:cx + 2, :3] = back_top
+            img[cy + ch - 4:cy + ch, cx:cx + cw, :3] = C['wd_lt']
+            img[cy + ch - 3:cy + ch - 1, cx:cx + cw, :3] = C['wd_base']
+            img[cy + ch - 1, cx:cx + cw, :3] = C['wd_dk']
+            img[cy:cy + ch - 4, cx, :3] = C['wd_dk']
+            img[cy:cy + ch - 4, cx + cw - 1, :3] = C['wd_dk']
+    img[y0 - 5, x0 - 5:X1 + 5, :3] = C['wd_ink']
+    img[min(H - 1, Y1 + 4), x0 - 5:X1 + 5, :3] = C['wd_ink']
+    img[y0 - 5:Y1 + 5, x0 - 6, :3] = C['wd_ink']
+    img[y0 - 5:Y1 + 5, X1 + 5, :3] = C['wd_ink']
     for x in range(x0 - 5, X1 + 5):
-        k = (x - (x0 - 5)) % 8
-        depth = [0, 1, 2, 2, 2, 2, 1, 0][k]
+        depth = [0, 1, 2, 2, 2, 2, 1, 0][(x - (x0 - 5)) % 8]
         for y in range(y0 - 4, y0 - 4 + depth + 1):
-            shelf[y, x, :3] = C['wd_hi'] if y == y0 - 4 else C['wd_lt']
-    sc.bg('shelf', 2, shelf[:H, :W])
+            img[y, x, :3] = C['wd_hi'] if y == y0 - 4 else C['wd_lt']
+    icons = [box16('pink'), props.shell('pink', 16), props.acorn16(), props.capsule16()]
+    for i, ic in enumerate(icons):
+        if i in locked:
+            ic = silhouette(ic, rgb15('#e6d6de'), rgb15('#cdb8c4'))
+        blit(img, tab(ic, i == active), 8 + i * 30, 0 if i == active else 2)
+    if pill_w:
+        p = pill(pill_w, 15, C['ui_bg'], C['ui_pk'], C['ui_ink'], C['white'])
+        blit(img, p, 232 - pill_w, 3)
+    return img
 
-    species = ['bunny', 'kitty', 'bear', 'chick']
-    flavors = ['vanilla', 'strawberry', 'matcha', 'taro', 'sparkle']
-    have = {('bunny', 'vanilla'), ('bunny', 'strawberry'), ('bunny', 'taro'), ('kitty', 'strawberry'),
-            ('kitty', 'matcha'), ('bear', 'taro'), ('chick', 'vanilla'), ('chick', 'sparkle')}
-    crowned = {('bunny', 'strawberry')}
-    sel = (1, 2)
-    for r, spc in enumerate(species):
-        for c, flv in enumerate(flavors):
-            cx, cy = x0 + c * cw, y0 + r * ch
-            img = sq(spc, flv, 32)
-            px, py = cx + (cw - 32) // 2, cy + ch - 4 - 31
-            if (spc, flv) in have:
-                sc.obj(img, px, py, key=10)
-                if (spc, flv) in crowned:
-                    sc.obj(props.CROWN, px + 12, py + 2, key=11)
-                if flv == 'sparkle':
-                    sc.obj(SPARK_TINY, px + 26, py + 6, key=12)
-                    sc.obj(SPARK_TINY, px + 2, py + 18, key=12)
-            else:
-                sil_cols = [(rgb15('#f7d3de'), rgb15('#ecbfcd')), (rgb15('#cfeadb'), rgb15('#b9dfca')),
-                            (rgb15('#ddd3f1'), rgb15('#cbbdea')), (rgb15('#f3e2b8'), rgb15('#e8d09c'))][r]
-                sil = silhouette(img, *sil_cols)
-                sc.obj(sil, px, py, key=10)
-    # selection: rounded double frame, and the chosen friend hops up a little
-    r, c = sel
-    cx, cy = x0 + c * cw, y0 + r * ch
+
+def selection_frame():
+    cw, ch = SHELF['cw'], SHELF['ch']
     fw, fh = cw + 2, ch - 1
     frame = new(fw, fh)
     for y in range(fh):
@@ -442,27 +416,47 @@ def scene_shelf():
             if edge == 0:
                 frame[y, x, :3] = rgb15('#f5b43c')
                 frame[y, x, 3] = 255
-            elif edge == 1:
+            elif edge == 1 or (edge == 2 and (min(x, fw - 1 - x) + min(y, fh - 1 - y)) < 6):
                 frame[y, x, :3] = rgb15('#ffe07a')
                 frame[y, x, 3] = 255
-            elif edge == 2 and (min(x, fw - 1 - x) + min(y, fh - 1 - y)) < 6:
-                frame[y, x, :3] = rgb15('#ffe07a')
-                frame[y, x, 3] = 255
-    sc.obj(frame, cx - 1, cy - 1, key=5)
-    sc.objs = [o for o in sc.objs if not (o[2] == cx + (cw - 32) // 2 and o[3] == cy + ch - 4 - 31)]
-    sel_img = sq(species[r], flavors[c], 32, expr='happy_open')
+    return frame
+
+
+def scene_shelf():
+    sc = Scene('shelf')
+    x0, y0, cw, ch = SHELF['x0'], SHELF['y0'], SHELF['cw'], SHELF['ch']
+    bgimg = shelf_background(0, locked=(2, 3))
+    sc.bg('shelf', 2, bgimg)
+    species = ['bunny', 'kitty', 'bear', 'chick']
+    flavors = ['vanilla', 'strawberry', 'matcha', 'taro', 'sparkle']
+    have = {('bunny', 'vanilla'), ('bunny', 'strawberry'), ('bunny', 'taro'), ('kitty', 'strawberry'),
+            ('kitty', 'matcha'), ('bear', 'taro'), ('chick', 'vanilla'), ('chick', 'sparkle')}
+    crowned = {('bunny', 'strawberry')}
+    sel = (1, 2)
+    for r, spc in enumerate(species):
+        for c, flv in enumerate(flavors):
+            if (r, c) == sel:
+                continue
+            cx, cy = x0 + c * cw, y0 + r * ch
+            img = sq(spc, flv, 32)
+            px, py = cx + (cw - 32) // 2, cy + ch - 4 - 31
+            if (spc, flv) in have:
+                sc.obj(img, px, py, key=10)
+                if (spc, flv) in crowned:
+                    sc.obj(props.CROWN, px + 12, py + 2, key=11)
+                if flv == 'sparkle':
+                    sc.obj(SPARK_TINY, px + 26, py + 6, key=12)
+                    sc.obj(SPARK_TINY, px + 2, py + 18, key=12)
+            else:
+                sc.obj(silhouette(img, *(rgb15(h) for h in SHELF_SIL[r])), px, py, key=10)
+    r, c = sel
+    cx, cy = x0 + c * cw, y0 + r * ch
+    sc.obj(selection_frame(), cx - 1, cy - 1, key=5)
     sc.obj(shadow(22, 4, rgb15('#d9b89a')), cx + 11, cy + ch - 6, key=9, blend=(6, 10))
-    sc.obj(sel_img, cx + (cw - 32) // 2, cy + ch - 4 - 31 - 2, key=10)
+    sc.obj(sq(species[r], flavors[c], 32, expr='happy_open'), cx + (cw - 32) // 2, cy + ch - 4 - 31 - 2, key=10)
     sc.obj(SPARK_SMALL, cx + cw - 9, cy + 3, key=30)
     sc.obj(SPARK_TINY, cx + 3, cy + 16, key=30)
-
     hud = new(W, H)
-    icons = [box16('pink'), props.shell('pink', 16), props.acorn16(), props.capsule16()]
-    for i, ic in enumerate(icons):
-        if i >= 2:
-            ic = silhouette(ic, rgb15('#e6d6de'), rgb15('#cdb8c4'))
-        t = tab(ic, i == 0)
-        blit(hud, t, 8 + i * 30, 0 if i == 0 else 2)
     p = name_pill('Matcha Kitty', hearts=2)
     blit(hud, p, 232 - p.shape[1], 3)
     sc.bg('hud', 0, hud)
