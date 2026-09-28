@@ -1,0 +1,3 @@
+# Second boot with the same save file: boots must be 2, save OK.
+wait 40
+shot 08_second_boot

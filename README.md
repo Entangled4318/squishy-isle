@@ -13,7 +13,38 @@ No battles, no fail states, no reading needed.
 
 ## Status
 
-Phase 1 (mockups) is done. The ROM build comes next.
+- Phase 1, mockups: done.
+- ROM step 1, toolchain and hardware check ROM: done.
+  [release/squishy-isle-hwcheck.gba](release/squishy-isle-hwcheck.gba)
+  tests display, sprites, squash, flavor palette swaps, every button,
+  sound and the battery save.
+
+## Try the hardware check ROM
+
+1. Open `release/squishy-isle-hwcheck.gba` in mGBA, or copy it to the
+   folder that holds your other GBA games on the handheld.
+2. A squishes, B hops, L and R change flavor, START plays a tune. Each
+   button lights up at the bottom while you hold it.
+3. Quit and start it again. "Boots" goes up by one and "Save" reads
+   "working" when the battery save works.
+4. The "Emulator" line shows "mGBA" or "other" (for example gpSP).
+5. The corners hold 1-pixel checkerboards. If they look uneven or blurry,
+   turn on integer scaling in the emulator.
+
+## Build the ROM
+
+Needs Ubuntu 24.04 packages and Python 3 with numpy and Pillow:
+
+```
+sudo apt install gcc-arm-none-eabi libnewlib-arm-none-eabi libmgba-dev
+pip install numpy pillow
+make -C rom          # builds rom/build/squishy_isle.gba
+make -C rom test     # runs the headless mGBA tests
+```
+
+The tests run the ROM on the real mGBA core, press buttons from a script,
+take screenshots, record audio (and check the pitches) and restart with the
+same save file to prove the save survives.
 
 ## Rebuild the mockups
 

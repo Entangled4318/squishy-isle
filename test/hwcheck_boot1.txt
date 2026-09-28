@@ -1,0 +1,30 @@
+# First boot: fresh save, every feature once.
+wait 40
+shot 01_first_boot
+audio hwcheck_sfx
+hold A 2
+wait 3
+shot 02_squish
+wait 30
+hold B 2
+wait 11
+shot 03_hop
+wait 40
+hold R 2
+wait 12
+shot 04_strawberry
+tap R
+tap R
+wait 20
+shot 05_taro
+tap R
+wait 20
+shot 06_sparkle
+hold START 2
+wait 90
+hold SELECT 1
+wait 20
+audio end
+hold UP+LEFT+A+L+START 4
+shot 07_buttons_lit
+wait 30
