@@ -287,11 +287,23 @@ Plan agreed with the owner, one sub-step per turn, stop after each task:
    the top right. Screenshot `docs/step5_1_counter.png`. Score 8.5 (first
    pass 7.5: "20/20" was left-aligned and touched the right end; the
    12 px shell took 3 drafts, the first read as a cupcake).
-2. Music engine: looping 2-voice songs (wave lead on channel 3, soft
-   square bass on channel 2), effects keep channels 1 and 4, the boing
-   borrows channel 2, jingles pause the song and it resumes. Songs
-   written in Python with note names, exported to C. Headless audio
-   check: pitch, tempo, loop point, volume, clicks.
+2. Music engine. Task A **done**: `tools/music.py` holds the songs as
+   note-name text ("C5:4", "r:2", "|" bar lines), checks every note is
+   within 12 cents on the hardware rates and both voices have the same
+   length, and writes `build/music_data.c/.h` (rate tables, 3 lead waves
+   `sine`/`bell`/`hollow`, `songs[]`) plus `music_songs.json` for tests.
+   `sound.c`: `music_play(id)` (no restart if already playing),
+   `music_stop()`, `music_current()`, `music_mute`. Lead on channel 3
+   (volume 100/75/50/25 %, optional decay, gap frames), bass on channel 2
+   (square envelope). A jingle (`song_play`) pauses the song, which goes
+   on at the next note after it; the boing takes channel 2 and the bass
+   comes back at its next note. Sound test scene `jukebox.c`: hold
+   L + R + START at power-on; LEFT/RIGHT choose, A play, B stop, SELECT
+   jingle, L boing. One test song ("Scale test"). Checked by hand in the
+   emulator: pitches right (C5 524 Hz, C6 1041 Hz), loops on time, the
+   song resumes after a jingle. Task B (next): per-channel recording in
+   the harness, `check_music.py` (pitch, tempo, loop, volume, clicks),
+   score and fix.
 3. Title and meadow music.
 4. Box-opening tune (open screen), reveal jingle; shelf music box theme
    (DESIGN.md) unless the owner says no.

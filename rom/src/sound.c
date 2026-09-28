@@ -1,7 +1,9 @@
-/* PSG sound: channel 1 short effects, channel 2 boing, channel 3 (wave)
- * melody, channel 4 clicks. Everything is soft by default: a toddler plays
+/* PSG sound: channel 1 short effects, channel 2 music bass (the boing
+ * borrows it), channel 3 (wave) music lead and jingles, channel 4 clicks. Everything is soft by default: a toddler plays
  * this, and the handheld's own volume goes up if needed. */
 #include "sound.h"
+
+#include "music_data.h"
 
 #define SQ_RATE(hz)   (2048 - 131072 / (hz))
 #define WAVE_RATE(hz) (2048 - 65536 / (hz))
@@ -13,8 +15,6 @@
 #define DUTY_50 (2 << 6)
 #define RESTART 0x8000
 
-/* soft sine-like wave for the melody channel (32 x 4-bit samples) */
-static const u32 wave_soft[4] = {0xEFDEAC89, 0xA9DCEEFF, 0x10215386, 0x56231100};
 
 static struct {
     const Note *notes;
@@ -22,6 +22,18 @@ static struct {
 } melody;
 
 static int boing_t = -1;
+static const u32 *wave_now;
+
+/* Wave RAM can only be written to the bank that is not playing. The
+ * channel stops for this, so change waves only between songs. */
+static void load_wave(const u32 *w) {
+    if (w == wave_now) return;
+    wave_now = w;
+    REG_SND3CNT = 0;
+    REG_SND3SEL = 0x40;                        /* play bank 1, write bank 0 */
+    for (int i = 0; i < 4; i++) WAVE_RAM[i] = w[i];
+    REG_SND3SEL = 0x80;                        /* enable, play bank 0 */
+}
 static int squeak_t = -1, squeak_pitch;
 
 void sound_init(void) {
@@ -30,10 +42,7 @@ void sound_init(void) {
     REG_SNDDSCNT = 0x0002;                     /* PSG at 100% */
     REG_SNDBIAS = 0x0200;
     REG_SND1SWEEP = 0x0008;                    /* sweep off */
-    REG_SND3SEL = 0x40;                        /* play bank 1, write bank 0 */
-    for (int i = 0; i < 4; i++) WAVE_RAM[i] = wave_soft[i];
-    REG_SND3SEL = 0x80;                        /* enable, play bank 0 */
-    REG_SND3CNT = 0;                           /* silent until a note */
+    load_wave(music_wave_sine);
 }
 
 /* "squee": quick rise, small fall. Each flavor squeaks a little higher. */
@@ -88,7 +97,10 @@ void sfx_boing(void) {
     REG_SND2FREQ = RESTART | SQ_RATE(262);
 }
 
+static void music_silence(void);
+
 void song_play(const Note *notes, int count) {
+    music_silence();
     melody.notes = notes;
     melody.count = count;
     melody.index = 0;
@@ -117,6 +129,130 @@ static void melody_tick(void) {
     }
 }
 
+/* ---- music ---- */
+static const u16 wave_vol[4] = {0x2000, 0x8000, 0x4000, 0x6000};   /* 100, 75, 50, 25 % */
+
+typedef struct {
+    const u8 *ev;
+    int n, index;
+    int left;        /* frames left in the current note */
+    int len;         /* frames of the current note */
+    int age;         /* frames since the note started */
+    int note;        /* current MIDI note, 0 = rest */
+} VoiceState;
+
+static struct {
+    const Song *song;
+    int id;
+    VoiceState lead, bass;     /* a voice cut by a jingle or the boing waits for its next note */
+} mus = {0, -1, {0}, {0}};
+
+bool music_mute;
+
+static void voice_start(VoiceState *v, const u8 *ev, int n) {
+    v->ev = ev;
+    v->n = n;
+    v->index = -1;
+    v->left = 0;
+}
+
+void music_play(int id) {
+    if (id == mus.id && mus.song) return;
+    music_stop();
+    if (id < 0 || id >= SONG_COUNT) return;
+    mus.song = &songs[id];
+    mus.id = id;
+    load_wave(mus.song->wave);
+    voice_start(&mus.lead, mus.song->lead, mus.song->lead_n);
+    voice_start(&mus.bass, mus.song->bass, mus.song->bass_n);
+}
+
+void music_stop(void) {
+    if (mus.song) {
+        if (!melody.notes) REG_SND3CNT = 0;
+        if (boing_t < 0) {
+            REG_SND2CNT = 0;                                  /* volume 0: silent */
+            REG_SND2FREQ = RESTART;
+        }
+    }
+    mus.song = 0;
+    mus.id = -1;
+}
+
+int music_current(void) { return mus.song ? mus.id : -1; }
+
+static void music_silence(void) {
+    if (!mus.song) return;
+    REG_SND2CNT = 0;
+    REG_SND2FREQ = RESTART;
+}
+
+/* next note of a voice; false when a one-shot song has ended */
+static bool voice_next(VoiceState *v) {
+    if (++v->index >= v->n) {
+        if (!mus.song->loop) return false;
+        v->index = 0;
+    }
+    v->note = v->ev[v->index * 2];
+    v->len = v->left = v->ev[v->index * 2 + 1] * mus.song->tick;
+    v->age = 0;
+    return true;
+}
+
+static void lead_frame(void) {
+    const Song *s = mus.song;
+    VoiceState *v = &mus.lead;
+    bool free_ch = !melody.notes && !music_mute;
+    if (v->age == 0) {
+        if (!free_ch) return;
+        if (v->note) {
+            REG_SND3CNT = wave_vol[s->lead_level];
+            REG_SND3FREQ = RESTART | music_wave_rate[v->note];
+        } else {
+            REG_SND3CNT = 0;
+        }
+        return;
+    }
+    if (!free_ch || !v->note) return;
+    if (v->left <= s->lead_gap) {
+        REG_SND3CNT = 0;                                     /* short gap before the next note */
+    } else if (s->lead_decay && v->age % s->lead_decay == 0) {
+        int step = s->lead_level + v->age / s->lead_decay;
+        REG_SND3CNT = wave_vol[step > 3 ? 3 : step];
+    }
+}
+
+static void bass_frame(void) {
+    const Song *s = mus.song;
+    VoiceState *v = &mus.bass;
+    if (boing_t >= 0 || melody.notes || music_mute) return;
+    if (v->age == 0) {
+        if (v->note) {
+            REG_SND2CNT = (u16)((s->bass_duty << 6) | ENV(s->bass_vol, s->bass_step));
+            REG_SND2FREQ = RESTART | music_sq_rate[v->note];
+        } else {
+            REG_SND2CNT = 0;
+            REG_SND2FREQ = RESTART;
+        }
+    } else if (v->note && v->left == s->bass_gap) {
+        REG_SND2CNT = 0;
+        REG_SND2FREQ = RESTART;
+    }
+}
+
+static void music_tick(void) {
+    if (!mus.song) return;
+    if (melody.notes) return;                   /* a jingle plays: the song waits */
+    if (mus.lead.left == 0 && !voice_next(&mus.lead)) { music_stop(); return; }
+    if (mus.bass.left == 0 && !voice_next(&mus.bass)) { music_stop(); return; }
+    lead_frame();
+    bass_frame();
+    mus.lead.age++;
+    mus.lead.left--;
+    mus.bass.age++;
+    mus.bass.left--;
+}
+
 static void boing_tick(void) {
     /* 262 Hz up to ~520 Hz, then down to ~200 Hz over 16 frames */
     static const u16 curve[16] = {262, 330, 415, 494, 523, 494, 440, 392,
@@ -127,6 +263,7 @@ static void boing_tick(void) {
 }
 
 void sound_tick(void) {
+    music_tick();
     melody_tick();
     boing_tick();
     squeak_tick();
