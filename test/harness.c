@@ -18,8 +18,10 @@
  *                       channels again (music checks record each voice alone)
  *   dump NAME           save IO registers, palettes, VRAM, OAM and IWRAM
  *                       to OUTDIR/NAME.bin (checks read game state there)
- *   seek N              in the meadow: walk Pip to the nearest gift box
+ *   seek N              in the current area: walk Pip to the nearest box
  *                       until the game reports a touch (at most N frames).
+ *   walkto X Y N        walk Pip's feet to (X, Y), or until an exit takes
+ *                       him to another area (at most N frames).
  *                       Reads positions from game memory; symbol addresses
  *                       come from `arm-none-eabi-nm` on the ROM's .elf.
  */
@@ -138,17 +140,22 @@ static unsigned parse_keys(const char *s) {
 }
 
 
-/* ---- seek: a test driver that walks Pip to the nearest box ---- */
+/* ---- seek / walkto: test drivers that walk Pip around the current area ---- */
 #define MAP_W 480
 #define MAP_H 320
 #define FEET_W 5
 #define FEET_H 5
 #define TOUCH 6
+#define SAVE_AREA 112            /* offsetof(SaveData, area): checked by a _Static_assert in save.h */
+#define SAVE_FOUND 16
+#define GATE_NEED 10
 
+static const char *area_names[4] = {"meadow", "woods", "shore", "clouds"};
 static struct { const char *name; uint32_t addr, size; } syms[] = {
-    {"pip_x"}, {"pip_y"}, {"boxes"}, {"touch_box"}, {"meadow_solid"}, {"meadow_spots"},
-    {"meadow_doors"}, {"current"}, {"pending"}, {"fade_dir"}, {"scene_meadow_view"}};
-enum { S_PIPX, S_PIPY, S_BOXES, S_TOUCH, S_SOLID, S_SPOTS, S_DOORS, S_CUR, S_PEND, S_FADE, S_MEADOW, S_N };
+    {"pip_x"}, {"pip_y"}, {"boxes"}, {"touch_box"}, {"current"}, {"pending"}, {"fade_dir"}, {"scene_meadow_view"},
+    {"game_save"}};
+enum { S_PIPX, S_PIPY, S_BOXES, S_TOUCH, S_CUR, S_PEND, S_FADE, S_MEADOW, S_SAVE, S_N };
+static struct { uint32_t solid, solid_size, spots, doors, gates, gates_size; } area_syms[4];
 static int syms_loaded;
 static const char *rom_path;
 
@@ -167,6 +174,15 @@ static void load_syms(void) {
         if (sscanf(line, "%x %x %c %127s", &addr, &size, &type, name) != 4) continue;
         for (int i = 0; i < S_N; i++)
             if (!strcmp(name, syms[i].name)) { syms[i].addr = addr; syms[i].size = size; }
+        for (int a = 0; a < 4; a++) {
+            size_t n = strlen(area_names[a]);
+            if (strncmp(name, area_names[a], n) || name[n] != '_') continue;
+            const char *f = name + n + 1;
+            if (!strcmp(f, "solid")) { area_syms[a].solid = addr; area_syms[a].solid_size = size; }
+            if (!strcmp(f, "spots")) area_syms[a].spots = addr;
+            if (!strcmp(f, "doors")) area_syms[a].doors = addr;
+            if (!strcmp(f, "gates")) { area_syms[a].gates = addr; area_syms[a].gates_size = size; }
+        }
     }
     pclose(p);
     for (int i = 0; i < S_N; i++)
@@ -177,9 +193,12 @@ static void load_syms(void) {
 static uint32_t rd32(uint32_t a) { return core->busRead32(core, a); }
 
 static uint8_t solid_grid[(MAP_H / 4) * (MAP_W / 4)];   /* 4 px cells at the finest */
-static int cell_shift;
+static int cell_shift, cur_area;
 static int box_x[3], box_y[3], n_box_slots;
 static int dist[MAP_H][MAP_W];
+static int door_x, door_y, door_w, door_h;
+static int gate_r[4][4], n_gates;                       /* shut gates: x, y, w, h */
+static int goal_x = -1, goal_y = -1;                    /* walkto target (feet), -1 = boxes */
 
 static int solid_at(int x, int y) {
     if (x < 0 || y < 0 || x >= MAP_W || y >= MAP_H) return 1;
@@ -191,16 +210,48 @@ static int box_hit(int i, int x0, int y0, int x1, int y1) {
     return x1 >= box_x[i] - 7 && x0 <= box_x[i] + 7 && y1 >= box_y[i] - 6 && y0 <= box_y[i];
 }
 
-static int door_x, door_y, door_w, door_h;
-
 static int walkable(int x, int y) {
     if (solid_at(x - FEET_W, y - FEET_H) || solid_at(x + FEET_W, y - FEET_H) || solid_at(x - FEET_W, y) ||
         solid_at(x + FEET_W, y))
         return 0;
     for (int i = 0; i < n_box_slots; i++)
         if (box_hit(i, x - FEET_W, y - FEET_H, x + FEET_W, y)) return 0;
-    if (x >= door_x - 4 && x < door_x + door_w + 4 && y >= door_y && y < door_y + door_h + 16) return 0;   /* door opens the shelf */
+    for (int i = 0; i < n_gates; i++)
+        if (x + FEET_W >= gate_r[i][0] && x - FEET_W < gate_r[i][0] + gate_r[i][2] && y >= gate_r[i][1] &&
+            y - FEET_H < gate_r[i][1] + gate_r[i][3])
+            return 0;
+    if (door_w && x >= door_x - 4 && x < door_x + door_w + 4 && y >= door_y && y < door_y + door_h + 16) return 0;   /* door opens the shelf */
     return 1;
+}
+
+static int found_in(int area) {
+    int n = 0;
+    for (int id = area * 20; id < area * 20 + 20; id++) n += core->busRead8(core, syms[S_SAVE].addr + SAVE_FOUND + id) != 0;
+    return n;
+}
+
+/* Reads the current area's collision, door and shut gates from game memory. */
+static void load_area(void) {
+    load_syms();
+    cur_area = core->busRead8(core, syms[S_SAVE].addr + SAVE_AREA) & 3;
+    unsigned cells = area_syms[cur_area].solid_size;       /* the grid size gives the cell size */
+    if (!cells) { fprintf(stderr, "seek: no map for area %d\n", cur_area); exit(1); }
+    for (cell_shift = 1; (unsigned)((MAP_W >> cell_shift) * (MAP_H >> cell_shift)) > cells; cell_shift++) {}
+    for (unsigned i = 0; i < cells && i < sizeof solid_grid; i++) solid_grid[i] = core->busRead8(core, area_syms[cur_area].solid + i);
+    uint32_t d = area_syms[cur_area].doors;
+    door_x = core->busRead16(core, d);
+    door_y = core->busRead16(core, d + 2);
+    door_w = core->busRead16(core, d + 4);
+    door_h = core->busRead16(core, d + 6);
+    n_gates = 0;
+    for (unsigned g = 0; g < area_syms[cur_area].gates_size / 10 && n_gates < 4; g++) {
+        uint32_t b = area_syms[cur_area].gates + g * 10;
+        int to = core->busRead16(core, b + 8);
+        int shut = to > 3 || !area_syms[to].solid || (to > 0 && found_in(to - 1) < GATE_NEED);
+        if (!shut || !core->busRead16(core, b + 4)) continue;
+        for (int k = 0; k < 4; k++) gate_r[n_gates][k] = core->busRead16(core, b + k * 2);
+        n_gates++;
+    }
 }
 
 static void read_boxes(void) {
@@ -208,25 +259,29 @@ static void read_boxes(void) {
     n_box_slots = 3;
     for (int i = 0; i < 3; i++) {
         int spot = (int8_t)core->busRead8(core, syms[S_BOXES].addr + i * stride);
-        box_x[i] = spot < 0 ? -1 : (int)core->busRead16(core, syms[S_SPOTS].addr + spot * 4);
-        box_y[i] = spot < 0 ? -1 : (int)core->busRead16(core, syms[S_SPOTS].addr + spot * 4 + 2);
+        box_x[i] = spot < 0 ? -1 : (int)core->busRead16(core, area_syms[cur_area].spots + spot * 4);
+        box_y[i] = spot < 0 ? -1 : (int)core->busRead16(core, area_syms[cur_area].spots + spot * 4 + 2);
     }
 }
 
-/* Distance (in 1 px steps) from every feet position to a spot that touches a box. */
+static int is_goal(int x, int y) {
+    if (goal_x >= 0) return abs(x - goal_x) <= 1 && abs(y - goal_y) <= 1;
+    for (int i = 0; i < n_box_slots; i++)
+        if (box_hit(i, x - FEET_W - TOUCH + 2, y - FEET_H - TOUCH + 2, x + FEET_W + TOUCH - 2, y + TOUCH - 2)) return 1;
+    return 0;
+}
+
+/* Distance (in 1 px steps) from every feet position to the goal: a spot
+ * that touches a box, or the walkto point. */
 static void build_field(void) {
     static int qx[MAP_W * MAP_H], qy[MAP_W * MAP_H];
     int head = 0, tail = 0;
     for (int y = 0; y < MAP_H; y++)
         for (int x = 0; x < MAP_W; x++) {
             dist[y][x] = -1;
-            if (!walkable(x, y)) continue;
-            for (int i = 0; i < n_box_slots; i++)
-                if (box_hit(i, x - FEET_W - TOUCH + 2, y - FEET_H - TOUCH + 2, x + FEET_W + TOUCH - 2, y + TOUCH - 2)) {
-                    dist[y][x] = 0;
-                    qx[tail] = x; qy[tail++] = y;
-                    break;
-                }
+            if (!walkable(x, y) || !is_goal(x, y)) continue;
+            dist[y][x] = 0;
+            qx[tail] = x; qy[tail++] = y;
         }
     static const int dx4[4] = {1, -1, 0, 0}, dy4[4] = {0, 0, 1, -1};
     while (head < tail) {
@@ -250,20 +305,36 @@ static int in_meadow(void) {
            rd32(syms[S_FADE].addr) == 0;
 }
 
-static void seek(long max_frames) {
-    load_syms();
-    unsigned cells = syms[S_SOLID].size;       /* the grid size gives the cell size */
-    for (cell_shift = 1; (unsigned)((MAP_W >> cell_shift) * (MAP_H >> cell_shift)) > cells; cell_shift++) {}
-    for (unsigned i = 0; i < cells && i < sizeof solid_grid; i++) solid_grid[i] = core->busRead8(core, syms[S_SOLID].addr + i);
-    door_x = core->busRead16(core, syms[S_DOORS].addr);
-    door_y = core->busRead16(core, syms[S_DOORS].addr + 2);
-    door_w = core->busRead16(core, syms[S_DOORS].addr + 4);
-    door_h = core->busRead16(core, syms[S_DOORS].addr + 6);
-    long f = 0;
-    while (!in_meadow() && f < max_frames) { run(0, 1); f++; }
-    run(0, 2);                                  /* let the meadow update touch_box once */
+/* One step downhill on the distance field (8 directions). */
+static void step_downhill(void) {
+    int px = (int32_t)rd32(syms[S_PIPX].addr) >> 8, py = (int32_t)rd32(syms[S_PIPY].addr) >> 8;
+    static const int ddx[8] = {1, -1, 0, 0, 1, 1, -1, -1}, ddy[8] = {0, 0, 1, -1, 1, -1, 1, -1};
+    static const unsigned kx[3] = {1u << 5, 0, 1u << 4}, ky[3] = {1u << 6, 0, 1u << 7};   /* LEFT, -, RIGHT / UP, -, DOWN */
+    int best = field_at(px, py), bk = -1;
+    for (int k = 0; k < 8; k++) {
+        int d = field_at(px + ddx[k] * 2, py + ddy[k] * 2);
+        if (d < best) { best = d; bk = k; }
+    }
+    unsigned keys = 0;
+    if (bk >= 0) keys = kx[ddx[bk] + 1] | ky[ddy[bk] + 1];
+    else if (goal_x >= 0) {                                 /* near the point: nudge straight at it */
+        if (goal_x > px) keys |= kx[2]; else if (goal_x < px) keys |= kx[0];
+        if (goal_y > py) keys |= ky[2]; else if (goal_y < py) keys |= ky[0];
+    }
+    run(keys, 1);
+}
 
-    f += 2;
+static long wait_meadow(long f, long max_frames) {
+    load_syms();                                /* in_meadow() needs the addresses */
+    while (!in_meadow() && f < max_frames) { run(0, 1); f++; }
+    run(0, 2);                                  /* let the map update once */
+    return f + 2;
+}
+
+static void seek(long max_frames) {
+    long f = wait_meadow(0, max_frames);
+    load_area();
+    goal_x = goal_y = -1;
     int built_for[3] = {-2, -2, -2};
     while (f < max_frames) {
         if ((int32_t)rd32(syms[S_TOUCH].addr) >= 0) {
@@ -275,20 +346,32 @@ static void seek(long max_frames) {
             build_field();
             for (int i = 0; i < 3; i++) built_for[i] = box_x[i];
         }
-        int px = (int32_t)rd32(syms[S_PIPX].addr) >> 8, py = (int32_t)rd32(syms[S_PIPY].addr) >> 8;
-        static const int ddx[8] = {1, -1, 0, 0, 1, 1, -1, -1}, ddy[8] = {0, 0, 1, -1, 1, -1, 1, -1};
-        static const unsigned kx[3] = {1u << 5, 0, 1u << 4}, ky[3] = {1u << 6, 0, 1u << 7};   /* LEFT, -, RIGHT / UP, -, DOWN */
-        int best = field_at(px, py), bk = -1;
-        for (int k = 0; k < 8; k++) {
-            int d = field_at(px + ddx[k] * 2, py + ddy[k] * 2);
-            if (d < best) { best = d; bk = k; }
-        }
-        unsigned keys = 0;
-        if (bk >= 0) keys = kx[ddx[bk] + 1] | ky[ddy[bk] + 1];
-        run(keys, 1);
+        step_downhill();
         f++;
     }
     printf("[seek] timeout after %ld frames\n", f);
+}
+
+/* walkto X Y N: walk Pip's feet to (X, Y) around boxes and shut gates.
+ * Stops there, when the scene changes (an exit), or after N frames. */
+static void walkto(int x, int y, long max_frames) {
+    long f = wait_meadow(0, max_frames);
+    load_area();
+    read_boxes();
+    goal_x = x;
+    goal_y = y;
+    build_field();
+    while (f < max_frames) {
+        int px = (int32_t)rd32(syms[S_PIPX].addr) >> 8, py = (int32_t)rd32(syms[S_PIPY].addr) >> 8;
+        if (!in_meadow()) { printf("[walkto] left the area at %d,%d after %ld frames\n", px, py, f); break; }
+        if (abs(px - x) <= 1 && abs(py - y) <= 1) { printf("[walkto] at %d,%d after %ld frames\n", px, py, f); break; }
+        step_downhill();
+        f++;
+    }
+    if (f >= max_frames)
+        printf("[walkto] stopped at %d,%d (goal %d,%d)\n", (int32_t)rd32(syms[S_PIPX].addr) >> 8,
+               (int32_t)rd32(syms[S_PIPY].addr) >> 8, x, y);
+    goal_x = goal_y = -1;
 }
 
 int main(int argc, char **argv) {
@@ -353,6 +436,10 @@ int main(int argc, char **argv) {
             gba->audio.forceDisableChA = gba->audio.forceDisableChB = ch != 0;
         } else if (!strcmp(cmd, "seek")) {
             seek(atol(a));
+        } else if (!strcmp(cmd, "walkto")) {
+            long y = 0, m = 0;
+            sscanf(line, "%*s %*s %ld %ld", &y, &m);
+            walkto(atoi(a), (int)y, m);
         } else if (!strcmp(cmd, "audio")) {
             if (!strcmp(a, "end")) {
                 if (wav) { wav_header(wav, wav_samples); fclose(wav); wav = NULL; }

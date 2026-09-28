@@ -49,6 +49,13 @@ _add(rf_hi='#ffd0d8', rf_lt='#ffb4c2', rf_base='#f898ae', rf_dk='#e07c98',
      wl_ink='#b08f86', dr_lt='#c8f0dc', dr_base='#a6e0c6', dr_dk='#84c8ac',
      win_lt='#e8f6ff', win_base='#c4e4fa', win_dk='#9ccbef')
 
+# Berry Woods: mossy floor (a little deeper and cooler than the meadow),
+# soft earth trail, autumn canopy, berries.
+_add(mg_hi='#d6efc2', mg_lt='#bce2ab', mg_base='#a0d29a', mg_dk='#86c093', mg_dk2='#6eab89', mg_ink='#568f78')
+_add(dt_hi='#fbeedf', dt_lt='#f2ddc6', dt_base='#e6c9aa', dt_dk='#d4b091', dt_dk2='#bd967b')
+_add(au_hi='#fff1d8', au_lt='#ffdcaa', au_base='#fcc388', au_dk='#f1a56e', au_dk2='#da8a5e', au_ink='#a8664e')
+_add(berry='#ff86a2', berry_dk='#d85f82', bberry='#93a9ef')
+
 # Beach.
 _add(s_hi='#fff8ea', s_lt='#fff0d6', s_base='#fce4bf', s_dk='#f1cfa3',
      s_dk2='#e2b98c', s_ink='#c79a78', sea_hi='#f0fcff', sea_lt='#c6f0f6',

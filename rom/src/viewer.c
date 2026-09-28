@@ -16,7 +16,7 @@
 
 #define T_PIP     0        /* 8 frames x 8 tiles */
 #define T_SHADOW  64
-#define T_BOX     66       /* 16x16, one tile set, a palette per color */
+#define T_BOX     66       /* the area's container, 16x16: one tile set, a palette per color */
 #define T_SPARK   70       /* twinkle tiny/small/big, heart */
 #define T_ABTN    74       /* 16x32 */
 #define T_ARROW   82       /* right, up, upright: 16x16 each */
@@ -29,6 +29,7 @@
 #define P_ARROW   9
 #define T_COUNT   128      /* found counter: pill with icon (two 32x16), then text 32x16 */
 #define T_COUNT_TXT (T_COUNT + 16)
+#define T_GATE    160      /* log across a way that is still shut, 16x32 (palette P_SHADOW) */
 #define P_SQ      10       /* 10..14: the area's 5 flavor palettes */
 #define P_COUNT   15
 
@@ -53,6 +54,7 @@ enum { DIR_DOWN, DIR_UP, DIR_RIGHT, DIR_LEFT };
 static const AreaMap *A = &area_maps[0];   /* the area Pip is in */
 static const u8 area_song[AREA_COUNT] = {SONG_MEADOW, SONG_WOODS, SONG_SHORE, SONG_CLOUD};
 static s32 pip_x = MEADOW_SPAWN_X << 8, pip_y = MEADOW_SPAWN_Y << 8;
+static int travel_to = -1, travel_x, travel_y;   /* set by an exit: the next enter() arrives there */
 static int dir = DIR_DOWN, walk_t, cam_x, cam_y, door_cool;
 
 /* ---- gift boxes (kept while other scenes run) ---- */
@@ -304,6 +306,10 @@ static bool box_hit(int i, int x0, int y0, int x1, int y1) {
     return x1 >= bx - 7 && x0 <= bx + 7 && y1 >= by - 6 && y0 <= by;
 }
 
+/* The way into an area stays shut until the area before it has enough
+ * friends (and until its map is built). */
+static bool gate_shut(int to) { return to >= AREA_MAPS || !area_open(to); }
+
 static bool solid_at(int x, int y) {
     if (x < 0 || y < 0 || x >= A->w || y >= A->h) return true;
     return A->solid[(y >> A->cell_shift) * (A->w >> A->cell_shift) + (x >> A->cell_shift)];
@@ -315,6 +321,11 @@ static bool blocked(int fx, int fy) {
         return true;
     for (int i = 0; i < MAX_BOXES; i++)
         if (box_hit(i, fx - FEET_W, fy - FEET_H, fx + FEET_W, fy)) return true;
+    for (int i = 0; i < A->ngates; i++) {
+        const u16 *g = &A->gates[i * 5];
+        if (gate_shut(g[4]) && fx + FEET_W >= g[0] && fx - FEET_W < g[0] + g[2] && fy >= g[1] && fy - FEET_H < g[1] + g[3])
+            return true;
+    }
     return false;
 }
 
@@ -358,6 +369,14 @@ static void save_pos(bool now) {
 }
 
 static void enter(void) {
+    if (travel_to >= 0) {                      /* walked in from another area */
+        game_save.area = (u8)travel_to;
+        pip_x = travel_x << 8;
+        pip_y = travel_y << 8;
+        travel_to = -1;
+        pos_restored = true;
+        pos_dirty = true;
+    }
     const AreaMap *was = A;
     A = &area_maps[game_save.area < AREA_MAPS ? game_save.area : 0];
     if (A != was) boxes_ready = false;         /* boxes belong to the area they were placed in */
@@ -375,8 +394,9 @@ static void enter(void) {
     dma3_copy16(PAL_OBJ + P_PIP * 16, pip_pal, sizeof pip_pal);
     dma3_copy32(OBJ_TILES + T_SHADOW * 16, shadow16_tiles, sizeof shadow16_tiles);
     dma3_copy16(PAL_OBJ + P_SHADOW * 16, shadow16_pal, sizeof shadow16_pal);
-    dma3_copy32(OBJ_TILES + T_BOX * 16, box16_tiles, sizeof box16_tiles);
-    dma3_copy16(PAL_OBJ + P_BOX * 16, box16_pal, sizeof box16_pal);
+    dma3_copy32(OBJ_TILES + T_BOX * 16, cont16_tiles + A->area * 32, 4 * 32);
+    dma3_copy16(PAL_OBJ + P_BOX * 16, cont16_pal + A->area * 5 * 16, 5 * 32);
+    dma3_copy32(OBJ_TILES + T_GATE * 16, gate_tiles, sizeof gate_tiles);
     dma3_copy32(OBJ_TILES + T_SPARK * 16, ui_small_tiles, sizeof ui_small_tiles);
     dma3_copy16(PAL_OBJ + P_SPARK * 16, ui_small_pal, sizeof ui_small_pal);
     dma3_copy32(OBJ_TILES + T_ABTN * 16, abubble_tiles, sizeof abubble_tiles);
@@ -405,6 +425,7 @@ static void enter(void) {
     }
     boxes_fill();
     friends_setup();
+    if (pos_dirty) save_pos(true);             /* arrived from another area: remember it */
     scene_blend(BLD_BG2 << 8, 5 | (11 << 8));
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG1 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;
 }
@@ -498,7 +519,7 @@ static void draw_pip(void) {
 static void draw_friend(int id, int x, int y, int hop) {
     int sx = x - cam_x, sy = y - cam_y;
     if (!on_screen(sx - 8, sy - 16, 16, 18)) return;
-    int sp = friend_species(id);
+    int sp = friend_species(id) - A->area * 4;          /* the area's 4 species are loaded */
     world_spr(y, sx - 8, sy - 15 - hop, A0_SQUARE, 1, 0, T_SQ16 + sp * 8, P_SQ + friend_flavor(id));
     world_spr(y - 1, sx - 8, sy - 5, A0_WIDE | A0_BLEND, 0, 0, T_SHADOW, P_SHADOW);
 }
@@ -597,8 +618,18 @@ static void draw_counter(void) {
     hud_spr(x + 32, y, A0_WIDE, 2, 0, T_COUNT + 8, P_COUNT);
 }
 
+static void draw_gates(void) {
+    for (int i = 0; i < A->ngates; i++) {
+        const u16 *g = &A->gates[i * 5];
+        if (!gate_shut(g[4])) continue;
+        int sx = g[0] + g[2] / 2 - cam_x, sy = g[1] + g[3] - cam_y;
+        if (on_screen(sx - 8, sy - 32, 16, 32)) world_spr(g[1] + g[3], sx - 8, sy - 32, A0_TALL, 2, 0, T_GATE, P_SHADOW);
+    }
+}
+
 static void draw(void) {
     n_world = n_oam = 0;
+    draw_gates();
     draw_counter();
     draw_arrow();
     draw_boxes();
@@ -707,6 +738,18 @@ static void update(void) {
             pos_dirty = true;                       /* save the spot outside the door */
             save_pos(true);
             scene_go(&scene_shelf);
+        }
+    }
+    for (int i = 0; i < A->nexits && !fading; i++) {          /* walking off the map into the next area */
+        const u16 *e = &A->exits[i * 7];
+        if (px >= e[0] && px < e[0] + e[2] && py >= e[1] && py < e[1] + e[3] && !gate_shut(e[4]) && e[4] < AREA_MAPS) {
+            travel_to = e[4];
+            travel_x = e[5];
+            travel_y = e[6];
+            dbg("exit to area %d", travel_to);
+            save_pos(true);
+            scene_reload();
+            fading = true;
         }
     }
     if (!fading && (key_hit() & KEY_START)) {

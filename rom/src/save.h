@@ -33,6 +33,7 @@ typedef struct {
 } SaveData;
 
 _Static_assert(sizeof(SaveData) == 144, "save layout: older saves must still load");
+_Static_assert(__builtin_offsetof(SaveData, area) == 112, "test/harness.c reads the area here (SAVE_AREA)");
 
 typedef enum { SAVE_NEW, SAVE_LOADED, SAVE_BROKEN } SaveStatus;
 

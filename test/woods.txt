@@ -1,0 +1,40 @@
+# 10 meadow friends: over the bridge into the woods, open an acorn, shelf, back
+wait 20
+tap A
+wait 15
+tap A
+wait 25
+walkto 440 200 900
+shot w02_bridge_open
+walkto 470 200 300
+wait 30
+shot w03_woods_arrive
+seek 3000
+shot w04_touch_acorn
+tap A
+wait 50
+tap A
+wait 29
+tap B
+wait 31
+tap A
+wait 140
+tap A
+wait 20
+tap B
+wait 20
+tap A
+wait 120
+shot w05_woods_after
+hold START 1
+wait 30
+shot w06_shelf_woods
+tap B
+wait 40
+walkto 330 150 900
+shot w07_pen_sign
+walkto 4 200 900
+wait 30
+shot w08_meadow_back
+walkto 470 200 300
+wait 60

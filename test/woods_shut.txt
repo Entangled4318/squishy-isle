@@ -1,0 +1,9 @@
+# 9 meadow friends: the log on the bridge still blocks the way east
+wait 20
+tap A
+wait 15
+tap A
+wait 25
+walkto 466 200 900
+wait 10
+shot w01_log_shut

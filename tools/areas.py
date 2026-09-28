@@ -35,6 +35,9 @@ class Area:
         self.pen = None          # (x0, y0, x1, y1) where found friends roam (their feet)
         self.sign = None         # (x, y) of the pen sign's base centre
         self.doors = []          # (x, y, w, h, target)
+        self.exits = []          # (x, y, w, h, to_area, arrive_x, arrive_y): feet in the box walk to that area
+        self.gates = []          # (x, y, w, h, to_area): solid while that area is shut; a log sprite
+                                 # (16x32, bottom centre at x + w/2, y + h) shows it
 
     def block(self, x0, y0, x1, y1):
         """Mark pixel rect [x0,x1) x [y0,y1) solid (rounded to cells)."""
@@ -157,7 +160,7 @@ def meadow():
     a.place(world.decor('tulips'), 138, 72)
     a.place(world.decor('tulips'), 154, 70)
     a.place(world.mailbox(), 268, 74, block_w=8, tall=6)
-    a.place(world.signpost(world.mini_shell()), 414, 164, block_w=8, tall=6)
+    a.place(world.signpost(world.mini_acorn()), 414, 164, block_w=8, tall=6)   # the bridge leads to the woods
     a.place(world.basket(), 322, 230, block_w=10, tall=6)
     for kind, x, y in (('green', 180, 104), ('blossom', 300, 116), ('blossom', 150, 244),
                        ('green', 330, 140)):
@@ -193,11 +196,110 @@ def meadow():
     a.solid[186 // CELL, 460 // CELL:] = True          # rails, over the water only: the shore stays walkable
     a.solid[(186 + 27) // CELL, 460 // CELL:] = True
     a.block(472, 0, 480, 320)                          # map edge beyond the stream
+    a.exits.append((462, 186, 10, 28, 1, 20, 200))      # east end of the bridge: to the woods
+    a.gates.append((450, 186, 12, 28, 1))               # a log lies across the bridge until they open
 
     a.spawn = (232, 124)
     a.spots = [(60, 206), (150, 212), (286, 180), (210, 150), (140, 88), (330, 210), (400, 220),
                (270, 260), (100, 260), (380, 166)]
     a.first_spot = 3                                   # (210, 150), just below the cottage
+    return a
+
+
+def woods():
+    """Berry Woods: a mossy clearing ringed by green and autumn trees. The
+    trail comes in from the meadow bridge (west), crosses the clearing and
+    leaves east toward the shore; a path north ends at a big old tree.
+    Friend pen (the meadow's size) in the south-east with its sign."""
+    W_, H_ = 480, 320
+    a = Area('woods', W_, H_)
+    trail = SmoothUnion(12,
+                        Capsule(0, 200, 150, 196, 14),
+                        Capsule(150, 196, 240, 170, 15),
+                        Capsule(240, 170, 360, 132, 14),
+                        Capsule(360, 132, 480, 120, 14),
+                        Capsule(240, 170, 236, 70, 12))
+    clearing = Oval(238, 172, 34, 22, n=2.2)
+    lab = shape_labels(W_, H_, 'g', [('p', trail), ('p', clearing)])
+    ground, lab = render_terrain(None, world.WOODS_KINDS, lab=lab)
+    a.ground = ground
+
+    # ---- forest floor: ferns, leaves, tufts, mushrooms
+    for x, y in ((40, 150), (120, 240), (190, 120), (300, 70), (410, 60), (70, 280), (230, 270),
+                 (330, 180), (440, 170), (140, 150), (380, 300)):
+        a.decor(world.fern(), x, y)
+    for i, (x, y) in enumerate(((60, 230), (170, 150), (260, 220), (320, 110), (420, 90), (110, 290),
+                                (200, 60), (290, 250), (450, 250), (30, 110), (360, 200))):
+        a.decor(world.leaves(i), x, y)
+    for name, x, y in (('tuft', 90, 170), ('tuft_small', 280, 150), ('clover', 160, 270), ('tuft', 400, 150),
+                       ('tuft_small', 50, 250), ('clover', 330, 90), ('tuft', 250, 110), ('tuft_small', 440, 290)):
+        a.decor(world.decor(name, 'woods'), x, y)
+    for x, y in ((104, 128), (268, 228), (430, 200), (180, 290)):
+        a.decor(world.mushrooms(), x, y)
+    for i, (x, y) in enumerate(((20, 170), (90, 90), (130, 60), (210, 100), (270, 130), (300, 170), (380, 150),
+                                (410, 230), (340, 300), (250, 300), (160, 240), (90, 230), (20, 300), (120, 130),
+                                (190, 180), (280, 80), (350, 40), (430, 130), (60, 60), (230, 240))):
+        a.decor(world.leaves(i + 11), x, y)           # a carpet of fallen leaves: autumn woods, not meadow
+    for x, y in ((230, 40), (360, 110), (20, 60), (170, 300), (270, 310)):
+        a.decor(world.fern(), x, y)
+
+    # ---- trees: a thick ring at the edges, a few inside. Positions snap to
+    # the 8 px grid so copies of a tree share their tiles (the 1024 limit).
+    ring = []
+    for i, x in enumerate(range(-16, 480, 28)):                      # two rows along the top
+        ring.append(('green' if i % 3 else 'autumn', i % 2 == 0, x, -40 + (i % 2) * 10))
+    for i, x in enumerate(range(-4, 480, 30)):                       # and one along the bottom
+        ring.append(('autumn' if i % 3 == 1 else 'green', i % 2 == 1, x, 294 - (i % 2) * 8))
+    for y in (26, 70, 116, 236):                                     # west edge (the trail at 200 stays open)
+        ring.append(('green' if y % 3 else 'autumn', y in (26, 236), -22, y))
+    for y in (18, 58, 150, 196, 240):                                # east edge (the trail at 120 stays open)
+        ring.append(('autumn' if y in (58, 196) else 'green', y in (18, 196), 440, y))
+    inside = [('autumn', True, 196, 12), ('green', False, 120, 80), ('autumn', False, 340, 56), ('green', False, 56, 100),
+              ('autumn', False, 150, 216), ('green', True, 60, 40), ('autumn', False, 400, 72),
+              ('green', True, 64, 208), ('autumn', False, 200, 226),
+              ('autumn', False, 30, 140), ('green', False, 96, 40), ('autumn', True, 150, 30),
+              ('green', False, 290, 36), ('autumn', False, 250, 60), ('green', False, 110, 136)]
+    trees = [(k, b, x // 8 * 8, y // 8 * 8) for k, b, x, y in ring + inside]
+    for kind, big, x, y in trees:
+        t = tree(kind, big)
+        a.decor(tree_shadow(t.shape[1], C['mg_dk']), x, y + t.shape[0] - 6)
+    for kind, big, x, y in sorted(trees, key=lambda t: t[3] + tree(t[0], t[1]).shape[0]):
+        t = tree(kind, big)
+        a.place(t, x, y, block_w=t.shape[1] - 8)
+
+    # ---- props: berry bushes, stumps, fallen logs
+    for kind, x, y in (('red', 88, 116), ('blue', 176, 100), ('red', 262, 214), ('blue', 110, 188),
+                       ('red', 402, 108), ('blue', 36, 252), ('red', 136, 250)):
+        a.place(world.berry_bush(kind), x, y, block_w=10, tall=6)
+    for x, y in ((276, 104), (380, 90)):
+        a.place(world.stump(), x, y, block_w=12, tall=6)
+    a.place(world.log(30), 150, 128, block_w=26, tall=6)
+    a.place(world.log(24), 18, 92, block_w=20, tall=6)
+
+    # ---- friend pen, south-east (same size as the meadow's), sign by its top-left corner
+    px0, py0, px1, py1 = 300, 200, 420, 284
+    top = world.fence(7)
+    a.place(top, px0, py0 - 6, block_w=top.shape[1], tall=6)
+    a.place(top, px0, py1 - top.shape[0], block_w=top.shape[1], tall=6)
+    side = world.fence_side(py1 - py0 - 6)
+    a.place(side, px0 - 3, py0, block_w=7, tall=side.shape[0])
+    a.place(side, px1 - 4, py0, block_w=7, tall=side.shape[0])
+    a.pen = (px0 + 8, py0 + 20, px1 - 8, py1 - 14)
+    sign_img = world.signpost(world.mini_heart())
+    a.place(sign_img, px0 - 26, py0 - 4, block_w=8, tall=6)
+    a.sign = (px0 - 26 + sign_img.shape[1] // 2, py0 + 19)
+
+    a.block(0, 0, 4, 186)                              # map edges beside the trail ends
+    a.block(0, 214, 4, 320)
+    a.block(476, 0, 480, 106)
+    a.block(476, 134, 480, 320)
+    a.exits.append((0, 186, 6, 28, 0, 450, 200))       # west: back over the bridge to the meadow
+    a.exits.append((474, 106, 6, 28, 2, 20, 200))      # east: to the shore
+    a.gates.append((458, 106, 12, 28, 2))              # a log until the shore opens
+    a.spawn = (24, 200)
+    a.spots = [(96, 168), (326, 100), (150, 170), (200, 150), (292, 150), (230, 110), (352, 170),
+               (410, 150), (190, 276), (250, 250), (180, 200), (40, 190)]
+    a.first_spot = 0                                   # in view of the arrival from the meadow
     return a
 
 
