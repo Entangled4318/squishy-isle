@@ -1,0 +1,7 @@
+# reboot after woods.txt: Continue starts in the woods
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+shot w09_continue_woods

@@ -44,6 +44,10 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  6.2 (with 10 meadow friends walk east over the bridge into the Berry
+  Woods and back; with fewer the log blocks the bridge; the woods feel
+  different from the meadow; acorns read as acorns; woods song plays;
+  Continue after power off starts in the woods), step
   5.6 (chimes, squeaks and boings are clear over every song but not
   harsh; the title letter chimes are not too loud), step
   5.5 (sound test, hold L + R + START at power-on: Shore, Woods and
@@ -78,9 +82,10 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 6.2 (Berry Woods), see "Step 6 progress". Still to ask
-  the owner, one at a time: what the mailbox does, then what the picnic
-  basket does (before 6.7). Step 6 scope: Shore, Woods, Cloud Hill, each
+- Next: step 6.3 (gate scene), see "Step 6 progress". Mailbox (owner):
+  a letter with a happy message from the newest friend (flag up after
+  each new friend; A reads it; no new mail re-reads the last one). Still
+  to ask: what the picnic basket does (before 6.7). Step 6 scope: Shore, Woods, Cloud Hill, each
   with 20 unique friends, a way to get there, a pen the size of the
   meadow's; play each area's song from step 5.5. Then step 7 (QA and
   the final ROM). Do not wait for the Brick
@@ -480,9 +485,46 @@ Plan, one sub-step at a time, merge after each:
    Screenshot `docs/step6_1_shelf_order.png`. Score 8.5 (refactor, no
    visible change besides the tab order; first pass had a wrong line
    index, `& 3 % 3`, caught in review before the build).
-2. Berry Woods: map (acorns, pen, sign, woods song), the meadow bridge
-   leads there (east edge; the meadow sign by the bridge gets an acorn),
-   blocked by a log until 10 meadow friends. Harness `seek` per area.
+2. Berry Woods. **Done.** `areas.woods()` (480x320): mossy floor
+   (`WOODS_KINDS`, `mg_*`), earth trail (`dt_*`) from the west edge
+   through a small clearing to the east edge, a path north; a ring of
+   green and autumn trees (`tree('autumn')`, `au_*`) snapped to the 8 px
+   grid so copies share tiles; berry bushes, ferns, fallen leaves,
+   stumps, logs, mushrooms (`world.berry_bush/fern/leaves/log`). Pen the
+   meadow's size at 300..420 x 200..284, sign left of it. 12 acorn spots
+   (none under a canopy or on solid ground: checked). 698 tiles, 9
+   palettes. Map data: `Area.exits` (x, y, w, h, to area, arrive x, y)
+   and `Area.gates` (x, y, w, h, to area), exported into `AreaMap`.
+   Meadow: exit at the bridge's east end, gate log across it; its sign
+   by the bridge shows an acorn (`mini_acorn`, the 3 sign colors, else
+   the meadow needs 17 palettes). Woods: west exit back, east exit and
+   gate toward the shore. `viewer.c`: a gate is shut while
+   `!area_open(to)` or the map is not built (`to >= AREA_MAPS`); shut
+   gates are solid and draw a 16x32 log sprite (`gate_tiles`, colors in
+   the shadow's OBJ palette after its 1 color: the map uses all 16);
+   walking into an open exit sets `travel_to` and calls the new
+   `scene_reload()` (fade out, enter the same scene); `enter()` puts Pip
+   at the arrival, stores `game_save.area` and the spot. Containers per
+   area: `cont16_tiles` / `cont16_pal` (4 tiles and 5 palettes an area;
+   `shared_index()` builds one tile set from color variants). Acorns keep
+   a brown cap and vary the nut (cream, pink, mint, lav, gold). Harness:
+   `seek` works in any area (reads `game_save.area` at offset 112, a
+   `_Static_assert` guards it, and the area's `<name>_solid/spots/doors/
+   gates`; shut gates count as solid); new `walkto X Y N`. Found and
+   fixed: followers outside the meadow drew garbage (species not offset
+   by the area); `wait_meadow` ran before the symbols were loaded, so
+   the first `walkto`/`seek` of a run waited its whole budget.
+   Tests: `woods_shut.txt`, `woods.txt`, `woods_continue.txt`,
+   `check_woods.py` (log stops Pip at 9 friends, crossing at 10, acorn
+   gives a woods friend, woods shelf page, back to the meadow with its
+   own followers, Continue in the woods, songs per area, log sprite shown
+   and gone, acorn counter). 12 suites. Screenshots
+   `docs/step6_2_woods.png`, `docs/step6_2_woods_pen.png`. Scores: map
+   8.5 (first 7: open like the meadow, clearing a dirt blob, a log in the
+   pen, trees over the pen rail), travel and gates 8.5, acorns 8.5
+   (first 7: pastel caps looked like cupcakes). Known: the log gate on
+   the bridge stands like a post (it lies across the way; 6.3 rolls it
+   away); the open screen still shows a gift box in the woods (6.6).
 3. Gate scene: at 10 friends the squishies roll the log away (once).
 4. Seashell Shore map, boardwalk from the Woods.
 5. Cloud Hill map, stairs from the Shore.

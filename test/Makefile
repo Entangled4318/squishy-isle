@@ -54,6 +54,12 @@ run: $(HARNESS) $(UNIT)
 	./$(HARNESS) $(ROM) $(OUT)/loop.sav loop_c.txt $(OUT) > $(OUT)/loop_c.log
 	./$(HARNESS) $(ROM) $(OUT)/loop.sav loop_d.txt $(OUT) > $(OUT)/loop_d.log
 	python3 check_loop.py $(OUT) $(ROM:.gba=.elf)
+	python3 make_save.py $(OUT)/w9.sav $$(seq -s, 0 8)
+	./$(HARNESS) $(ROM) $(OUT)/w9.sav woods_shut.txt $(OUT) > $(OUT)/woods_shut.log
+	python3 make_save.py $(OUT)/w10.sav $$(seq -s, 0 9) 0,1,2
+	./$(HARNESS) $(ROM) $(OUT)/w10.sav woods.txt $(OUT) > $(OUT)/woods.log
+	./$(HARNESS) $(ROM) $(OUT)/w10.sav woods_continue.txt $(OUT) > $(OUT)/woods_continue.log
+	python3 check_woods.py $(OUT)
 	python3 check_music.py $(OUT) $(ROM)
 
 .PHONY: run

@@ -11,6 +11,7 @@ typedef struct {
 void scene_run(const Scene *first);
 void scene_go(const Scene *next);   /* ignored while a fade runs */
 bool scene_fading(void);
+void scene_reload(void);            /* fade out and enter the same scene again (walking to another area) */
 
 /* blend setup the scene wants when no fade runs (shadows etc.) */
 void scene_blend(u16 bldcnt, u16 bldalpha);

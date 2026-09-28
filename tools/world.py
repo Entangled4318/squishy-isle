@@ -22,6 +22,10 @@ WALL = ramp('wl_lt', 'wl_lt', 'wl_base', 'wl_dk', 'wl_dk')
 DOOR = ramp('dr_lt', 'dr_lt', 'dr_base', 'dr_dk', 'dr_dk')
 WIN = ramp('win_lt', 'win_lt', 'win_base', 'win_dk', 'win_dk')
 WOOD = ramp('wd_hi', 'wd_lt', 'wd_base', 'wd_dk', 'wd_dk2')
+MOSS = ramp('mg_hi', 'mg_lt', 'mg_base', 'mg_dk', 'mg_dk2')
+AUTUMN = ramp('au_hi', 'au_lt', 'au_base', 'au_dk', 'au_dk2')
+# canopy ramp, outline and inner line per tree kind
+CANOPY = {'green': (TREE, 't_ink', 't_dk'), 'blossom': (BLOSSOM, 'b_ink', 'b_dk'), 'autumn': (AUTUMN, 'au_ink', 'au_dk')}
 
 
 def _h(x, y, salt=0):
@@ -171,6 +175,13 @@ def render_terrain(corners, kinds, grass_variant=None, style='meadow', lab=None)
     return img, lab
 
 
+WOODS_KINDS = {
+    'base': 'g',
+    'base_ramp': MOSS,
+    'p': {'ramp': ramp('dt_hi', 'dt_lt', 'dt_base', 'dt_dk', 'dt_dk2', 'dt_dk2'),
+          'pebbles': [(5, 6), (20, 13), (12, 24), (27, 27), (28, 4), (3, 18), (16, 30)]},
+}
+
 MEADOW_KINDS = {
     'base': 'g',
     'base_ramp': GRASS,
@@ -212,9 +223,8 @@ def trunk(w, h, x0, x1, y0, y1):
 
 
 def tree(kind='green', big=False):
-    rp = TREE if kind == 'green' else BLOSSOM
-    ink = C['t_ink'] if kind == 'green' else C['b_ink']
-    inner = C['t_dk'] if kind == 'green' else C['b_dk']
+    rp, ink, inner = CANOPY[kind]
+    ink, inner = C[ink], C[inner]
     k = 1.5 if big else 1.0
     w, h = int(32 * k), int(42 * k)
     clumps = [
@@ -234,6 +244,11 @@ def tree(kind='green', big=False):
         for y in range(can.shape[0], can.shape[0] + 2):
             if img[y, x, 3] and tuple(img[y, x, :3]) in (C['tr_lt'], C['tr_base']):
                 img[y, x, :3] = C['tr_dk']
+    if kind == 'autumn':                     # a few darker leaves: not a flat orange ball
+        for (x, y) in ((9, 9), (21, 6), (24, 17), (12, 14), (6, 20), (18, 21), (26, 22), (11, 26), (20, 27)):
+            x, y = int(x * k), int(y * k)
+            if img[y, x, 3] and tuple(img[y, x, :3]) not in (ink, inner):
+                img[y, x, :3] = C['au_dk']
     if kind == 'blossom':
         for (x, y) in ((8, 8), (19, 5), (25, 15), (13, 12), (5, 19), (17, 20), (27, 21), (10, 25), (21, 26), (15, 29)):
             x, y = int(x * k), int(y * k)
@@ -255,11 +270,83 @@ def tree_shadow(w=32, color=None):
 
 
 def bush(kind='green'):
-    rp = TREE if kind == 'green' else BLOSSOM
-    ink = C['t_ink'] if kind == 'green' else C['b_ink']
+    rp, ink, _ = CANOPY[kind]
     img = shade_parts(16, 16, [P(Union(Ellipse(8, 10, 7, 5), Ellipse(5, 8, 4, 4), Ellipse(11, 7.5, 4.5, 4.5)),
-                                 rp, levels=(0.97, 0.80, 0.45, 0.2))], outline=ink)
+                                 rp, levels=(0.97, 0.80, 0.45, 0.2))], outline=C[ink])
     return img
+
+
+def berry_bush(kind='red'):
+    """Green bush dotted with berries (2 px each, a light and a dark pixel)."""
+    img = bush('green')
+    lt, dk = (C['berry'], C['berry_dk']) if kind == 'red' else (C['bberry'], C['t_ink'])
+    for (x, y) in ((5, 6), (10, 5), (3, 10), (8, 9), (12, 10), (6, 12)):
+        img[y, x, :3] = lt
+        img[y + 1, x, :3] = dk
+    img[5, 10, :3] = C['white'] if kind == 'red' else lt
+    return img
+
+
+def fern():
+    """Low fern clump: walk-through ground decor in woods greens."""
+    return from_ascii([
+        '..l.....l..',
+        '.ld.l..dl.l',
+        'l.dld.ld.d.',
+        '.ld.ddd.dl.',
+        'ld..ede..dl',
+        '...eeeee...',
+    ], {'l': C['mg_lt'], 'd': C['mg_dk2'], 'e': C['mg_ink']})
+
+
+def leaves(seed=0):
+    """A few fallen autumn leaves on the forest floor."""
+    img = new(12, 7)
+    pts = [(1, 2), (5, 0), (9, 3), (3, 5), (7, 5), (10, 1)]
+    for i, (x, y) in enumerate(pts[:4 + seed % 3]):
+        c = C['au_base'] if (i + seed) % 2 else C['au_dk']
+        img[y, x, :3] = c
+        img[y, x + 1, :3] = c
+        img[y, x, 3] = img[y, x + 1, 3] = 255
+    return img
+
+
+def log(w=30):
+    """Fallen log lying across (bark lit from above, rings on the right end)."""
+    h = 12
+    img = new(w, h)
+    for y in range(1, h - 1):
+        for x in range(0, w - 5):
+            c = C['tr_lt'] if y <= 3 else C['tr_base'] if y <= 7 else C['tr_dk']
+            if (x * 7 + y * 3) % 11 == 0 and 2 < y < 9:
+                c = C['tr_dk']
+            img[y, x, :3] = c
+            img[y, x, 3] = 255
+    ends = shade_parts(10, h, [P(Ellipse(5, h / 2, 4.2, h / 2 - 0.6), ramp('wd_hi', 'wd_hi', 'wd_lt', 'wd_base', 'wd_dk'),
+                                 flat=True, line=C['wd_dk'])], outline=C['tr_ink'])
+    m = ends[..., 3] > 0
+    img[:, w - 10:][m] = ends[m]
+    img[h // 2, w - 5, :3] = C['wd_dk']
+    for x in range(0, w - 5):                       # outline top and bottom
+        img[0, x, :3] = img[h - 1, x, :3] = C['tr_ink']
+        img[0, x, 3] = img[h - 1, x, 3] = 255
+    for y in range(0, h):
+        img[y, 0, :3] = C['tr_ink']
+        img[y, 0, 3] = 255
+    return img
+
+
+def mini_acorn():
+    """Sign icon for the woods: same three colors as mini_shell and
+    mini_heart, so the meadow sign costs no extra palette."""
+    return from_ascii([
+        '.kkkkk.',
+        'kkwkkkk',
+        'kkkkkkk',
+        '.kwppk.',
+        '..kpk..',
+        '...k...',
+    ], {'k': rgb15('#b0607e'), 'p': rgb15('#ffcadb'), 'w': C['white']})
 
 
 # ------------------------------------------------------------------ flowers
@@ -436,8 +523,12 @@ DECOR = {
 }
 
 
-def decor(name):
-    return from_ascii(DECOR[name], _DECOR_LEGEND)
+def decor(name, ground='meadow'):
+    """ground='woods' paints the grass bits in the woods' moss greens."""
+    legend = dict(_DECOR_LEGEND)
+    if ground == 'woods':
+        legend.update(l=C['mg_lt'], d=C['mg_dk'], e=C['mg_dk2'], h=C['mg_hi'])
+    return from_ascii(DECOR[name], legend)
 
 
 # fence shares the stone greys so both fit the same background palette

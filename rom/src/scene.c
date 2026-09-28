@@ -27,6 +27,12 @@ void scene_go(const Scene *next) {
     fade_dir = 1;
 }
 
+void scene_reload(void) {
+    if (fade_dir) return;
+    pending = current;
+    fade_dir = 1;
+}
+
 static void apply_blend(void) {
     if (fade_level > 0) {
         REG_BLDCNT = 0x3F | BLD_WHITE;

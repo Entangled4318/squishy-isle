@@ -15,6 +15,7 @@ import squishy_export
 import mockups
 import props
 import areas
+import world
 from pip import frames as pip_frames
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'build'
@@ -283,8 +284,7 @@ def main():
     small_shadow = props.shadow(12, 4, rgb15('#6a5a88'))
     sh = new(16, 8)
     blit(sh, small_shadow, 2, 2)
-    cw.u32_bytes('shadow16_tiles', obj(sh, {rgb15('#6a5a88'): 1}))
-    cw.u16('shadow16_pal', [0, bgr555(rgb15('#6a5a88'))] + [0] * 14)
+    cw.u32_bytes('shadow16_tiles', obj(sh, {rgb15('#6a5a88'): 1}))     # its palette is written with the gate log
 
     # ---------------- meadow sprites: gift boxes, A bubble, guide arrow
     from gbaconv import tile4
@@ -295,6 +295,36 @@ def main():
         box_pals += [0] + [bgr555(c) for c in props.box16_palette(color)] + [0] * (15 - len(props.BOX16_KEYS))
     cw.u16('box16_pal', box_pals)
     cw.define('BOX_COLORS', 5)
+
+    # containers on the map, per area in play order: 4 tiles and 5 color
+    # palettes each (the meadow's box keeps its hand-made index; others
+    # share one index image across their 5 color variants)
+    cont_tiles, cont_pals = [], []
+    for key, _, kind, _ in AREAS[:len(AREA_BUILDERS)]:
+        if kind == 'box':
+            cont_tiles.append(b''.join(tile4(idx[ty:ty + 8, tx:tx + 8]) for ty in (0, 8) for tx in (0, 8)))
+            cont_pals += box_pals
+            continue
+        variants = {'acorn': [props.acorn16(c) for c in ('cream', 'pink', 'mint', 'lav', 'gold')]}[kind]
+        index, pals = shared_index(variants)
+        cont_tiles.append(b''.join(tile4(index[ty:ty + 8, tx:tx + 8]) for ty in (0, 8) for tx in (0, 8)))
+        for pal in pals:
+            cont_pals += [0] + [bgr555(c) for c in pal] + [0] * (15 - len(pal))
+        save_scaled(np.concatenate(variants, axis=1), os.path.join(OUT, f'{key}_containers.png'), 8)
+    cw.u32_bytes('cont16_tiles', b''.join(cont_tiles))
+    cw.u16('cont16_pal', cont_pals)
+
+    # gate: a log lying across the way (16x32 sprite); its colors go after
+    # the small shadow's in the same OBJ palette (the map uses all 16)
+    glog = np.rot90(world.log(28), -1)            # the ring end faces the viewer
+    gate = pad_to(glog, 16, 32)
+    gate_cols = sorted({tuple(int(v) for v in p) for p in gate[..., :3][gate[..., 3] > 0]})
+    if len(gate_cols) > 14:
+        raise ValueError(f'gate log: {len(gate_cols)} colors')
+    glk = {c: i + 2 for i, c in enumerate(gate_cols)}
+    cw.u32_bytes('gate_tiles', obj(gate, glk))
+    shadow_gate_pal = [0, bgr555(rgb15('#6a5a88'))] + [bgr555(c) for c in gate_cols]
+    cw.u16('shadow16_pal', shadow_gate_pal + [0] * (16 - len(shadow_gate_pal)))
 
     abtn = pad_to(props.a_button(), 16, 32)
     lk, pal = palette_and_lookup([abtn])
@@ -318,8 +348,10 @@ def main():
                 '    uint16_t pen_x0, pen_y0, pen_x1, pen_y1, sign_x, sign_y;\n'
                 '    const uint16_t *shimmer; uint8_t nshimmer;\n'
                 '    const uint16_t *doors; uint8_t ndoors;   /* x, y, w, h: up here opens the shelf */\n'
+                '    const uint16_t *exits; uint8_t nexits;   /* x, y, w, h, to area, arrive x, arrive y */\n'
+                '    const uint16_t *gates; uint8_t ngates;   /* x, y, w, h, to area: solid while it is shut */\n'
                 '} AreaMap;\n')
-    built = [areas.meadow()]
+    built = [b() for b in AREA_BUILDERS]
     names = [a[0] for a in AREAS]
     rows = []
     for i, area in enumerate(built):
@@ -330,6 +362,35 @@ def main():
     cw.h.append(f'extern const AreaMap area_maps[{len(rows)}];\n')
     cw.define('AREA_MAPS', len(rows))
     cw.save(OUT)
+
+
+AREA_BUILDERS = [areas.meadow, areas.woods]       # maps built so far, in play order
+
+
+def shared_index(variants):
+    """Color variants of one drawing -> (index image, palette per variant).
+    Every variant must color the same pixels the same way (a color of the
+    first maps to exactly one color of each other), so one tile set serves all."""
+    first = variants[0]
+    m = first[..., 3] > 0
+    cols = sorted({tuple(int(v) for v in p) for p in first[..., :3][m]})
+    if len(cols) > 15:
+        raise ValueError(f'{len(cols)} colors')
+    index = np.zeros(first.shape[:2], np.uint8)
+    for i, c in enumerate(cols):
+        index[m & np.all(first[..., :3] == c, axis=-1)] = i + 1
+    pals = []
+    for v in variants:
+        if not np.array_equal(v[..., 3] > 0, m):
+            raise ValueError('variants differ in shape')
+        pal = []
+        for i in range(len(cols)):
+            got = {tuple(int(x) for x in p) for p in v[..., :3][index == i + 1]}
+            if len(got) != 1:
+                raise ValueError(f'color {cols[i]} maps to {len(got)} colors in a variant')
+            pal.append(got.pop())
+        pals.append(pal)
+    return index, pals
 
 
 def export_area(cw, a, index):
@@ -383,7 +444,9 @@ def export_area(cw, a, index):
     if index == 0:                                   # one cycle shared by every area
         cw.u16('water_shimmer_cycle', [bgr555(lo), bgr555(mid), bgr555(hi), bgr555(mid)])
     doors = [v for d in a.doors for v in d[:4]]
-    cw.u16(f'{a.name}_doors', doors)
+    cw.u16(f'{a.name}_doors', doors or [0, 0, 0, 0])
+    cw.u16(f'{a.name}_exits', [v for e in a.exits for v in e] or [0] * 7)
+    cw.u16(f'{a.name}_gates', [v for g in a.gates for v in g] or [0] * 5)
     cw.define(f'{up}_NDOORS', len(a.doors))
     full = a.ground.copy()
     m = a.overlay[..., 3] > 0
@@ -396,7 +459,8 @@ def export_area(cw, a, index):
     return (f'    {{{index}, {n}_tiles, {len(b["tiles"])}, {n}_pal, {len(b["palettes"]) * 32}, {n}_ground, {n}_overlay,\n'
             f'     {n}_solid, {areas.CELL.bit_length() - 1}, {a.w}, {a.h}, {a.spawn[0]}, {a.spawn[1]},\n'
             f'     {n}_spots, {len(a.spots)}, {a.first_spot}, {pen[0]}, {pen[1]}, {pen[2]}, {pen[3]}, {sign[0]}, {sign[1]},\n'
-            f'     {n}_shimmer, {len(slots)}, {n}_doors, {len(a.doors)}}}')
+            f'     {n}_shimmer, {len(slots)}, {n}_doors, {len(a.doors)}, {n}_exits, {len(a.exits)},\n'
+            f'     {n}_gates, {len(a.gates)}}}')
 
 
 if __name__ == '__main__':

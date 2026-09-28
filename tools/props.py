@@ -384,9 +384,20 @@ CROWN = from_ascii([
 ], {'k': rgb15('#b27a30'), 'y': rgb15('#ffe07a'), 'w': C['white']})
 
 
-def acorn16():
+ACORN_NUTS = {
+    # nut ramp light to dark; the cap stays brown so every one reads as an
+    # acorn (pastel caps looked like cupcakes)
+    'cream': ('#fff0d8', '#ffdcb0', '#f5c28c', '#e0a470', '#c8895a'),
+    'pink': ('#fff0f4', '#ffd6e2', '#f9b4c8', '#ea94ae', '#cf7896'),
+    'mint': ('#effcf4', '#d2f2e0', '#aee2c6', '#8ccca8', '#6eb08e'),
+    'lav': ('#f6f0ff', '#e2d6fa', '#c8b4f0', '#aa94dc', '#8e7ac4'),
+    'gold': ('#fff8d8', '#ffe8a0', '#f9d06c', '#e8b24e', '#c8923e'),
+}
+
+
+def acorn16(nut_color='cream'):
     cap = [rgb15(h) for h in ('#e8c9a8', '#d8ae88', '#c49276', '#a0725f', '#8a5e4e')]
-    nut = [rgb15(h) for h in ('#fff0d8', '#ffdcb0', '#f5c28c', '#e0a470', '#c8895a')]
+    nut = [rgb15(h) for h in ACORN_NUTS[nut_color]]
     ink = rgb15('#6e4a4a')
     parts = [
         P(Ellipse(8, 9.5, 5.2, 5.5), nut, z=0, k=2.5),
