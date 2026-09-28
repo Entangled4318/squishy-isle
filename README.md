@@ -8,6 +8,7 @@ No battles, no fail states, no reading needed.
 ![Contact sheet](mockups/contact_sheet.png)
 
 - Game design: [docs/DESIGN.md](docs/DESIGN.md)
+- Handoff for the next session: [docs/HANDOFF.md](docs/HANDOFF.md)
 - Mockups (4x, 960x640): [mockups/](mockups/)
 - All 80 squishies: [mockups/squishy_sheet.png](mockups/squishy_sheet.png)
 
