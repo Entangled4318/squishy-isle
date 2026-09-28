@@ -34,7 +34,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
-| 5. Music and sound set | In progress (5.1 to 5.3 done); see "Step 5 progress" |
+| 5. Music and sound set | In progress (5.1 to 5.4 done); see "Step 5 progress" |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
 | 7. QA and final ROM with Brick instructions | To do |
 
@@ -44,11 +44,13 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  5.4 B (shelf music box: tinkly, not too high or sharp on the speaker,
+  cursor sounds still clear over it; back on the map the meadow song
+  goes on where it was, no pop or click at that moment), step
   5.3 B (meadow lullaby: starts when the meadow shows, slow and sleepy
   3/4 rocking, softer than the title song, melody clear over the bass,
   bass audible on the Brick speaker (lowest note F2, 87 Hz), loop at
-  58 s is seamless, keeps playing in the shelf and close-up, stops when
-  a box opens and starts again back on the map; also in the sound test),
+  58 s is seamless; also in the sound test),
   step 5.4 A (open screen: tip-toe tune under the press chimes, the
   chimes sound in tune with it, it stops at the pop; the new friend
   jingle when the friend lands, not louder than the pop), step 5.3
@@ -70,8 +72,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 5.4 task B (shelf music box theme, meadow song resumes),
-  then 5.5 and 5.6 (see "Step 5
+- Next: step 5.5 (Shore, Woods and Cloud Hill tunes), then 5.6 (see "Step 5
   progress"). Step 5 owner request: title music, meadow
   music, a different tune per area, a tune for opening boxes. Then
   step 6 (3 more areas with 20 unique friends each, a way to get there,
@@ -396,8 +397,21 @@ Plan agreed with the owner, one sub-step per turn, stop after each task:
    peak 18589 at the pop, from the old pop sounds). Scores: open tune
    8.5, reveal jingle 8.5 (first pass 7: click on the first note, and at
    100% it peaked at 10615 against the meadow's 5889; now 75%, 8793).
-   Piano rolls `docs/step5_4_open_reveal_roll.png`. Task B (next): shelf
-   music box theme; the meadow song resumes where it stopped.
+   Piano rolls `docs/step5_4_open_reveal_roll.png`. Task B **done**:
+   "Shelf: Music box" (`song('shelf', ...)`), G major, 90 bpm (tick 10),
+   16 bars A B (43 s), bell lead that dies fast (`lead_decay` 8) like a
+   music box comb, bass voice plays a soft Alberti pattern in eighths
+   (`alberti()` helper in `music.py` builds it from chords). `shelf.c`
+   plays it on enter (plain shelf and sign picker); the close-up keeps
+   it. Resume: `music_play()` keeps where a looping song was when another
+   song takes over (`kept[]` in `sound.c`) and goes on from there, the
+   current note struck again for its frames left; `music_stop()` saves
+   nothing, so the open tune and the title start over.
+   `music_play_from_start()` is for the sound test. Log: `song resume N`.
+   `check_loop.py`: songs per scene, the meadow song starts once and
+   resumes after every box and shelf trip. Mix: peak 7198, bass/lead
+   0.34. Score 8.5 first pass (checks clean, harmony reviewed per beat);
+   resume 8.5. Piano roll `docs/step5_4_shelf_roll.png`.
 5. Shore, Woods and Cloud Hill tunes (played once step 6 builds them).
 6. Mix pass, all suites, release ROM, Brick queue, merge.
 

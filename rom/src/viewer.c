@@ -354,7 +354,7 @@ static void save_pos(bool now) {
 
 static void enter(void) {
     restore_pos();
-    music_play(SONG_MEADOW);         /* goes on through the shelf; no restart when it already plays */
+    music_play(SONG_MEADOW);         /* after the shelf or a box it goes on where it was */
     dma3_copy32(CHARBLOCK(0), meadow_tiles, sizeof meadow_tiles);
     dma3_copy16(PAL_BG, meadow_pal, sizeof meadow_pal);
     dma3_copy32(SCREENBLOCK(24), meadow_ground, sizeof meadow_ground);

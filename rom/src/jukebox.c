@@ -53,7 +53,7 @@ static void update(void) {
     if (hit & KEY_RIGHT) { sel = (sel + 1) % SONG_COUNT; show(); }
     if (hit & KEY_LEFT) { sel = (sel + SONG_COUNT - 1) % SONG_COUNT; show(); }
     if (hit & KEY_A) {
-        music_play(sel);
+        music_play_from_start(sel);
         dbg("music play %d", sel);
         show();
     }

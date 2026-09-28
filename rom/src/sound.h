@@ -37,7 +37,8 @@ typedef struct {
     u8 bass_vol, bass_duty, bass_step, bass_gap;   /* square envelope, duty 0..2, fade step */
 } Song;
 
-void music_play(int song);        /* no restart when that song already plays */
+void music_play(int song);        /* no restart when that song already plays; a looping song goes on where it was left */
+void music_play_from_start(int song);   /* always from bar 1 (sound test) */
 void music_stop(void);
 int music_current(void);          /* song index, -1 = none */
 extern bool music_mute;           /* true: the song keeps time but makes no sound (tests) */

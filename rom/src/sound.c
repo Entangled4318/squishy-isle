@@ -163,16 +163,45 @@ static void voice_start(VoiceState *v, const u8 *ev, int n) {
     v->level = 4;
 }
 
-void music_play(int id) {
+/* Where each looping song was when another song took over, so going back
+ * to the meadow from the shelf or a box goes on with its tune instead of
+ * starting it over. music_stop() forgets nothing and saves nothing. */
+static struct {
+    bool ok;
+    VoiceState lead, bass;
+} kept[SONG_COUNT];
+
+static void music_start(int id, bool resume) {
     if (id == mus.id && mus.song) return;
+    if (mus.song && mus.song->loop) {
+        kept[mus.id].ok = true;
+        kept[mus.id].lead = mus.lead;
+        kept[mus.id].bass = mus.bass;
+    }
     music_stop();
     if (id < 0 || id >= SONG_COUNT) return;
     mus.song = &songs[id];
     mus.id = id;
     load_wave(mus.song->wave);
-    voice_start(&mus.lead, mus.song->lead, mus.song->lead_n);
-    voice_start(&mus.bass, mus.song->bass, mus.song->bass_n);
-    dbg("song start %d", id);
+    if (resume && kept[id].ok) {
+        mus.lead = kept[id].lead;              /* the note that was sounding strikes again for the frames it had left */
+        mus.bass = kept[id].bass;
+        mus.lead.age = mus.bass.age = 0;
+        mus.lead.level = 4;
+    } else {
+        voice_start(&mus.lead, mus.song->lead, mus.song->lead_n);
+        voice_start(&mus.bass, mus.song->bass, mus.song->bass_n);
+    }
+    kept[id].ok = false;
+    dbg("song %s %d", resume && mus.lead.index >= 0 ? "resume" : "start", id);
+}
+
+void music_play(int id) { music_start(id, true); }
+
+void music_play_from_start(int id) {
+    if (id >= 0 && id < SONG_COUNT) kept[id].ok = false;
+    if (id == mus.id) music_stop();
+    music_start(id, false);
 }
 
 void music_stop(void) {
