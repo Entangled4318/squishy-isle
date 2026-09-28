@@ -60,9 +60,10 @@ clear_words:
 
     .pool
 
-@ IRQ handler, runs from IWRAM in ARM mode. It only acknowledges the
-@ interrupt and flags it for the BIOS IntrWait calls; all game work happens
-@ in the main loop after VBlankIntrWait.
+@ IRQ handler, runs from IWRAM in ARM mode. It acknowledges the interrupt,
+@ flags it for the BIOS IntrWait calls and counts VBlanks (vbl_count), so
+@ the main loop can keep the music on time after a slow frame; all game
+@ work happens in the main loop after VBlankIntrWait.
     .section .iwram, "ax"
     .arm
     .align 2
@@ -77,5 +78,10 @@ irq_handler:
     ldrh    r3, [r2]
     orr     r3, r3, r1
     strh    r3, [r2]
+    tst     r1, #1                  @ VBlank?
+    ldrne   r2, =vbl_count
+    ldrne   r3, [r2]
+    addne   r3, r3, #1
+    strne   r3, [r2]
     bx      lr
     .pool
