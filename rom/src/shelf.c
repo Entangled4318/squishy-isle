@@ -65,6 +65,12 @@ static void enter(void) {
             if (friend_found(i)) id = i;
         if (id >= 0) { cur_r = friend_species(id); cur_c = friend_flavor(id); }
         pop_id = -1;
+    } else if (!collected(cur_r, cur_c)) {   /* start on a friend: A then opens it straight away */
+        for (int i = 0; i < 20 && !collected(cur_r, cur_c); i++) {
+            cur_r = i / 5;
+            cur_c = i % 5;
+        }
+        if (!collected(cur_r, cur_c)) cur_r = cur_c = 0;
     }
     load_page();
     if (shelf_pick) strip_print(&st_name, "Who follows Pip?", 1, 7, 1, 0);   /* until the frame moves */

@@ -44,6 +44,7 @@ cu = open(os.path.join(OUT, 'f_closeup.bin'), 'rb').read()[0x400 + 0x400 + 0x180
 cu_y = cu[0]                                   # OAM 0 = the friend (affine, double size)
 check('scene shelf page=0 pick=0' in la, 'START after a catch opens the shelf, not the follower picker')
 check(20 <= cu_y <= 36, f'shelf close-up after a catch: the friend sits on the cushion (sprite y {cu_y}, 28 expected)')
+check(re.search(r'scene shelf page=0 pick=0\n\[game f\d+\] scene closeup', la) is not None, 'the shelf cursor starts on a found friend: START then A opens a close-up')
 check(re.search(r'closeup squish 3\n\[game f\d+\] scene shelf', la) is not None, '3 squishes in the close-up go back to the shelf')
 check('friends pen=17 follow=3' in lc, 'full meadow: 3 friends follow Pip, 17 live in the pen')
 

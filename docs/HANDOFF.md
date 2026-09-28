@@ -40,7 +40,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   rocks, walk close beside bushes, walk the stream shore north to
   south, arrow next to Pip after 5 s (blinks), no chime near boxes,
   counter over trees, first 3 friends keep following, START then A on
-  a friend after a catch (centred, 3 squishes close it), power off and
+  a friend after a catch (cursor starts on a found friend; centred,
+  3 squishes close it), power off and
   Continue (Pip starts where he stood). Next after the re-test: step 5
   music (owner request), then step 6 areas with mailbox and picnic.
 - Budget: the owner is on limited credit. Stop after each sub-step with a
@@ -235,9 +236,10 @@ per turn:
       walking 8.5, shore 8.5, overlays and arrow 8.5, followers and
       Continue spot 8.5, close-up 8.5. Release ROM updated;
       `release/step3_9_screens.png`, `docs/step3_9_collision.png`.
-      Open idea (owner not asked yet): the shelf cursor starts top left
-      even when that friend is not found; starting on the first found
-      friend is a one-line change in `shelf.c`.
+      Owner follow-up: the shelf (not pick mode) keeps its cursor
+      between visits, but when it sits on a friend not found yet it moves
+      to the first found friend of the page, so START then A opens a
+      close-up (`check_loop.py` checks it).
    Owner feature requests for later: title, meadow, per-area and open
    music (step 5); mailbox and picnic basket do something (step 6, ask
    the owner one question each); 3 more maps with their own friends
