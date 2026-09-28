@@ -222,7 +222,15 @@ static void update(void) {
         lid_y += lid_vy;
         lid_vy += 40;
         lid_spin += lid_vx > 0 ? 900 : -900;
-        if (pop_t == POP_TIME) scene_go(&scene_meadow_view);   /* the reveal screen comes next (sub-step 4) */
+        if (pop_t == POP_TIME) {
+            if (open_friend >= 0) {
+                sel_species = friend_species(open_friend);
+                sel_flavor = friend_flavor(open_friend);
+                scene_go(&scene_reveal);
+            } else {
+                scene_go(&scene_meadow_view);
+            }
+        }
     }
     n_oam = 0;
     draw_hud();

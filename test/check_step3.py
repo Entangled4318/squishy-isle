@@ -52,6 +52,17 @@ check(re.search(r'open press 3\n\[game f\d+\] open pop friend (\d+) found 1', lo
 back = fr(r'scene meadow')
 check(len(back) >= 2, 'after the pop the game returns to the meadow')
 
+# ---- reveal
+names = re.findall(r'scene reveal (\w+ \w+)', log)
+check(len(names) == 2, f'each pop leads to the reveal screen ({names})')
+check(re.search(r'reveal squish 1\n.*\n?.*reveal squish 2\n.*\n?.*reveal squish 3', log) is not None and 'reveal leave (squished)' in log,
+      'A, B, A squish the friend 3 times, then it hops away')
+landed = fr(r'reveal landed')
+waited = fr(r'reveal leave \(waited\)')
+check(len(landed) == 2 and waited and 290 <= waited[0] - landed[1] <= 320,
+      f'with no press the friend hops away after 5 s ({waited and landed and waited[0] - landed[-1]} frames)')
+check(len(back) >= 3, 'both reveals end back in the meadow')
+
 # ---- open screen, nobody presses
 auto = fr(r'open press \d \(auto\)')
 enter2 = fr(r'scene open color 3')
@@ -91,7 +102,20 @@ check(count(b4, (0, 0, 240, 160), yellow) < 10, 'no arrow before the wait is ove
 b5 = shot('b05_arrow')
 check(count(b5, (0, 0, 30, 160), yellow) > 20, 'arrow at the left edge points to the box off screen')
 b7 = shot('b07_arrow_over_box')
-check(count(b7, (170, 60, 200, 95), yellow) > 20, 'arrow floats above the box once it is on screen')
+pts = [(x, y) for y in range(160) for x in range(240) if yellow(b7.getpixel((x, y)))]
+check(len(pts) > 20 and min(p[0] for p in pts) > 24 and max(p[0] for p in pts) < 216 and min(p[1] for p in pts) > 16,
+      'arrow floats above a box on screen (not at the edge) once one is in view')
+
+ink = lambda p: p[0] < 170 and p[1] < 120 and p[2] < 160
+r1 = shot('r01_landed_stars')
+check(count(r1, (88, 60, 152, 120), lambda p: p[1] > p[0] + 20) > 600 if 'Matcha' in names[0] else
+      count(r1, (88, 60, 152, 120), lambda p: not (p[0] > 240 and p[1] > 200)) > 600, 'reveal: the friend sits big on the cushion')
+check(count(r1, (60, 140, 180, 156), ink) > 40, 'reveal: the name pill shows the friend name')
+r2 = shot('r02_squish')
+check(count(r2, (40, 20, 200, 110), lambda p: p == (255, 156, 189)) > 10, 'reveal: squishing sends hearts up')
+shot('r03_leaving')
+shot('r04_reveal_waiting')
+shot('b09_back_again')
 
 # ---- the friend is saved
 reboot = open(os.path.join(OUT, 'boxes_reboot.log')).read()

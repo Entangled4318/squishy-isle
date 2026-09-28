@@ -148,6 +148,18 @@ def main():
     cw.define('OPENUI_ARC', 8)
     cw.define('OPENUI_PUFF', 9)
 
+    # ---------------- reveal: confetti and big star
+    conf = [pad_to(props.confetti_piece(i), 8, 8) for i in range(12)]
+    lk, pal = palette_and_lookup(conf)
+    cw.u32_bytes('confetti_tiles', b''.join(obj(c, lk) for c in conf))
+    cw.u16('confetti_pal', pal)
+    cw.define('CONFETTI_N', len(conf))
+    star = new(16, 16)
+    blit(star, props.SPARK_HUGE, 2, 2)
+    lk, pal = palette_and_lookup([star])
+    cw.u32_bytes('star16_tiles', obj(star, lk))
+    cw.u16('star16_pal', pal)
+
     # ---------------- UI sprites
     frame = pad_to(mockups.selection_frame(), 64, 32)
     lk, pal = palette_and_lookup([frame])

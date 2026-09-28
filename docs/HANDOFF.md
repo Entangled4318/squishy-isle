@@ -79,11 +79,17 @@ per turn:
    1 and 2 (A or B, 14 frame cooldown) jump higher with rising chimes and
    a boing; press 3 pops: lid flies off spinning, sparkle ring, puffs,
    `sfx_pop` and `tune_pop`. The friend is added and saved at the pop. No
-   press for 4 s (`AUTO_WAIT`) starts self-presses every 70 frames. For now
-   it returns to the meadow 70 frames after the pop; sub-step 4 puts the
-   reveal there.
-4. Reveal and squish: confetti, star burst, name pill; 3 squishes or a
-   wait returns to the meadow and saves.
+   press for 4 s (`AUTO_WAIT`) starts self-presses every 70 frames. 70
+   frames after the pop it goes to the reveal.
+4. Reveal and squish. **Done.** `scene_reveal` is a mode of `closeup.c`
+   (yellow sunburst, cushion, name pill): the friend drops in from above,
+   lands with a bounce, squeak and `tune_hello`, a ring of big stars and
+   confetti raining gently behind it (sprite priority 1, so the face and
+   name stay clear). A or B squishes (after 20 frames). 3 squishes, or 5 s
+   without one (`REVEAL_WAIT`), and it hops up and away, back to the
+   meadow. The shelf close-up is unchanged. Note: confetti uses
+   `game_rand()`, so box placement after a reveal depends on it; tests
+   must not rely on exact later box spots.
 5. Intro and title: logo intro (skippable), Continue / New game, guarded
    start-over screen (No default, hold A 3 s for Yes).
 6. Followers and the friend pen (owner request): found friends live in a

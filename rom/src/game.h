@@ -9,6 +9,7 @@ extern const Scene scene_shelf;
 extern const Scene scene_closeup;
 extern const Scene scene_meadow_view;
 extern const Scene scene_open;
+extern const Scene scene_reveal;
 
 extern int open_color, open_friend;       /* the box being opened and its friend (-1 = none) */
 
