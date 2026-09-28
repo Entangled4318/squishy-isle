@@ -17,8 +17,6 @@ static u32 rng_next(void) {
 
 bool friend_found(int id) { return game_save.found[id] != 0; }
 
-int friend_hearts(int id) { return game_save.found[id] ? game_save.found[id] - 1 : 0; }
-
 int found_in_area(int area) {
     int n = 0;
     for (int id = area * 20; id < area * 20 + 20; id++) n += friend_found(id);
@@ -31,18 +29,19 @@ int found_total(void) {
     return n;
 }
 
-/* Sparkle is the rare flavor: weight 1 against 4 for the others. */
+/* Sparkle is the rare flavor: weight 1 against 4 for the others, so the
+ * Sparkles of an area tend to come last. */
 static int weight(int id) { return friend_flavor(id) == 4 ? 1 : 4; }
 
-/* Picks from the area's friends; only_new limits it to friends not found yet. */
-static int pick(int area, bool only_new, u32 r) {
+/* Picks one of the area's friends not found yet. */
+static int pick(int area, u32 r) {
     int total = 0;
     for (int id = area * 20; id < area * 20 + 20; id++)
-        if (!only_new || !friend_found(id)) total += weight(id);
+        if (!friend_found(id)) total += weight(id);
     if (total == 0) return -1;
     int t = (int)(r % (u32)total);
     for (int id = area * 20; id < area * 20 + 20; id++) {
-        if (only_new && friend_found(id)) continue;
+        if (friend_found(id)) continue;
         t -= weight(id);
         if (t < 0) return id;
     }
@@ -51,32 +50,24 @@ static int pick(int area, bool only_new, u32 r) {
 
 int collection_roll(int area, u32 entropy) {
     game_save.rng ^= entropy * 0x9E3779B9u;
-    u32 r = rng_next();
-    u32 r2 = rng_next();
-    int missing = 20 - found_in_area(area);
-    /* the first friends of each area are always new; after that a new
-     * friend 3 times in 4 while any are left */
-    bool want_new = missing > 0 && (20 - missing < FIRST_NEW_OPENS || (r2 & 3) != 0);
-    int id = pick(area, want_new, r);
-    return id >= 0 ? id : pick(area, false, r);
+    return pick(area, rng_next());
 }
 
-GotResult collection_add(int id) {
-    GotResult res;
-    u8 *f = &game_save.found[id];
-    if (*f == 0) {
-        *f = 1;
-        res = GOT_NEW;
-    } else if (*f < 1 + MAX_HEARTS) {
-        (*f)++;
-        res = GOT_HEART;
-    } else {
-        res = GOT_REPEAT;
-    }
+bool collection_add(int id) {
+    if (id < 0 || id >= NUM_FRIENDS || friend_found(id)) return false;
+    game_save.found[id] = 1;
     game_save.opens++;
     follower_add(id);
     collection_save();
-    return res;
+    return true;
+}
+
+void collection_new_game(u32 seed) {
+    memset(game_save.found, 0, sizeof game_save.found);
+    memset(game_save.followers, 0, sizeof game_save.followers);
+    game_save.opens = 0;
+    game_save.rng = seed | 1;
+    collection_save();
 }
 
 void follower_add(int id) {

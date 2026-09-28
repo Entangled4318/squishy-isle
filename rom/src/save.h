@@ -17,7 +17,7 @@ typedef struct {
     u16 boots;
     u16 flavor;
     u32 squishes;
-    /* collection: 0 = not found, 1 = found, 2..4 = found + 1..3 hearts */
+    /* collection: 0 = not found, 1 = found (each friend comes only once) */
     u8 found[NUM_FRIENDS];
     u32 opens;                /* containers opened, all areas */
     u32 rng;                  /* roll state, kept so every boot rolls differently */

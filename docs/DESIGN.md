@@ -14,8 +14,8 @@ parent may sit alongside and read names out loud.
 ## Design rules
 
 1. Every press gives a happy result. No button is wrong. Nothing can be lost.
-2. Pictures, color, sound and motion carry all meaning. Text is only for the
-   parent.
+2. Pictures, color, sound and motion carry the meaning. Short text (names,
+   counter, title menu) helps parents and early readers.
 3. The loop is short, and the surprise repeats: wobble, pop, squish, keep.
 4. Calm and soft. Pastel colors, gentle music, no flashing, no timers.
 
@@ -34,8 +34,8 @@ Squishy Shelf.
    makes it wobble and jump higher, with a rising note. On the third
    press it pops. If the child does not press, it opens by itself after a
    short wait, so a very young child is never stuck.
-3. **Meet.** A squishy bounces out with confetti. New friends get a star
-   burst. Every press squishes it (squash, squeak, hearts). After three
+3. **Meet.** A squishy bounces out with confetti and a star burst. Every
+   press squishes it (squash, squeak, hearts). After three
    squishes or a short wait, it hops into Pip's bag.
 4. **Play.** Back in the world, the new friend follows Pip. Friends you
    already found wander the area, so the island fills with life as the
@@ -43,19 +43,28 @@ Squishy Shelf.
 
 ## Session loop (5 to 15 minutes)
 
-Each area has its own container and four species. When the child finds six
+Each area has its own container and four species, so 20 friends and
+exactly 20 containers. When the child finds six
 friends in an area, the squishies build the way to the next area (bridge,
 boardwalk, stairs, rainbow). The shelf (Start) shows every friend found.
 
 ## Long loop
 
 Every species comes in five flavors: Vanilla, Strawberry, Matcha, Taro and a
-rare, shimmering Sparkle. Duplicates are never wasted: each repeat adds a
-heart, and three hearts give that friend a tiny crown on the shelf. A full
-shelf page starts a squishy parade.
+rare, shimmering Sparkle. A full shelf page starts a squishy parade.
 
-Rolls lean toward friends the child does not have yet, so new faces come
-often. The first five opens are always new.
+Every container holds a friend the child does not have yet: no duplicates,
+ever. Each new game shuffles the order, with a lean that makes the Sparkles
+of an area tend to come last. When an area is full, its containers stop
+appearing.
+
+## Title and new game
+
+Boot shows a short logo intro (any button skips it), then the title with
+Continue (default, only when a save exists) and New game. New game over a
+save with friends asks "Start over? Your friends will go home." with No as
+the default; Yes needs A held for 3 seconds while a bar fills, so a
+button-mashing toddler cannot erase the collection.
 
 ## Content
 
@@ -80,8 +89,8 @@ often. The first five opens are always new.
 | Select | Nothing (safe) |
 
 Toddler proofing: soft reset combo is off, there is no delete option in play,
-the game saves by itself after each new friend. A parent can erase the save
-by holding L + R + Select for 5 seconds on the title screen.
+the game saves by itself after each new friend. Starting over is only
+possible from the title, behind the guarded confirm screen.
 
 ## Screens
 

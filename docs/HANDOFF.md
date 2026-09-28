@@ -46,28 +46,35 @@ shelf. No battles, no fail states, no reading needed. Full design:
 
 ## Step 3 progress
 
-Agreed plan (owner approved), one sub-step per chat turn:
+Owner decisions: no duplicate friends and no hearts; each new game
+shuffles the order; on-screen text is fine for parents and early readers;
+a title with Continue / New game (guarded) is wanted. Plan, one sub-step
+per turn:
 
-1. Save v2 and roll logic. **Done.** `rom/src/collection.c/.h`: found
-   array (0 = no, 1 = found, 2..4 = hearts), opens, roll state, follower
-   line of 3. Area rolls: first 5 friends of each area always new, then
-   new 3 times in 4 while any are missing, Sparkle weight 1 vs 4. Saves
-   after each change; boot loads and counts boots. A version 1 save is
-   replaced by a fresh one. Tests: `test/test_collection.c` (host unit
-   test) and `check_save.py` (reboots on the real core).
-2. Gift boxes on the map: 3 out at a time on free `meadow_spots`, sparkle
-   and chime, solid; touching one shows a bouncing A bubble; A or B opens.
-   No auto-open in the meadow.
+1. Save v2 and rolls. **Done.** `rom/src/collection.c/.h`: found array
+   (0/1), opens, roll state, follower line of 3. A roll picks only friends
+   not found yet (Sparkle weight 1 vs 4, so they come late) and returns -1
+   when the area is full. `collection_new_game(seed)` clears friends and
+   reshuffles. Saves after each change; boot loads and counts boots. A
+   version 1 save is replaced by a fresh one. Tests: `test/test_collection.c`
+   (host) and `check_save.py` (reboots on the mGBA core).
+2. Gift boxes on the map: up to 3 out at a time (fewer when fewer friends
+   are left), sparkle and chime, solid; touching one shows a bouncing A
+   bubble; A or B opens. No auto-open in the meadow.
 3. Open screen: wobble on cushion, rising note per press, third press
    pops, auto-open after about 4 s.
-4. Reveal and squish: confetti, star burst and NEW badge for new, name
-   pill, hearts for repeats; 3 squishes or a wait returns to the meadow
-   and saves.
-5. Followers and wanderers: new friend joins the line; opening a found
+4. Reveal and squish: confetti, star burst, name pill; 3 squishes or a
+   wait returns to the meadow and saves.
+5. Intro and title: logo intro (skippable), Continue / New game, guarded
+   start-over screen (No default, hold A 3 s for Yes).
+6. Followers and wanderers: new friend joins the line; opening a found
    friend in the shelf close-up makes it follow too (max 3). Up to 6 other
    found meadow friends wander.
-6. Found counter (sprites) and the real shelf (silhouettes, hearts).
-7. Full-loop test with reboot, scoring pass, screenshots, release ROM.
+7. Found counter (sprites) and the real shelf (silhouettes).
+8. Full-loop test with reboot, scoring pass, screenshots, release ROM.
+
+The old notes below mention hearts and "rolls lean toward new"; the owner
+replaced those with the rules above.
 
 ## What step 3 should do (as promised to the owner)
 
