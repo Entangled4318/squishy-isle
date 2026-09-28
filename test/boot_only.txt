@@ -1,0 +1,2 @@
+# Boot the game and idle in the meadow (save tests run this several times).
+wait 40

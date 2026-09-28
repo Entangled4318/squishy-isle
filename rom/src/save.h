@@ -5,7 +5,10 @@
 #define SAVE_H
 #include "gba.h"
 
-#define SAVE_VERSION 1
+#define SAVE_VERSION 2
+
+#define NUM_FRIENDS   80      /* 16 species x 5 flavors, id = species * 5 + flavor */
+#define MAX_FOLLOWERS 3
 
 typedef struct {
     u32 magic;
@@ -14,6 +17,12 @@ typedef struct {
     u16 boots;
     u16 flavor;
     u32 squishes;
+    /* collection: 0 = not found, 1 = found, 2..4 = found + 1..3 hearts */
+    u8 found[NUM_FRIENDS];
+    u32 opens;                /* containers opened, all areas */
+    u32 rng;                  /* roll state, kept so every boot rolls differently */
+    u8 followers[MAX_FOLLOWERS];  /* friend id + 1, 0 = empty; [0] walks nearest Pip */
+    u8 pad;
     u32 reserved[8];
     u32 checksum;
 } SaveData;

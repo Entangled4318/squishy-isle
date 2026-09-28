@@ -26,12 +26,48 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | --- | --- |
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
-| 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Owner has not reported a Brick test yet |
-| 3. Game loop in the meadow | Next. Owner said "not ready" yet; ask first |
+| 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
+| 3. Game loop in the meadow | In progress. Sub-step 1 of 7 done (save v2 and rolls); see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
 | 7. QA and final ROM with Brick instructions | To do |
+
+## Owner notes
+
+- Budget: the owner is on limited credit. Stop after each sub-step with a
+  short report (score, screenshot when useful) and ask before going on.
+  Commit, push and update this file at the end of every sub-step, so a new
+  chat can pick up from the exact place.
+- Known issue (fix later): invisible blocks in the meadow make Pip walk
+  around empty-looking ground. Likely the 26 px "tall object" collision
+  above bases, or collision cells that reach past the art. Check the
+  collision grid against the art in `tools/areas.py`.
+
+## Step 3 progress
+
+Agreed plan (owner approved), one sub-step per chat turn:
+
+1. Save v2 and roll logic. **Done.** `rom/src/collection.c/.h`: found
+   array (0 = no, 1 = found, 2..4 = hearts), opens, roll state, follower
+   line of 3. Area rolls: first 5 friends of each area always new, then
+   new 3 times in 4 while any are missing, Sparkle weight 1 vs 4. Saves
+   after each change; boot loads and counts boots. A version 1 save is
+   replaced by a fresh one. Tests: `test/test_collection.c` (host unit
+   test) and `check_save.py` (reboots on the real core).
+2. Gift boxes on the map: 3 out at a time on free `meadow_spots`, sparkle
+   and chime, solid; touching one shows a bouncing A bubble; A or B opens.
+   No auto-open in the meadow.
+3. Open screen: wobble on cushion, rising note per press, third press
+   pops, auto-open after about 4 s.
+4. Reveal and squish: confetti, star burst and NEW badge for new, name
+   pill, hearts for repeats; 3 squishes or a wait returns to the meadow
+   and saves.
+5. Followers and wanderers: new friend joins the line; opening a found
+   friend in the shelf close-up makes it follow too (max 3). Up to 6 other
+   found meadow friends wander.
+6. Found counter (sprites) and the real shelf (silhouettes, hearts).
+7. Full-loop test with reboot, scoring pass, screenshots, release ROM.
 
 ## What step 3 should do (as promised to the owner)
 

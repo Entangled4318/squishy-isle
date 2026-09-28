@@ -9,6 +9,8 @@
 /* Emulators and flash carts look for this string to pick the save type. */
 const char save_type_id[16] __attribute__((section(".rodata.keep"), aligned(4), used)) = "SRAM_V113";
 
+_Static_assert(sizeof(SaveData) <= SLOT_SIZE, "SaveData must fit one slot");
+
 static int active_slot = -1;
 
 static u32 checksum(const SaveData *d) {

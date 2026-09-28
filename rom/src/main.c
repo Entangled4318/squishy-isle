@@ -1,5 +1,6 @@
 /* Squishy Isle entry point.
  * Holding L + R + SELECT at power-on opens the hardware check screen. */
+#include "collection.h"
 #include "game.h"
 #include "sound.h"
 #include "system.h"
@@ -11,6 +12,7 @@ int main(void) {
     sound_init();
     input_poll();
     if ((key_held() & (KEY_L | KEY_R | KEY_SELECT)) == (KEY_L | KEY_R | KEY_SELECT)) return hwcheck_main();
+    collection_init();
     scene_run(&scene_meadow_view);
     return 0;
 }
