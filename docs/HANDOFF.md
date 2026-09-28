@@ -57,8 +57,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 5 music and sound (owner request: title music, meadow
-  music, a different tune per area, a tune for opening boxes), then
+- Next: step 5.3 task B (meadow lullaby), then 5.4 to 5.6 (see "Step 5
+  progress"). Step 5 owner request: title music, meadow
+  music, a different tune per area, a tune for opening boxes. Then
   step 6 (3 more areas with 20 unique friends each, a way to get there,
   a pen like the meadow's; mailbox and picnic basket do something: ask
   the owner one question each), then step 7. Do not wait for the Brick
