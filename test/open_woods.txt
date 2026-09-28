@@ -1,0 +1,22 @@
+# open one container in the woods (step 6.6): closed, wobbling, popped
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+seek 3000
+tap A
+wait 50
+shot o_woods_closed
+tap A
+wait 8
+shot o_woods_jump
+wait 30
+tap A
+wait 30
+tap A
+wait 14
+shot o_woods_pop
+wait 60
+shot o_woods_open
+wait 200

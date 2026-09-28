@@ -70,6 +70,13 @@ run: $(HARNESS) $(UNIT)
 	./$(HARNESS) $(ROM) $(OUT)/clouds.sav clouds.txt $(OUT) > $(OUT)/clouds.log
 	./$(HARNESS) $(ROM) $(OUT)/clouds.sav clouds_continue.txt $(OUT) > $(OUT)/clouds_continue.log
 	python3 check_clouds.py $(OUT)
+	python3 make_save.py $(OUT)/open_w.sav $$(seq -s, 0 9) "" - 1
+	./$(HARNESS) $(ROM) $(OUT)/open_w.sav open_woods.txt $(OUT) > $(OUT)/open_woods.log
+	python3 make_save.py $(OUT)/open_s.sav $$(seq -s, 0 9),$$(seq -s, 20 29) "" - 2
+	./$(HARNESS) $(ROM) $(OUT)/open_s.sav open_shore.txt $(OUT) > $(OUT)/open_shore.log
+	python3 make_save.py $(OUT)/open_c.sav $$(seq -s, 0 9),$$(seq -s, 20 29),$$(seq -s, 40 49) "" - 3
+	./$(HARNESS) $(ROM) $(OUT)/open_c.sav open_clouds.txt $(OUT) > $(OUT)/open_clouds.log
+	python3 check_open.py $(OUT)
 	python3 check_music.py $(OUT) $(ROM)
 
 .PHONY: run

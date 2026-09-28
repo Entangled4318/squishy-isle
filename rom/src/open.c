@@ -1,6 +1,7 @@
-/* Open screen: the gift box from the meadow sits big on a cushion. Each
- * press of A or B makes it jump higher with a rising note; the third press
- * pops the lid off. If the child does not press, the box starts pressing
+/* Open screen: the container from the map (gift box, acorn, seashell or
+ * capsule, by area) sits big on a cushion. Each press of A or B makes it
+ * jump higher with a rising note; the third press pops the lid off (lid,
+ * acorn cap, top shell, capsule dome). If the child does not press, the box starts pressing
  * itself after a few seconds, so nobody is ever stuck. */
 #include "collection.h"
 #include "game.h"
@@ -41,8 +42,9 @@ static void enter(void) {
     dma3_copy16(PAL_BG, openbg_pal, sizeof openbg_pal);
     REG_BGCNT(1) = BG_PRIO(2) | BG_CBB(0) | BG_SBB(30);
 
-    dma3_copy32(OBJ_TILES + T_BOX * 16, box64_tiles[open_color], 3 * 64 * 32);
-    dma3_copy16(PAL_OBJ + P_BOX * 16, box64_pal[open_color], 32);
+    int c = (game_save.area < AREA_COUNT ? game_save.area : 0) * 5 + open_color;   /* the area's container */
+    dma3_copy32(OBJ_TILES + T_BOX * 16, cont64_tiles[c], 3 * 64 * 32);
+    dma3_copy16(PAL_OBJ + P_BOX * 16, cont64_pal[c], 32);
     dma3_copy32(OBJ_TILES + T_SHADOW * 16, ui_shadow_tiles, sizeof ui_shadow_tiles);
     dma3_copy16(PAL_OBJ + P_SHADOW * 16, ui_shadow_pal, sizeof ui_shadow_pal);
     dma3_copy32(OBJ_TILES + T_SMALL * 16, ui_small_tiles, sizeof ui_small_tiles);
@@ -55,7 +57,7 @@ static void enter(void) {
     presses = idle_t = cool = land_t = press_anim = 0;
     jump_t = -1;
     pop_t = -1;
-    dbg("scene open color %d friend %d", open_color, open_friend);
+    dbg("scene open color %d friend %d area %d", open_color, open_friend, game_save.area);
     scene_blend(BLD_BG1 << 8, 6 | (10 << 8));
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG1 | DCNT_OBJ | DCNT_OBJ_1D;
 }
@@ -118,16 +120,17 @@ static void draw_box(void) {
     int cx = CX + shift;
     bool opened = pop_t >= 0;
 
-    ObjAttr *o = spr();                                    /* body (or open body) */
-    o->attr0 = A0_Y(cy - 64) | A0_AFFINE | A0_DOUBLE | A0_SQUARE;
-    o->attr1 = A1_X(cx - 64) | A1_AFF(0) | A1_SIZE(3);
-    o->attr2 = A2_TILE(T_BOX + (opened ? 64 : 0)) | A2_PRIO(1) | A2_PAL(P_BOX);
-    if (!opened) {                                         /* lid rides along */
+    ObjAttr *o;
+    if (!opened) {                                         /* lid rides along, in front (an acorn cap overlaps the nut) */
         o = spr();
         o->attr0 = A0_Y(cy - 64) | A0_AFFINE | A0_DOUBLE | A0_SQUARE;
         o->attr1 = A1_X(cx - 64) | A1_AFF(0) | A1_SIZE(3);
         o->attr2 = A2_TILE(T_BOX + 128) | A2_PRIO(1) | A2_PAL(P_BOX);
     }
+    o = spr();                                             /* body (or open body) */
+    o->attr0 = A0_Y(cy - 64) | A0_AFFINE | A0_DOUBLE | A0_SQUARE;
+    o->attr1 = A1_X(cx - 64) | A1_AFF(0) | A1_SIZE(3);
+    o->attr2 = A2_TILE(T_BOX + (opened ? 64 : 0)) | A2_PRIO(1) | A2_PAL(P_BOX);
 
     /* shadow shrinks as the box rises */
     int sw = 64 - lift;
