@@ -634,10 +634,7 @@ static void update_boxes(u16 hit) {
             if (dx * dx + dy * dy < best) { best = dx * dx + dy * dy; near = i; }
         }
         if (near != arrow_box) {
-            if (arrow_box < 0 && near >= 0) {
-                sfx_chime(2);
-                arrow_t = 0;                /* start the blink with the arrow on */
-            }
+            if (arrow_box < 0 && near >= 0) arrow_t = 0;   /* start the blink with the arrow on; no sound (owner) */
             arrow_box = near;
             dbg("arrow on box %d", arrow_box);
         }
