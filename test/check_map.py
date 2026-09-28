@@ -39,6 +39,9 @@ check(C == 4, f'collision cells are 4 px ({C})')
 px0, py1 = 56, 182
 lanes = [x for x in range(8, px0) if all(not blocked(x, y) for y in range(py1 - 40, py1 + 16))]
 check(len(lanes) > 0, f'a free north-south lane left of the pen ({lanes[:1]}..{lanes[-1:]})')
+# the stream shore is straight and walkable from the north edge to the south edge
+shore = [x for x in range(400, a.w) if all(not blocked(x, y) for y in range(FEET_H + 1, a.h - 8))]
+check(len(shore) > 0, f'Pip can walk the whole shore north to south (lane x {shore[:1]}..{shore[-1:]})')
 # rocks are walk-through
 for big, x, y in ((True, 312, 150), (False, 196, 204), (True, 418, 300), (False, 60, 60)):
     r = areas.world.rock(big)

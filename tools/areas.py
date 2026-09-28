@@ -73,7 +73,7 @@ class Stream(SDF):
         self.x = x
 
     def d(self, X, Y):
-        return (self.x + 4 * np.sin(Y / 23.0) + 2 * np.sin(Y / 7.0)) - X
+        return self.x - X + 0 * Y                     # straight shore: Pip can walk its whole length
 
 
 def bridge(h=28):
@@ -108,7 +108,7 @@ def meadow():
                        Capsule(232, 200, 84, 200, 13),
                        Capsule(84, 200, 84, 300, 13))
     pond = Oval(362, 96, 50, 32, n=2.3)
-    lab = shape_labels(W_, H_, 'g', [('p', path), ('w', pond), ('w', Stream(454))])
+    lab = shape_labels(W_, H_, 'g', [('p', path), ('w', pond), ('w', Stream(460))])
     ground, lab = render_terrain(None, MEADOW_KINDS, lab=lab)
     a.ground = ground
     # water is solid; the bridge opens the stream again
@@ -137,7 +137,7 @@ def meadow():
         ('green', True, -14, -34), ('green', False, 34, -12), ('green', False, 70, -20),
         ('blossom', True, 108, -40), ('blossom', False, 156, -16),
         ('green', True, 276, -38), ('green', False, 324, -14), ('blossom', False, 358, -24),
-        ('blossom', True, 392, -36), ('green', False, 424, 6),
+        ('blossom', True, 392, -36), ('green', False, 410, 6),
         ('green', True, -20, 26), ('blossom', False, -10, 84), ('green', True, -22, 130),
         ('blossom', False, 10, 286), ('green', True, 150, 284), ('blossom', False, 196, 292),
         ('blossom', True, 236, 290), ('blossom', False, 366, 290), ('green', True, 404, 280),
@@ -190,8 +190,8 @@ def meadow():
     br = bridge()
     a.decor(br, 436, 186)
     a.solid[186 // CELL:(186 + 28) // CELL, 432 // CELL:] = False
-    a.solid[186 // CELL, 432 // CELL:] = True          # rails
-    a.solid[(186 + 27) // CELL, 432 // CELL:] = True
+    a.solid[186 // CELL, 460 // CELL:] = True          # rails, over the water only: the shore stays walkable
+    a.solid[(186 + 27) // CELL, 460 // CELL:] = True
     a.block(472, 0, 480, 320)                          # map edge beyond the stream
 
     a.spawn = (232, 124)

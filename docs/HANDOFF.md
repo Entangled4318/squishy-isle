@@ -190,7 +190,11 @@ per turn:
       is gone; rocks are walk-through; bushes, mailbox, signs, basket
       block only their base (block_w 8..10, tall 6). `check_map.py`
       tests the lane left of the pen, rocks, and room beside bushes with
-      the game's feet box; writes `map_collision.png`. Meadow 937 tiles.
+      the game's feet box; writes `map_collision.png`. Owner add-on:
+      the stream shore is a straight line (`Stream(460)`, no wave), the
+      small tree at the top right moved to x 410, bridge rails block
+      only over the water, so Pip walks the whole shore north to south
+      (lane x 445..454, checked). Meadow 903 tiles.
    2. Top layer for counter, A bubble and arrow (they went behind trees
       and fence posts); remove the near-box chime; arrow floats next to
       Pip, points at the nearest box, blinks 1 s on / 1 s off, shows
