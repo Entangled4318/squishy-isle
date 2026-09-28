@@ -1,0 +1,6 @@
+# reboot after gate.txt: the scene does not play again
+wait 20
+tap A
+wait 15
+tap A
+wait 200

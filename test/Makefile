@@ -59,6 +59,9 @@ run: $(HARNESS) $(UNIT)
 	python3 make_save.py $(OUT)/w10.sav $$(seq -s, 0 9) 0,1,2
 	./$(HARNESS) $(ROM) $(OUT)/w10.sav woods.txt $(OUT) > $(OUT)/woods.log
 	./$(HARNESS) $(ROM) $(OUT)/w10.sav woods_continue.txt $(OUT) > $(OUT)/woods_continue.log
+	python3 make_save.py $(OUT)/gate.sav $$(seq -s, 0 9) 0,1,2 0
+	./$(HARNESS) $(ROM) $(OUT)/gate.sav gate.txt $(OUT) > $(OUT)/gate.log
+	./$(HARNESS) $(ROM) $(OUT)/gate.sav gate_again.txt $(OUT) > $(OUT)/gate_again.log
 	python3 check_woods.py $(OUT)
 	python3 check_music.py $(OUT) $(ROM)
 
