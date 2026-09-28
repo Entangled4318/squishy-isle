@@ -29,6 +29,11 @@ run: $(HARNESS) $(UNIT)
 	python3 check_save.py $(OUT)
 	./$(HARNESS) $(ROM) $(OUT)/boxes.sav step3_boxes.txt $(OUT) > $(OUT)/boxes.log
 	./$(HARNESS) $(ROM) $(OUT)/boxes.sav boot_only.txt $(OUT) > $(OUT)/boxes_reboot.log
+	./$(HARNESS) $(ROM) $(OUT)/title.sav title_new.txt $(OUT) > $(OUT)/title_new.log
+	cp $(OUT)/boxes.sav $(OUT)/reset.sav
+	./$(HARNESS) $(ROM) $(OUT)/reset.sav title_reset.txt $(OUT) > $(OUT)/title_reset.log
+	./$(HARNESS) $(ROM) $(OUT)/reset.sav boot_only.txt $(OUT) > $(OUT)/reset_reboot.log
 	python3 check_step3.py $(OUT)
+	python3 check_title.py $(OUT)
 
 .PHONY: run

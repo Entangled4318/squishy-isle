@@ -1,0 +1,13 @@
+# Title on a fresh save: intro plays through, one option "Play", A starts.
+wait 30
+shot t01_intro
+wait 120
+shot t02_menu_play
+tap B
+wait 6
+shot t03_letters_hop
+wait 30
+tap RIGHT
+wait 4
+tap A
+wait 40

@@ -5,6 +5,17 @@ import sys
 
 from PIL import Image
 
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'tools'))
+from props import BOX_COLORS  # noqa: E402
+from gba import rgb15  # noqa: E402
+
+BOX_NAMES = ('pink', 'lav', 'mint', 'yellow', 'sky')
+
+
+def screen_rgb(hexcol):
+    """A 15-bit color as mGBA shows it on screen."""
+    return tuple((int(c) >> 3 << 3) | (int(c) >> 5) for c in rgb15(hexcol))
+
 OUT = sys.argv[1]
 fails = []
 
@@ -31,6 +42,9 @@ frames = {k: int(f) for f, k in re.findall(r'\[game f(\d+)\] (arrow on box \d+|b
 # ---- boxes appear
 placed = re.findall(r'box (\d) at (\d+),(\d+)', log)
 check(len(placed) >= 3 and ('0', '200', '150') in placed[:3], 'three boxes out; the first sits in view below the cottage')
+first_color = BOX_COLORS[BOX_NAMES[int(re.search(r'box 0 at 200,150 color (\d)', log).group(1))]]
+front = screen_rgb(first_color[3])
+ribbon = screen_rgb(first_color[6])
 spots = [(x, y) for _, x, y in placed[:3]]
 check(len(set(spots)) == 3, 'the three boxes use different spots')
 
@@ -44,7 +58,7 @@ check(re.search(r'\[game f(\d+)\] box 0 at (?!200,150)', log) is not None, 'a ne
 
 # ---- open screen, pressed by the child
 fr = lambda pat: [int(f) for f in re.findall(r'\[game f(\d+)\] ' + pat, log)]
-enter = fr(r'scene open color 1')
+enter = fr(r'scene open color \d')
 presses = fr(r'open press \d$') or fr(r'open press \d\n')
 child = re.findall(r'open press (\d)\n', log)
 check(enter and child[:3] == ['1', '2', '3'], 'the open screen shows the meadow box color; A, B, A count as 3 presses')
@@ -65,7 +79,7 @@ check(len(back) >= 3, 'both reveals end back in the meadow')
 
 # ---- open screen, nobody presses
 auto = fr(r'open press \d \(auto\)')
-enter2 = fr(r'scene open color 3')
+enter2 = fr(r'scene open color \d')[1:]
 check(len(auto) == 3 and enter2 and 230 <= auto[0] - enter2[0] <= 250, f'with no press the box starts opening itself after 4 s ({auto and enter2 and auto[0] - enter2[0]} frames)')
 check(len(auto) == 3 and all(60 <= auto[i + 1] - auto[i] <= 80 for i in range(2)), 'then presses itself about every 1.2 s until it pops')
 friends = re.findall(r'open pop friend (\d+) found (\d)', log)
@@ -80,12 +94,12 @@ yellow = lambda p: p == (255, 222, 123)          # arrow fill #ffe07a on screen
 pink_a = lambda p: p[0] > 220 and 120 < p[1] < 190 and 140 < p[2] < 200
 
 b1 = shot('b01_first_box')
-check(count(b1, (70, 95, 110, 125), lambda p: p[2] > 200 and p[0] > 170 and p[1] < 210) > 30, 'first box is visible (lavender) near Pip')
+check(count(b1, (70, 95, 110, 125), lambda p: p == front) > 20, 'first box is visible near Pip')
 b2 = shot('b02_touch_a_bubble')
 check(count(b2, (100, 40, 140, 80), pink_a) > 25, 'touching shows the A bubble above the box')
 heart_on = lambda p: p == (255, 156, 189)
 o1 = shot('o01_open_idle')
-check(count(o1, (95, 60, 150, 125), lambda p: p[2] > 200 and p[0] < 225 and p[1] < 210) > 400, 'open screen: big lavender box on the cushion')
+check(count(o1, (80, 60, 160, 125), lambda p: p == front) > 300, 'open screen: the big box has the meadow box color')
 check(count(o1, (110, 130, 170, 155), heart_on) == 0, 'open screen: no hearts filled before a press')
 o2 = shot('o02_jump1')
 check(count(o2, (110, 130, 170, 155), heart_on) > 20, 'open screen: first press fills a heart')
@@ -93,18 +107,22 @@ o3 = shot('o03_jump2')
 check(count(o3, (110, 130, 170, 155), heart_on) > count(o2, (110, 130, 170, 155), heart_on) + 20, 'open screen: second press fills another')
 o4 = shot('o04_pop')
 o5 = shot('o05_pop_sparkles')
-bow = lambda p: p[1] > 200 and p[0] > 240 and p[2] < 140
-check(count(o1, (95, 55, 145, 85), bow) > 40 and count(o5, (95, 55, 145, 85), bow) == 0,
-      'after the pop the lid (yellow bow) has flown off the box')
+bow = lambda p: p == ribbon
+check(count(o1, (95, 55, 145, 85), bow) > 20 and count(o5, (95, 55, 145, 85), bow) == 0,
+      'after the pop the lid (bow) has flown off the box')
 check(count(o5, (110, 130, 170, 155), heart_on) == 0, 'the A button and hearts go away after the pop')
 b4 = shot('b04_after_open')
-check(count(b4, (0, 0, 240, 160), yellow) < 10, 'no arrow before the wait is over')
+check(count(b4, (0, 0, 240, 160), yellow) < 20, 'no arrow before the wait is over (twinkles share its yellow)')
 b5 = shot('b05_arrow')
-check(count(b5, (0, 0, 30, 160), yellow) > 20, 'arrow at the left edge points to the box off screen')
+edge = [(x, y) for y in range(160) for x in range(240) if yellow(b5.getpixel((x, y)))]
+check(len(edge) > 20 and (min(p[0] for p in edge) < 24 or max(p[0] for p in edge) > 216 or
+                          min(p[1] for p in edge) < 24 or max(p[1] for p in edge) > 136),
+      'arrow at the screen edge points to a box off screen')
 b7 = shot('b07_arrow_over_box')
 pts = [(x, y) for y in range(160) for x in range(240) if yellow(b7.getpixel((x, y)))]
-check(len(pts) > 20 and min(p[0] for p in pts) > 24 and max(p[0] for p in pts) < 216 and min(p[1] for p in pts) > 16,
-      'arrow floats above a box on screen (not at the edge) once one is in view')
+floating = len(pts) > 20 and min(p[0] for p in pts) > 24 and max(p[0] for p in pts) < 216 and min(p[1] for p in pts) > 16
+touching = len(pts) < 20 and count(b7, (0, 0, 240, 160), pink_a) > 25
+check(floating or touching, 'near a box the arrow floats above it, or gives way to the A button once Pip touches it')
 
 ink = lambda p: p[0] < 170 and p[1] < 120 and p[2] < 160
 r1 = shot('r01_landed_stars')

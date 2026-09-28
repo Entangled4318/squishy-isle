@@ -1,4 +1,10 @@
 # Step 3: gift boxes in the meadow, touch + A to open, the open screen, the reveal, guide arrow.
+# title: A skips the intro, A again picks Play / Continue
+wait 20
+tap A
+wait 15
+tap A
+wait 25
 wait 30
 shot b01_first_box
 hold DOWN 20

@@ -27,7 +27,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
-| 3. Game loop in the meadow | In progress. Sub-step 1 of 7 done (save v2 and rolls); see "Step 3 progress" |
+| 3. Game loop in the meadow | In progress, sub-steps 1 to 5 of 8 done; see "Step 3 progress". `main` has 1 to 4 |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
@@ -90,8 +90,21 @@ per turn:
    meadow. The shelf close-up is unchanged. Note: confetti uses
    `game_rand()`, so box placement after a reveal depends on it; tests
    must not rely on exact later box spots.
-5. Intro and title: logo intro (skippable), Continue / New game, guarded
-   start-over screen (No default, hold A 3 s for Yes).
+5. Intro and title. **Done.** `rom/src/title.c`, boot goes here. Flat
+   background from the title mockup (sky, island, cast shadows baked in),
+   11 logo letters as sprites (`logo_table`: tile, x, y, shape, size,
+   palette) that drop in one by one with a chime each (~2 s, any button
+   skips). Friends hop one at a time, Pip stands in the middle. Menu:
+   "Play" on a save with no friends (new game), else "Continue" (default)
+   and "New game"; heart cursor plus A button by the chosen option; B
+   makes the letters hop. New game with friends opens the confirm mode:
+   "Start over? / Your friends will go home.", "No" default, "Yes, hold
+   A" fills 6 hearts over 3 s (`HOLD_TIME`); letting go empties them; B
+   or A on No backs out. Start over calls `collection_new_game()` and
+   `meadow_reset()`. The title must not call `game_rand()` (it would
+   shift the saved random sequence). Tests: `title_new.txt`,
+   `title_reset.txt`, `check_title.py`; the older scripts now tap A twice
+   at the start to pass the title.
 6. Followers and the friend pen (owner request): found friends live in a
    fenced pen left of the cottage and roam inside it. Talking to something
    at the pen (sign or NPC) opens a picker to choose up to 3 followers.

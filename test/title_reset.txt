@@ -1,0 +1,38 @@
+# Title on a save with friends: Continue is default, New game asks first.
+wait 20
+tap B
+wait 30
+shot t04_menu_continue
+tap RIGHT
+wait 4
+shot t05_new_game
+tap A
+wait 20
+shot t06_confirm_no
+tap A
+wait 20
+tap RIGHT
+wait 4
+tap A
+wait 20
+tap RIGHT
+wait 4
+hold A 60
+shot t07_hold_part
+wait 30
+shot t08_released
+tap B
+wait 20
+tap RIGHT
+wait 4
+tap A
+wait 20
+tap RIGHT
+wait 4
+tap LEFT
+wait 4
+tap RIGHT
+wait 4
+hold A 185
+wait 40
+shot t09_new_game_meadow

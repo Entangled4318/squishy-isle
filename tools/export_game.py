@@ -79,6 +79,31 @@ def open_background():
     return img
 
 
+def title_parts():
+    """Title screen from the mockup: one flat background (sky, island and the
+    cast's shadows) plus the logo letters as separate bouncing sprites."""
+    sc = mockups.scene_title()
+    bg_img = new(W, H)
+    for name in ('sky', 'island'):
+        blit(bg_img, sc.bgs[name][1], 0, 0)
+    for key, img, x, y, mode in sc.objs:        # shadows only (blended in the mockup)
+        if mode is not None and key is not None and key < 200:
+            sh = img.copy()
+            m = sh[..., 3] > 0
+            under = bg_img[y:y + sh.shape[0], x:x + sh.shape[1], :3].astype(int)
+            mix = (under * 11 + sh[..., :3].astype(int) * 5) // 16
+            region = bg_img[y:y + sh.shape[0], x:x + sh.shape[1]]
+            region[m, :3] = (mix[m] // 8 * 8).astype(np.uint8)
+    letters = []
+    for word_, h, cols, y in (('SQUISHY', 28, ['strawberry', 'sparkle', 'matcha', 'sky', 'taro', 'peach', 'strawberry'], 2),
+                              ('ISLE', 22, ['sky', 'taro', 'strawberry', 'matcha'], 45)):
+        for img, x, yy in mockups.logo_letters(word_, h, cols, 121 if word_ == 'SQUISHY' else 120, y):
+            ys, xs = np.nonzero(img[..., 3])
+            crop = img[ys.min():ys.max() + 1, xs.min():xs.max() + 1]
+            letters.append((crop, x + xs.min(), yy + ys.min()))
+    return bg_img, letters
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     cw = CWriter('game_assets')
@@ -147,6 +172,44 @@ def main():
     cw.define('OPENUI_HEART_OFF', 4)
     cw.define('OPENUI_ARC', 8)
     cw.define('OPENUI_PUFF', 9)
+
+    # ---------------- title
+    tbg, letters = title_parts()
+    export_multi_bg(cw, 'titlebg', [tbg])
+    sizes = [(32, 32, 0, 2), (64, 32, 1, 3), (32, 64, 2, 3), (64, 64, 0, 3)]   # w, h, shape, size
+    # pack letters into as few palettes as fit (15 colors each)
+    pals, pal_of = [], []
+    for img, x, y in letters:
+        cs = {tuple(int(v) for v in p) for p in img[..., :3][img[..., 3] > 0]}
+        for i, pc in enumerate(pals):
+            if len(pc | cs) <= 15:
+                pals[i] = pc | cs
+                pal_of.append(i)
+                break
+        else:
+            pals.append(cs)
+            pal_of.append(len(pals) - 1)
+    lookups = []
+    pal_words = []
+    for pc in pals:
+        lk = {c: i + 1 for i, c in enumerate(sorted(pc))}
+        lookups.append(lk)
+        pal = [0] * 16
+        for c, i in lk.items():
+            pal[i] = bgr555(c)
+        pal_words += pal
+    tiles, table = b'', []
+    for (img, x, y), pi in zip(letters, pal_of):
+        h_, w_ = img.shape[:2]
+        sw, sh_, shape, size = next(t for t in sizes if t[0] >= w_ and t[1] >= h_)
+        table += [len(tiles) // 32, x, y, shape, size, pi, sw, sh_]
+        tiles += obj(pad_to(img, sw, sh_), lookups[pi])
+    cw.u32_bytes('logo_tiles', tiles)
+    cw.u16('logo_pal', pal_words)
+    cw.u16('logo_table', table)
+    cw.define('LOGO_LETTERS', len(letters))
+    cw.define('LOGO_PALS', len(pals))
+    print(f'logo: {len(letters)} letters, {len(tiles) // 32} tiles, {len(pals)} palettes')
 
     # ---------------- reveal: confetti and big star
     conf = [pad_to(props.confetti_piece(i), 8, 8) for i in range(12)]

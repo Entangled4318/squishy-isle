@@ -52,6 +52,15 @@ static int seek_t;                 /* frames since the last open */
 static int arrow_box = -1;         /* box the arrow points at, -1 = none */
 static int touch_box = -1;
 
+void meadow_reset(void) {
+    pip_x = MEADOW_SPAWN_X << 8;
+    pip_y = MEADOW_SPAWN_Y << 8;
+    dir = DIR_DOWN;
+    boxes_ready = false;
+    seek_t = 0;
+    arrow_box = touch_box = -1;
+}
+
 static inline int spot_x(int s) { return meadow_spots[s * 2]; }
 static inline int spot_y(int s) { return meadow_spots[s * 2 + 1]; }
 

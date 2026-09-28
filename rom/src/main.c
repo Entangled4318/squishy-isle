@@ -13,6 +13,6 @@ int main(void) {
     input_poll();
     if ((key_held() & (KEY_L | KEY_R | KEY_SELECT)) == (KEY_L | KEY_R | KEY_SELECT)) return hwcheck_main();
     collection_init();
-    scene_run(&scene_meadow_view);
+    scene_run(&scene_title);
     return 0;
 }

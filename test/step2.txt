@@ -1,4 +1,10 @@
 # Step 2: walk the meadow, visit the shelf through the door, open a friend.
+# title: A skips the intro, A again picks Play / Continue
+wait 20
+tap A
+wait 15
+tap A
+wait 25
 wait 30
 shot s01_meadow_spawn
 hold DOWN 30

@@ -8,10 +8,13 @@ extern int sel_species, sel_flavor;       /* friend shown in the close-up */
 extern const Scene scene_shelf;
 extern const Scene scene_closeup;
 extern const Scene scene_meadow_view;
+extern const Scene scene_title;
 extern const Scene scene_open;
 extern const Scene scene_reveal;
 
-extern int open_color, open_friend;       /* the box being opened and its friend (-1 = none) */
+extern int open_color, open_friend;
+
+void meadow_reset(void);                   /* new game: Pip home, fresh boxes */       /* the box being opened and its friend (-1 = none) */
 
 /* shared 64-entry sine table, 256 = 1.0 */
 extern const s16 sin64[64];
