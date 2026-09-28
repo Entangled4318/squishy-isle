@@ -3,7 +3,7 @@
 Each area returns two layers and a collision grid:
   ground  - terrain, decor and the lower part of every object (under Pip)
   overlay - the upper part of tall objects (tree tops, roofs), over Pip
-  solid   - 8x8 px cells Pip cannot enter
+  solid   - 4x4 px cells Pip cannot enter (fine enough to walk close by)
 The split height equals Pip's height, and tall objects block that same
 height above their base, so Pip is covered by a tree top only when he is
 really behind it.
@@ -20,7 +20,7 @@ from world import (render_terrain, MEADOW_KINDS, shape_labels, Capsule, Oval, Sm
 import props
 
 PIP_H = 26          # sprite height that must be covered correctly
-CELL = 8
+CELL = 4
 
 
 class Area:
@@ -156,15 +156,15 @@ def meadow():
     a.place(world.decor('tulips'), 122, 70)
     a.place(world.decor('tulips'), 138, 72)
     a.place(world.decor('tulips'), 154, 70)
-    a.place(world.mailbox(), 268, 74, block_w=10, tall=8)
-    a.place(world.signpost(world.mini_shell()), 414, 164, block_w=10, tall=8)
-    a.place(world.basket(), 322, 230, block_w=12, tall=8)
-    for kind, x, y in (('green', 180, 104), ('blossom', 300, 116), ('green', 24, 170), ('blossom', 150, 244),
+    a.place(world.mailbox(), 268, 74, block_w=8, tall=6)
+    a.place(world.signpost(world.mini_shell()), 414, 164, block_w=8, tall=6)
+    a.place(world.basket(), 322, 230, block_w=10, tall=6)
+    for kind, x, y in (('green', 180, 104), ('blossom', 300, 116), ('blossom', 150, 244),
                        ('green', 330, 140)):
-        a.place(bush(kind), x, y, block_w=12, tall=8)
+        a.place(bush(kind), x, y, block_w=10, tall=6)
     for big, x, y in ((True, 312, 150), (False, 196, 204), (True, 418, 300), (False, 60, 60)):
         r = world.rock(big)
-        a.place(r, x, y, block_w=r.shape[1] - 2, tall=6)
+        a.place(r, x, y)                             # walk-through (owner request)
     for x, y in ((64, 136), (388, 150), (262, 300)):
         a.decor(world.mushrooms(), x, y)
     for x, y in ((200, 102), (250, 104), (262, 212), (196, 214), (110, 212), (330, 186)):

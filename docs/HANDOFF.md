@@ -27,7 +27,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
-| 3. Game loop in the meadow | Done. `release/squishy-isle.gba`, `release/step3_screens.png`. Owner to test on the Brick; see "Step 3 progress" |
+| 3. Game loop in the meadow | Done, Brick tested. Feedback fixes in progress (3.9); see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
@@ -182,6 +182,29 @@ per turn:
    Release ROM updated; screenshots `release/step3_screens.png`,
    `docs/step3_8_line.png`. `make -C rom test` runs 9 suites in ~10 s.
    A step 2 save on the Brick is version 1 and is replaced by a new game.
+
+9. Brick feedback fixes (owner test of step 3). Plan, one task per turn:
+   1. **Done.** Map and walking: collision cells 4 px (`areas.CELL`,
+      exported as `MEADOW_CELL_SHIFT`; harness `seek` derives the cell
+      size from the grid size); the bush by the pen's bottom-left post
+      is gone; rocks are walk-through; bushes, mailbox, signs, basket
+      block only their base (block_w 8..10, tall 6). `check_map.py`
+      tests the lane left of the pen, rocks, and room beside bushes with
+      the game's feet box; writes `map_collision.png`. Meadow 937 tiles.
+   2. Top layer for counter, A bubble and arrow (they went behind trees
+      and fence posts); remove the near-box chime; arrow floats next to
+      Pip, points at the nearest box, blinks 1 s on / 1 s off, shows
+      after 5 s without an open (was 15 s).
+   3. Followers: the first 3 found stay until swapped at the sign (new
+      friends go to the pen). Save Pip's position; Continue starts there.
+   4. Shelf close-up after a catch: friend off centre, under the plate
+      and behind its name (state left over from the reveal); 3 squishes
+      close the close-up like B.
+   5. Tests, scoring, screenshots, release ROM, merge to main.
+   Owner feature requests for later: title, meadow, per-area and open
+   music (step 5); mailbox and picnic basket do something (step 6, ask
+   the owner one question each); 3 more maps with their own friends
+   (step 6).
 
 The old notes below mention hearts and "rolls lean toward new"; the owner
 replaced those with the rules above.

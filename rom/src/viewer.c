@@ -1,6 +1,6 @@
 /* Blossom Meadow: Pip walks around the full-size map (2x2 screens).
  * Ground layer under Pip, overlay (tree tops, roof) over Pip, collision
- * from the exported 8x8 solid grid. The cottage door opens the shelf.
+ * from the exported solid grid (MEADOW_CELL_SHIFT: 4x4 px cells). The cottage door opens the shelf.
  * Gift boxes wait at the map's container spots; touching one shows a
  * bouncing A button and A or B opens it. After a while without finding
  * one, a guide arrow points the way. */
@@ -292,7 +292,7 @@ static bool box_hit(int i, int x0, int y0, int x1, int y1) {
 
 static bool solid_at(int x, int y) {
     if (x < 0 || y < 0 || x >= MEADOW_W || y >= MEADOW_H) return true;
-    return meadow_solid[(y >> 3) * (MEADOW_W >> 3) + (x >> 3)];
+    return meadow_solid[(y >> MEADOW_CELL_SHIFT) * (MEADOW_W >> MEADOW_CELL_SHIFT) + (x >> MEADOW_CELL_SHIFT)];
 }
 
 static bool blocked(int fx, int fy) {
