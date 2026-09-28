@@ -14,8 +14,8 @@
  *   shot NAME           save OUTDIR/NAME.ppm
  *   audio NAME          start recording OUTDIR/NAME.wav (until "audio end")
  *   audio end           stop recording
- *   dump NAME           save VRAM, palettes, OAM and IO registers to
- *                       OUTDIR/NAME.bin (for debugging)
+ *   dump NAME           save IO registers, palettes, VRAM, OAM and IWRAM
+ *                       to OUTDIR/NAME.bin (checks read game state there)
  */
 #include <mgba/core/blip_buf.h>
 #include <mgba/core/core.h>
@@ -177,8 +177,9 @@ int main(int argc, char **argv) {
             snprintf(path, sizeof path, "%s/%s.bin", outdir, a);
             FILE *f = fopen(path, "wb");
             static const struct { uint32_t base, size; } regions[] = {
-                {0x04000000, 0x400}, {0x05000000, 0x400}, {0x06000000, 0x18000}, {0x07000000, 0x400}};
-            for (unsigned r = 0; r < 4; r++)
+                {0x04000000, 0x400}, {0x05000000, 0x400}, {0x06000000, 0x18000}, {0x07000000, 0x400},
+                {0x03000000, 0x8000}};
+            for (unsigned r = 0; r < 5; r++)
                 for (uint32_t i = 0; i < regions[r].size; i++)
                     fputc(core->busRead8(core, regions[r].base + i), f);
             fclose(f);

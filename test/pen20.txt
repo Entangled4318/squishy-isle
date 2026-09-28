@@ -1,0 +1,22 @@
+# All 20 meadow friends found: 3 follow Pip, 17 roam in the big pen.
+wait 20
+tap A
+wait 15
+tap A
+wait 25
+hold DOWN 54
+hold LEFT 90
+wait 30
+shot q01_pen_full
+dump q_pen0
+wait 120
+dump q_pen1
+wait 120
+dump q_pen2
+wait 120
+dump q_pen3
+wait 120
+dump q_pen4
+wait 120
+dump q_pen5
+shot q02_pen_later

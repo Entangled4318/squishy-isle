@@ -34,6 +34,8 @@
 #define RESPAWN     90          /* frames before a new box replaces an opened one */
 #define TOUCH       6           /* px around the box that count as touching */
 #define MAX_PEN     20          /* every meadow friend fits in the pen */
+#define PEN_TRIES   10           /* random spots tried for each new pen target */
+#define PEN_ROOM    13          /* px: pen friends do not walk closer than this */
 #define TRAIL       64          /* Pip's recent steps, for followers */
 #define TRAIL_GAP   14          /* steps between followers in the line */
 
@@ -76,7 +78,7 @@ void meadow_reset(void) {
 /* ---- friends: a line behind Pip, the rest roam in the pen ---- */
 typedef struct {
     s16 x, y, tx, ty, wait;
-    u8 id, step;
+    u8 id, step, stuck;
 } Roamer;
 
 static Roamer pen[MAX_PEN];
@@ -90,9 +92,28 @@ static int pen_rand(int n) {          /* local: the pen must not use up the save
     return (int)((pen_seed >> 16) % (u32)n);
 }
 
+/* Picks the roomiest of a few random spots: the one farthest from where the
+ * other friends stand or are going, so 17 friends spread out instead of piling up. */
 static void pen_target(Roamer *r) {
-    r->tx = (s16)(MEADOW_PEN_X0 + pen_rand(MEADOW_PEN_X1 - MEADOW_PEN_X0));
-    r->ty = (s16)(MEADOW_PEN_Y0 + pen_rand(MEADOW_PEN_Y1 - MEADOW_PEN_Y0));
+    int best = -1;
+    for (int k = 0; k < PEN_TRIES; k++) {
+        int x = MEADOW_PEN_X0 + pen_rand(MEADOW_PEN_X1 - MEADOW_PEN_X0);
+        int y = MEADOW_PEN_Y0 + pen_rand(MEADOW_PEN_Y1 - MEADOW_PEN_Y0);
+        int room = 1 << 30;
+        for (int i = 0; i < n_pen; i++) {
+            const Roamer *o = &pen[i];
+            if (o == r) continue;
+            int dx = x - o->x, dy = y - o->y, d = dx * dx + dy * dy;
+            if (d < room) room = d;
+            dx = x - o->tx, dy = y - o->ty, d = dx * dx + dy * dy;
+            if (d < room) room = d;
+        }
+        if (room > best) {
+            best = room;
+            r->tx = (s16)x;
+            r->ty = (s16)y;
+        }
+    }
 }
 
 static void friends_setup(void) {
@@ -109,13 +130,15 @@ static void friends_setup(void) {
         bool following = false;
         for (int k = 0; k < n_follow; k++) following |= follow_id[k] == id;
         if (!friend_found(id) || following) continue;
-        Roamer *r = &pen[n_pen++];
+        Roamer *r = &pen[n_pen];
         r->id = (u8)id;
-        pen_target(r);
+        pen_target(r);                           /* compared only with the friends placed so far */
         r->x = r->tx;
         r->y = r->ty;
         r->wait = (s16)pen_rand(120);
         r->step = 0;
+        r->stuck = 0;
+        n_pen++;
         pen_target(r);
     }
     dbg("friends pen=%d follow=%d", n_pen, n_follow);
@@ -124,6 +147,18 @@ static void friends_setup(void) {
         trail_y[i] = (s16)(pip_y >> 8);
     }
     trail_i = 0;
+}
+
+/* True when a step to (nx,ny) takes r closer to a friend that is already near. */
+static bool pen_crowded(const Roamer *r, int nx, int ny) {
+    for (int i = 0; i < n_pen; i++) {
+        const Roamer *o = &pen[i];
+        if (o == r) continue;
+        int dx = nx - o->x, dy = ny - o->y, d = dx * dx + dy * dy;
+        int cx = r->x - o->x, cy = r->y - o->y;
+        if (d < PEN_ROOM * PEN_ROOM && d < cx * cx + cy * cy) return true;
+    }
+    return false;
 }
 
 static void friends_update(bool pip_moved) {
@@ -139,9 +174,21 @@ static void friends_update(bool pip_moved) {
             continue;
         }
         if ((frame_count & 1) == 0) {            /* half a pixel per frame: a calm waddle */
-            r->x += (r->tx > r->x) - (r->tx < r->x);
-            r->y += (r->ty > r->y) - (r->ty < r->y);
-            r->step++;
+            int nx = r->x + (r->tx > r->x) - (r->tx < r->x);
+            int ny = r->y + (r->ty > r->y) - (r->ty < r->y);
+            if (pen_crowded(r, nx, ny) && nx != r->x && !pen_crowded(r, nx, r->y)) ny = r->y;   /* sidestep */
+            else if (pen_crowded(r, nx, ny) && ny != r->y && !pen_crowded(r, r->x, ny)) nx = r->x;
+            if (pen_crowded(r, nx, ny)) {        /* give way; find another spot if stuck */
+                if (++r->stuck > 30) {
+                    r->stuck = 0;
+                    pen_target(r);
+                }
+            } else {
+                r->x = (s16)nx;
+                r->y = (s16)ny;
+                r->step++;
+                r->stuck = 0;
+            }
         }
         if (r->x == r->tx && r->y == r->ty) {
             r->wait = (s16)(60 + pen_rand(180));

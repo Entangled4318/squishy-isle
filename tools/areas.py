@@ -198,7 +198,7 @@ def meadow():
     a.spawn = (232, 124)
     a.spots = [(60, 206), (150, 212), (286, 180), (210, 150), (140, 88), (330, 210), (400, 220),
                (270, 260), (100, 260), (380, 166)]
-    a.first_spot = 3                                   # (200, 150), just below the cottage
+    a.first_spot = 3                                   # (210, 150), just below the cottage
     return a
 
 
