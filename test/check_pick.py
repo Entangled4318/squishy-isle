@@ -1,5 +1,6 @@
 """Checks the follower picker at the pen sign. Usage: check_pick.py OUTDIR"""
 import os
+import re
 import sys
 
 from PIL import Image
@@ -28,6 +29,14 @@ check(log.count('friends pen=7 follow=3') == 2, 'back in the meadow the line is 
 m = Image.open(os.path.join(OUT, 'k04_meadow.ppm')).convert('RGB')
 ink = sum(1 for y in range(2, 16) for x in range(6, 50) if m.getpixel((x, y)) not in ((181, 231, 165), (156, 214, 148)))
 check(ink > 60, f'the found counter shows at the top left ({ink} px)')
+
+top = open(os.path.join(OUT, 'sign_top.log')).read()
+m = re.search(r'at sign pip=(\d+),(\d+)', top)
+check(m is not None and int(m.group(2)) < 183 - 8, f'Pip reads the sign from the top too ({m and m.group(0)})')
+check('scene shelf page=0 pick=1' in top, 'A above the sign opens the picker')
+for n in ('k05_sign_from_top', 'k06_picker_from_top'):
+    im = Image.open(os.path.join(OUT, n + '.ppm')).convert('RGB')
+    im.resize((im.width * 4, im.height * 4), Image.NEAREST).save(os.path.join(OUT, n + '.png'))
 
 if fails:
     sys.exit(1)

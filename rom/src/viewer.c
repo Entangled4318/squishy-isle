@@ -532,7 +532,8 @@ static void draw_boxes(void) {
         hud_spr(bx - cam_x - 8, by - cam_y - 36 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
     } else if (at_sign) {
         int bob = isin((int)(frame_count * 2)) * 2 / 256;
-        hud_spr(MEADOW_SIGN_X - cam_x - 8, MEADOW_SIGN_Y - cam_y - 46 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
+        int top = (pip_y >> 8) < MEADOW_SIGN_Y ? (pip_y >> 8) : MEADOW_SIGN_Y;   /* over Pip's head when he stands above the sign */
+        hud_spr(MEADOW_SIGN_X - cam_x - 8, top - cam_y - 46 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
     }
 }
 
@@ -709,7 +710,7 @@ static void update(void) {
     }
     bool was_at = at_sign;             /* by the pen sign: A picks who follows Pip */
     at_sign = touch_box < 0 && found_in_area(0) > 0 && px > MEADOW_SIGN_X - 20 && px < MEADOW_SIGN_X + 20 &&
-              py > MEADOW_SIGN_Y - 8 && py < MEADOW_SIGN_Y + 22;
+              py > MEADOW_SIGN_Y - 18 && py < MEADOW_SIGN_Y + 22;   /* above it too: the sign blocks Pip at y-8 */
     if (at_sign && !was_at) dbg("at sign pip=%d,%d", px, py);
     if (at_sign && (hit & KEY_A)) {
         sfx_chime(3);
