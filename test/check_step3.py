@@ -118,7 +118,7 @@ check(count(b4, (0, 0, 240, 160), yellow) < 20, 'no arrow before the wait is ove
 _w = wave.open(os.path.join(OUT, 'arrow_quiet.wav'))
 _a = array.array('h', _w.readframes(_w.getnframes()))
 peak = max((abs(v) for v in _a), default=0)
-check(len(_a) > 0 and peak < 500, f'no sound while waiting and when the arrow appears (peak {peak})')
+check(len(_a) > 0 and peak < 500, f'no effect sound (channel 1, the music plays on) while waiting and when the arrow appears (peak {peak})')
 b5 = shot('b05_arrow')
 b5b = shot('b05b_arrow_blink_off')
 pip_at = re.findall(r'scene meadow pip=(\d+),(\d+)', log)[1]

@@ -172,10 +172,12 @@ void music_play(int id) {
     load_wave(mus.song->wave);
     voice_start(&mus.lead, mus.song->lead, mus.song->lead_n);
     voice_start(&mus.bass, mus.song->bass, mus.song->bass_n);
+    dbg("song start %d", id);
 }
 
 void music_stop(void) {
     if (mus.song) {
+        dbg("song stop %d", mus.id);
         if (!melody.notes) REG_SND3CNT = 0;
         if (boing_t < 0) {
             REG_SND2CNT = 0;                                  /* volume 0: silent */

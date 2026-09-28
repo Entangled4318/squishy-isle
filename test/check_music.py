@@ -171,7 +171,7 @@ def piano_roll(key, s, recs):
     for m in range(lo, hi + 1):
         if m % 12 == 0:
             d.line([(10, 10 + (hi - m) * row + row // 2), (W - 10, 10 + (hi - m) * row + row // 2)], fill=(230, 215, 225))
-    for f in range(0, length + 1, s['tick'] * 16):
+    for f in range(0, length + 1, s['tick'] * s.get('bar', 16)):
         d.line([(10 + f * px, 10), (10 + f * px, H - 10)], fill=(225, 210, 220))
     colors = {'lead': ((255, 196, 214), (176, 64, 110)), 'bass': ((214, 200, 246), (84, 64, 150))}
     for v in ('lead', 'bass'):

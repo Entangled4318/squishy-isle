@@ -42,9 +42,12 @@ wait 50
 shot r03_leaving
 wait 60
 shot b04_after_open
+solo 1
+wait 4
 audio arrow_quiet
-wait 320
+wait 316
 audio end
+solo 0
 shot b05_arrow
 wait 60
 shot b05b_arrow_blink_off
