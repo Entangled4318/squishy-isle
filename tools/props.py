@@ -144,7 +144,9 @@ def shell(color='pink', size=16):
     """Scallop shell: scalloped fan with radial ridges and hinge wings."""
     rp = {'pink': ['#ffffff', '#ffe6ee', '#ffcadb', '#f5a7c2', '#e38aa9', '#b0607e'],
           'peach': ['#ffffff', '#fff0e0', '#ffd9bb', '#f7bb90', '#e89f76', '#b0745a'],
-          'lav': ['#ffffff', '#f3ecff', '#e0d2fb', '#c6b0f0', '#aa92dc', '#7864ae']}[color]
+          'lav': ['#ffffff', '#f3ecff', '#e0d2fb', '#c6b0f0', '#aa92dc', '#7864ae'],
+          'mint': ['#ffffff', '#e8fbf2', '#c8f0dc', '#9edcc2', '#7cc4a8', '#4f8f76'],
+          'yellow': ['#ffffff', '#fff8d8', '#ffe9a8', '#f9d06c', '#e8b24e', '#b0823a']}[color]
     hi, lt, base, dk, dk2, ink = (rgb15(h) for h in rp)
     k = size / 16.0
     img = new(size, size)

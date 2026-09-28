@@ -306,7 +306,8 @@ def main():
             cont_tiles.append(b''.join(tile4(idx[ty:ty + 8, tx:tx + 8]) for ty in (0, 8) for tx in (0, 8)))
             cont_pals += box_pals
             continue
-        variants = {'acorn': [props.acorn16(c) for c in ('cream', 'pink', 'mint', 'lav', 'gold')]}[kind]
+        variants = {'acorn': [props.acorn16(c) for c in ('cream', 'pink', 'mint', 'lav', 'gold')],
+                    'shell': [props.shell(c, 16) for c in ('pink', 'peach', 'mint', 'lav', 'yellow')]}[kind]
         index, pals = shared_index(variants)
         cont_tiles.append(b''.join(tile4(index[ty:ty + 8, tx:tx + 8]) for ty in (0, 8) for tx in (0, 8)))
         for pal in pals:
@@ -352,6 +353,7 @@ def main():
                 '    const uint16_t *spots; uint8_t nspots, first_spot;   /* x, y pairs */\n'
                 '    uint16_t pen_x0, pen_y0, pen_x1, pen_y1, sign_x, sign_y;\n'
                 '    const uint16_t *shimmer; uint8_t nshimmer;\n'
+                '    const uint16_t *shimmer_cycle;       /* 4 colors the glint steps through */\n'
                 '    const uint16_t *doors; uint8_t ndoors;   /* x, y, w, h: up here opens the shelf */\n'
                 '    const uint16_t *exits; uint8_t nexits;   /* x, y, w, h, to area, arrive x, arrive y */\n'
                 '    const uint16_t *gates; uint8_t ngates;   /* x, y, w, h, to area: Momo lies there while it is shut */\n'
@@ -369,7 +371,7 @@ def main():
     cw.save(OUT)
 
 
-AREA_BUILDERS = [areas.meadow, areas.woods]       # maps built so far, in play order
+AREA_BUILDERS = [areas.meadow, areas.woods, areas.shore]       # maps built so far, in play order
 
 
 def shared_index(variants):
@@ -440,14 +442,13 @@ def export_area(cw, a, index):
         cw.define(f'{up}_SIGN_Y', a.sign[1])
     cw.define(f'{up}_NSPOTS', len(a.spots))
     # palette slots holding the water shimmer color, for runtime cycling
-    target = bgr555(C['w_lt'])
+    target = bgr555(C[a.shimmer])
     slots = [bi * 16 + ci for bi, p in enumerate(b['palettes']) for ci, c in enumerate(p) if ci and c == target]
     cw.u16(f'{a.name}_shimmer', slots or [0])
     cw.define(f'{up}_NSHIMMER', len(slots))
-    lo, hi = C['w_lt'], C['w_hi']
+    lo, hi = C[a.shimmer], C[a.shimmer.replace('_lt', '_hi')]
     mid = tuple((x + y) // 2 for x, y in zip(lo, hi))
-    if index == 0:                                   # one cycle shared by every area
-        cw.u16('water_shimmer_cycle', [bgr555(lo), bgr555(mid), bgr555(hi), bgr555(mid)])
+    cw.u16(f'{a.name}_shimmer_cycle', [bgr555(lo), bgr555(mid), bgr555(hi), bgr555(mid)])
     doors = [v for d in a.doors for v in d[:4]]
     cw.u16(f'{a.name}_doors', doors or [0, 0, 0, 0])
     cw.u16(f'{a.name}_exits', [v for e in a.exits for v in e] or [0] * 7)
@@ -464,7 +465,7 @@ def export_area(cw, a, index):
     return (f'    {{{index}, {n}_tiles, {len(b["tiles"])}, {n}_pal, {len(b["palettes"]) * 32}, {n}_ground, {n}_overlay,\n'
             f'     {n}_solid, {areas.CELL.bit_length() - 1}, {a.w}, {a.h}, {a.spawn[0]}, {a.spawn[1]},\n'
             f'     {n}_spots, {len(a.spots)}, {a.first_spot}, {pen[0]}, {pen[1]}, {pen[2]}, {pen[3]}, {sign[0]}, {sign[1]},\n'
-            f'     {n}_shimmer, {len(slots)}, {n}_doors, {len(a.doors)}, {n}_exits, {len(a.exits)},\n'
+            f'     {n}_shimmer, {len(slots)}, {n}_shimmer_cycle, {n}_doors, {len(a.doors)}, {n}_exits, {len(a.exits)},\n'
             f'     {n}_gates, {len(a.gates)}}}')
 
 

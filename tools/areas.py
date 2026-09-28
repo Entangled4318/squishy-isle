@@ -36,6 +36,7 @@ class Area:
         self.sign = None         # (x, y) of the pen sign's base centre
         self.doors = []          # (x, y, w, h, target)
         self.exits = []          # (x, y, w, h, to_area, arrive_x, arrive_y): feet in the box walk to that area
+        self.shimmer = 'w_lt'    # palette color that glints (cycled at run time)
         self.gates = []          # (x, y, w, h, to_area): solid while that area is shut; Momo the
                                  # sleepy panda (32x32, feet at x + w/2, y + h) lies there
 
@@ -294,12 +295,89 @@ def woods():
     a.block(476, 0, 480, 106)
     a.block(476, 134, 480, 320)
     a.exits.append((0, 186, 6, 28, 0, 450, 200))       # west: back over the bridge to the meadow
-    a.exits.append((474, 106, 6, 28, 2, 20, 200))      # east: to the shore
+    a.exits.append((468, 106, 12, 28, 2, 20, 200))     # east: to the shore
     a.gates.append((450, 106, 28, 28, 2))              # Momo sleeps here until the shore opens
     a.spawn = (24, 200)
     a.spots = [(96, 168), (326, 100), (150, 170), (200, 150), (292, 150), (230, 110), (352, 170),
                (410, 150), (190, 276), (250, 250), (180, 200), (40, 190)]
     a.first_spot = 0                                   # in view of the arrival from the meadow
+    return a
+
+
+class Sea(SDF):
+    """Open sea along the north edge, a gently wavy shoreline."""
+
+    def d(self, X, Y):
+        return Y - (62 + 5 * np.sin(X / 23.0) + 3 * np.sin(X / 9.0 + 1.3))
+
+
+def shore():
+    """Seashell Shore: sand under a wavy sea (north). The boardwalk comes in
+    from the woods (west); the way on to Cloud Hill leaves east, where Momo
+    sleeps until the shore has 10 friends. Umbrella, towel, sandcastle,
+    palms, a tide pool; pen (the meadow's size) in the south-east."""
+    W_, H_ = 480, 320
+    a = Area('shore', W_, H_)
+    lab = shape_labels(W_, H_, 's', [('e', Sea()), ('w', Oval(96, 272, 30, 13, n=2.2))])
+    a.ground = world.shore_ground(lab)
+    water = (lab == 'e') | (lab == 'w')
+    for r in range(H_ // CELL):
+        for c in range(W_ // CELL):
+            if water[r * CELL:(r + 1) * CELL, c * CELL:(c + 1) * CELL].mean() > 0.3:
+                a.solid[r, c] = True
+    a.shimmer = 'sea_lt'
+
+    # ---- sand decor: starfish, tiny shells, footprints, the boardwalk
+    for x, y in ((190, 92), (40, 140), (120, 230), (360, 100), (250, 290), (440, 250), (30, 300)):
+        a.decor(world.starfish(), x, y)
+    for i, (x, y) in enumerate(((70, 92), (150, 88), (14, 170), (228, 124), (300, 150), (410, 120), (180, 300),
+                                (330, 296), (460, 200), (60, 214))):
+        a.decor(world.tiny_shell(i % 2), x, y)
+    world.footprints(a.ground, [(130, 120), (135, 126), (129, 134), (134, 141), (128, 148), (133, 155), (127, 162)])
+    a.decor(world.boardwalk(92), 0, 193)
+    a.decor(world.towel(), 248, 128)
+    for (w_, x, y) in ((36, 201, 136), (26, 2, 148), (26, 402, 126), (26, 166, 298), (26, 442, 282)):
+        a.decor(world.tree_shadow(w_, C['s_dk']), x, y)
+    for x, y in ((40, 22), (330, 34)):
+        a.decor(world.sailboat(), x, y)
+
+    # ---- objects
+    a.place(world.palm(), -6, 100, block_w=10, tall=6)
+    a.place(world.palm(flip=True), 396, 78, block_w=10, tall=6)
+    a.place(world.palm(), 160, 250, block_w=10, tall=6)
+    a.place(world.palm(flip=True), 436, 232, block_w=10, tall=6)
+    a.place(world.umbrella(), 196, 92, block_w=6, tall=6)
+    a.place(world.sandcastle(), 110, 146, block_w=30, tall=10)
+    a.place(world.bucket(), 148, 170)
+    a.place(world.beach_ball(), 176, 190)
+    for big, x, y in ((True, 58, 262), (False, 128, 270), (False, 40, 280)):
+        a.place(world.rock(big), x, y, block_w=8 if big else 0, tall=4)
+
+    # ---- friend pen (the meadow's size), sign by its top-left corner
+    px0, py0, px1, py1 = 290, 184, 410, 268
+    top = world.fence(7)
+    a.place(top, px0, py0 - 6, block_w=top.shape[1], tall=6)
+    a.place(top, px0, py1 - top.shape[0], block_w=top.shape[1], tall=6)
+    side = world.fence_side(py1 - py0 - 6)
+    a.place(side, px0 - 3, py0, block_w=7, tall=side.shape[0])
+    a.place(side, px1 - 4, py0, block_w=7, tall=side.shape[0])
+    a.pen = (px0 + 8, py0 + 20, px1 - 8, py1 - 14)
+    sign_img = world.signpost(world.mini_heart())
+    a.place(sign_img, px0 - 26, py0 - 4, block_w=8, tall=6)
+    a.sign = (px0 - 26 + sign_img.shape[1] // 2, py0 + 19)
+
+    a.block(0, 0, 4, 190)                              # map edges beside the ways in and out
+    a.block(0, 210, 4, 320)
+    a.block(476, 0, 480, 136)
+    a.block(476, 164, 480, 320)
+    a.block(0, 316, 480, 320)
+    a.exits.append((0, 186, 6, 28, 1, 456, 120))       # west: the boardwalk back to the woods
+    a.exits.append((468, 136, 12, 28, 3, 24, 200))     # east: on to Cloud Hill
+    a.gates.append((450, 136, 28, 28, 3))              # Momo sleeps here until Cloud Hill opens
+    a.spawn = (24, 200)
+    a.spots = [(70, 176), (120, 110), (220, 176), (300, 110), (380, 150), (60, 120), (250, 240),
+               (160, 214), (200, 300), (300, 300), (420, 296), (100, 240)]
+    a.first_spot = 0                                   # in view of the arrival on the boardwalk
     return a
 
 
