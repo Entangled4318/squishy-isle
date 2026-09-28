@@ -5,6 +5,7 @@
 #include "collection.h"
 #include "game.h"
 #include "game_assets.h"
+#include "music_data.h"
 #include "sound.h"
 #include "system.h"
 
@@ -34,7 +35,7 @@ static int presses, idle_t, cool, jump_t, jump_h, land_t, pop_t, press_anim;
 static int lid_x, lid_y, lid_vx, lid_vy, lid_spin;   /* 8.8 fixed while flying */
 
 static void enter(void) {
-    music_stop();                    /* the box has its own sounds (its tune comes in step 5.4) */
+    music_play(SONG_OPEN);           /* tip-toe loop in C pentatonic: the press chimes fit over it */
     dma3_copy32(CHARBLOCK(0), openbg_tiles, sizeof openbg_tiles);
     dma3_copy32(SCREENBLOCK(30), openbg_map0, sizeof openbg_map0);
     dma3_copy16(PAL_BG, openbg_pal, sizeof openbg_pal);
@@ -84,6 +85,7 @@ static void press(bool by_child) {
     song_play(tune_pop, tune_pop_len);
     if (open_friend >= 0) collection_add(open_friend);
     dbg("open pop friend %d found %d", open_friend, found_total());
+    music_stop();                    /* the ta-da jingle already holds the wave channel */
 }
 
 static int n_oam;

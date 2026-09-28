@@ -220,7 +220,7 @@ static void lead_frame(void) {
     if (v->note) {
         lv = s->lead_level;
         if (s->lead_decay) lv += v->age / s->lead_decay;
-        int attack = s->lead_level + 2 - v->age;               /* starts 2 levels quieter */
+        int attack = (s->lead_level < 1 ? 3 : s->lead_level + 2) - v->age;   /* starts 2 levels quieter, at most 25% */
         if (attack > lv) lv = attack;
         if (v->left <= s->lead_gap) {                          /* fades out over the gap */
             int release = s->lead_level + s->lead_gap - v->left + 1;

@@ -5,6 +5,7 @@
 #include "collection.h"
 #include "game.h"
 #include "game_assets.h"
+#include "music_data.h"
 #include "sound.h"
 #include "squishy.h"
 #include "system.h"
@@ -270,7 +271,7 @@ static void update_reveal(void) {
             landed_t = 0;
             bounce_t = 0;                 /* happy bounce on landing */
             sfx_squeak(sel_flavor);
-            song_play(tune_hello, tune_hello_len);
+            music_play(SONG_REVEAL);  /* plays once */
             spawn_confetti();
             dbg("reveal landed");
         }

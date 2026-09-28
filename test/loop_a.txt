@@ -7,6 +7,7 @@ tap A
 wait 25
 # box 1
 seek 3000
+audio loop_open
 tap A
 wait 50
 tap A
@@ -21,6 +22,7 @@ tap B
 wait 20
 tap A
 wait 110
+audio end
 # box 2
 seek 3000
 tap A

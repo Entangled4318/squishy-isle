@@ -135,6 +135,26 @@ song('meadow', 'Meadow: Sleepy clover', 12,
      bar=12, wave='hollow', lead_level=2, lead_decay=40, lead_gap=2, bass_vol=4, bass_duty=2, bass_step=7)
 
 
+# Open screen: "What's inside?", a tip-toe loop while the child presses.
+# C major pentatonic (C D E G A), so the press chimes (C6, E6) and the pop
+# chime (A6) always fit. 112 bpm, 4 bars (8.5 s), plucked bell notes with
+# rests between, like tiptoeing; bass oom-pah on short plucks. It stops at
+# the pop, where the G major "ta-da" (tune_pop) leads into the reveal.
+song('open', "Open: What's inside?", 8,
+     lead='C5:2 r:2 E5:2 r:2 G5:2 r:2 E5:2 r:2 | D5:2 r:2 G5:2 r:2 A5:2 r:2 G5:2 r:2 | '
+          'E5:2 r:2 G5:2 r:2 C6:2 r:2 A5:2 r:2 | G5:2 A5:2 G5:2 E5:2 D5:4 r:4',
+     bass='C3:4 G2 C3 G2 | G2 D3 G2 D3 | C3 G2 A2 E3 | G2 D3 G2 B2',
+     wave='bell', lead_level=1, lead_decay=4, lead_gap=2, bass_vol=5, bass_duty=1, bass_step=2)
+
+# Reveal: "New friend!", played once when the friend lands on the cushion.
+# Resolves the pop's G major ta-da to C. 150 bpm (6 frames a tick), 2 bars
+# (3.2 s): a climbing arpeggio, a skip, and home on a held high C.
+song('reveal', 'Reveal: New friend!', 6,
+     lead='C5:2 E5:2 G5:2 C6:4 G5:2 C6:2 E6:2 | D6:3 C6:1 D6:2 E6:2 C6:8',
+     bass='C3:4 G2 C3 E3 | G2 G2 C3:8',
+     loop=False, wave='bell', lead_level=1, lead_decay=12, lead_gap=2, bass_vol=6, bass_duty=1, bass_step=3)
+
+
 # ---------------------------------------------------------------- export
 def sq_rate(f):
     return 2048 - round(CPU_HZ / 128 / f)
