@@ -4,6 +4,7 @@
 #include "gba.h"
 
 void system_init(void);
+extern volatile u32 vbl_count;      /* VBlanks since power-on (IRQ handler) */
 
 /* input (call input_poll once per frame) */
 void input_poll(void);

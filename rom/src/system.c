@@ -4,6 +4,8 @@
 
 extern void irq_handler(void);
 
+volatile u32 vbl_count;            /* counted by the IRQ handler */
+
 void system_init(void) {
     REG_WAITCNT = 0x4317;          /* SRAM 8 cycles, ROM 3/1 with prefetch */
     REG_IME = 0;

@@ -6,6 +6,7 @@
 #include "collection.h"
 #include "game.h"
 #include "game_assets.h"
+#include "music_data.h"
 #include "sound.h"
 #include "squishy.h"
 #include "system.h"
@@ -120,6 +121,7 @@ static void finish_intro(void) {
         landed[i] = true;
     }
     song_play(tune_hello, tune_hello_len);
+    music_play(SONG_TITLE);                        /* starts when the hello jingle ends */
     dbg("title intro done at %d", t);
     to_menu();
 }
@@ -158,6 +160,7 @@ static void start_game(bool fresh) {
     }
     dbg("title start %s", fresh ? "new" : "continue");
     sfx_chime(4);
+    music_stop();
     scene_go(&scene_meadow_view);
 }
 

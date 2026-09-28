@@ -9,6 +9,7 @@ static const Scene *current, *pending;
 static int fade_level;        /* 0 = clear, 16 = white */
 static int fade_dir;          /* +1 fading out, -1 fading in, 0 idle */
 static u16 want_bldcnt, want_bldalpha;
+static u32 sound_vbl;         /* last VBlank the sound was ticked for */
 
 s16 bg_scroll_x[4], bg_scroll_y[4];
 u32 frame_count;
@@ -45,6 +46,7 @@ void scene_run(const Scene *first) {
     oam_commit();
     current->enter();
     fade_dir = -1;
+    sound_vbl = vbl_count;
     for (;;) {
         vblank_wait();
         oam_commit();
@@ -55,7 +57,12 @@ void scene_run(const Scene *first) {
         apply_blend();
         frame_count++;
         input_poll();
-        sound_tick();
+        /* one sound tick per VBlank that passed: a slow frame (or a scene
+         * loading while the screen is white) does not slow the music */
+        int ticks = (int)(vbl_count - sound_vbl);
+        sound_vbl = vbl_count;
+        if (ticks > 8) ticks = 8;
+        while (ticks-- > 0) sound_tick();
 
         if (fade_dir > 0) {
             fade_level += 16 / (FADE_FRAMES / 2);

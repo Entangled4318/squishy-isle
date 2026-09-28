@@ -49,11 +49,15 @@ def hz(m):
     return 440.0 * 2 ** ((m - 69) / 12)
 
 
-def parse(text):
-    """Voice text -> list of (midi or 0, ticks)."""
-    out, length = [], 4
+def parse(text, bar=16):
+    """Voice text -> list of (midi or 0, ticks). Every bar between "|"
+    lines must be exactly `bar` ticks (catches typos); 0 = no check."""
+    out, length, in_bar, n_bar = [], 4, 0, 1
     for tok in text.split():
         if tok == '|':
+            if bar and in_bar != bar:
+                raise ValueError(f'bar {n_bar} is {in_bar} ticks, not {bar}')
+            in_bar, n_bar = 0, n_bar + 1
             continue
         name, _, ln = tok.partition(':')
         if ln:
@@ -61,13 +65,16 @@ def parse(text):
         if not 1 <= length <= 255:
             raise ValueError(f'bad length in {tok!r}')
         out.append((0 if name == 'r' else midi(name), length))
+        in_bar += length
+    if bar and in_bar != bar:
+        raise ValueError(f'bar {n_bar} is {in_bar} ticks, not {bar}')
     return out
 
 
 SONGS = {}
 
 
-def song(key, title, tick, lead, bass, loop=True, wave='sine', lead_level=0, lead_decay=0,
+def song(key, title, tick, lead, bass, bar=16, loop=True, wave='sine', lead_level=0, lead_decay=0,
          lead_gap=2, bass_vol=6, bass_duty=1, bass_step=3, bass_gap=0):
     """lead_level: 0 = 100%, 1 = 75%, 2 = 50%, 3 = 25% wave volume.
     lead_decay: frames per step down (toward 25%), 0 = hold.
@@ -77,18 +84,31 @@ def song(key, title, tick, lead, bass, loop=True, wave='sine', lead_level=0, lea
     a hard cut clicks, so prefer a fading envelope).
     bass_vol, bass_step: square envelope start (0..15) and fade step (0 = hold).
     bass_duty: 0 = 12.5%, 1 = 25%, 2 = 50%."""
-    SONGS[key] = dict(title=title, tick=tick, lead=parse(lead), bass=parse(bass), loop=loop, wave=wave,
+    SONGS[key] = dict(title=title, tick=tick, lead=parse(lead, bar), bass=parse(bass, bar), loop=loop, wave=wave,
                       lead_level=lead_level, lead_decay=lead_decay, lead_gap=lead_gap,
                       bass_vol=bass_vol, bass_duty=bass_duty, bass_step=bass_step, bass_gap=bass_gap)
 
 
 # ---------------------------------------------------------------- songs
-# Engine test: a C major scale up and down over a C / G bass, 2 bars of
-# 16 ticks at 8 frames per tick (112 bpm in quarter notes).
-song('scale', 'Scale test', 8,
-     lead='C5:2 D5 E5 F5 G5 A5 B5 C6 | C6 B5 A5 G5 F5 E5 D5 C5',
-     bass='C3:8 G2 | G2 C3',
-     lead_level=1, lead_decay=0, bass_vol=7, bass_step=4)
+# Title: bright and bouncy, C major (the "hello" jingle before it is C E G C).
+# 112 bpm (8 frames per sixteenth), 16 bars: A (bars 1-8) climbs to a high
+# C with a skipping dotted rhythm, B (9-16) is softer and stepwise and
+# leads back. Chords: C Am F G C Am F-G C | F C F C Dm G C-Am G.
+# Bass: plucked oom-pah on root and fifth. About 34 s per loop.
+song('title', 'Title: Hello island', 8,
+     lead='C5:2 E5:2 G5:3 E5:1 C6:4 G5:4 | A5:3 G5:1 E5:2 C5:2 A4:4 r:4 | '
+          'F5:2 A5:2 C6:3 A5:1 F5:4 A5:4 | G5:3 F5:1 D5:2 F5:2 B4:4 D5:4 | '
+          'C5:2 E5:2 G5:3 E5:1 C6:4 E6:4 | D6:3 C6:1 B5:2 A5:2 E5:8 | '
+          'F5:2 A5:2 C6:2 A5:2 G5:2 B5:2 D6:2 B5:2 | C6:6 G5:2 C5:4 r:4 | '
+          'A5:4 C6:4 A5:2 G5:2 F5:4 | G5:4 E5:4 C5:2 D5:2 E5:4 | '
+          'A5:4 C6:4 D6:2 C6:2 A5:4 | G5:6 E5:2 G5:8 | '
+          'F5:2 E5:2 D5:2 E5:2 F5:4 A5:4 | G5:2 F5:2 D5:2 F5:2 G5:4 B5:4 | '
+          'C6:4 B5:2 G5:2 A5:4 E5:4 | B4:4 D5:2 F5:2 G5:4 r:4',
+     bass='C3:4 G2 C3 G2 | A2 E3 A2 E3 | F2 C3 F2 C3 | G2 D3 G2 D3 | '
+          'C3 G2 C3 G2 | A2 E3 A2 E3 | F2 C3 G2 D3 | C3 G2 C3 r | '
+          'F2 C3 F2 C3 | C3 G2 C3 G2 | F2 C3 F2 C3 | C3 G2 C3 G2 | '
+          'D3 A2 D3 A2 | G2 D3 G2 D3 | C3 G2 A2 E3 | G2 D3 G2 D3',
+     wave='bell', lead_level=1, lead_decay=10, lead_gap=2, bass_vol=6, bass_duty=1, bass_step=3)
 
 
 # ---------------------------------------------------------------- export
@@ -169,7 +189,8 @@ def export(outdir):
     with open(os.path.join(outdir, 'music_data.h'), 'w') as f:
         f.write('\n'.join(h) + '\n')
     with open(os.path.join(outdir, 'music_songs.json'), 'w') as f:
-        json.dump({k: dict(s, index=i) for i, (k, s) in enumerate(SONGS.items())}, f, indent=1)
+        json.dump({k: dict(s, index=i, wave_samples=WAVES[s['wave']]) for i, (k, s) in enumerate(SONGS.items())},
+                  f, indent=1)
 
 
 if __name__ == '__main__':

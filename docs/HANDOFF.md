@@ -39,6 +39,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  5.3 (title music: starts after the hello jingle, bright and bouncy,
+  melody clearly over the bass, loop at 34 s is seamless, stops when
+  the game starts; also in the sound test), step
   5.2 (hold L + R + START at power-on: the sound test opens; A plays
   the scale test song, B stops; notes sound clean with no tick at each
   note; SELECT plays the jingle and the song goes on after it; L boings
@@ -54,8 +57,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 5 music and sound (owner request: title music, meadow
-  music, a different tune per area, a tune for opening boxes), then
+- Next: step 5.3 task B (meadow lullaby), then 5.4 to 5.6 (see "Step 5
+  progress"). Step 5 owner request: title music, meadow
+  music, a different tune per area, a tune for opening boxes. Then
   step 6 (3 more areas with 20 unique friends each, a way to get there,
   a pen like the meadow's; mailbox and picnic basket do something: ask
   the owner one question each), then step 7. Do not wait for the Brick
@@ -325,7 +329,24 @@ Plan agreed with the owner, one sub-step per turn, stop after each task:
    Score 8.5 (first pass 6.5: clicks). Limits: tempo is whole frames per
    tick (8 = 112 bpm, 10 = 90, 12 = 75 in quarter notes); the lead has
    4 volume levels. Screenshot `docs/step5_2_sound_test.png`.
-3. Title and meadow music.
+3. Title and meadow music. Task A **done**: "Title: Hello island"
+   (`song('title', ...)` in `music.py`): C major, 112 bpm, 16 bars
+   (A climbs to a high C with a dotted skip, B is stepwise and leads
+   back; bar 16 ends on G for a clean loop), bell lead with a slow fade
+   (`lead_decay` 10), plucked oom-pah bass, 34 s a loop. Starts after
+   the hello jingle (`finish_intro`), stops when the game starts
+   (`start_game`). Harmony review: lead notes on beats vs the bass; the
+   3 left are a 4-3 suspension and chord roots over a fifth in the bass.
+   `music.py` now checks every bar is 16 ticks (`bar=`). Found and fixed:
+   the music slowed by a frame whenever the game missed a VBlank; the
+   IRQ handler now counts VBlanks (`vbl_count`) and `scene_run` runs one
+   `sound_tick` per VBlank that passed (at most 8). Click limit per wave
+   (the bell is spikier than the sine, so its smallest step is 13%
+   bigger). `check_music.py` writes `roll_KEY.png` (notes as written,
+   pitch heard in the emulator). Mix: bass/lead loudness 0.47 (check
+   0.25..0.65). Score 8.5 (first pass 7: 4 clashing beat notes, slow
+   first loop, bass too loud at 0.70). Screenshot
+   `docs/step5_3_title_roll.png`. Task B (next): meadow lullaby.
 4. Box-opening tune (open screen), reveal jingle; shelf music box theme
    (DESIGN.md) unless the owner says no.
 5. Shore, Woods and Cloud Hill tunes (played once step 6 builds them).
@@ -408,6 +429,9 @@ memory dump. Checks read the log, pixels and audio pitch.
 - The hardware pitch sweep overflowed and silenced the squeak; the squeak
   uses a per-frame pitch curve instead.
 - OAM powers up as 128 visible sprites at (0,0); `scene_run` hides them.
+- Music runs from `scene_run` once per VBlank that passed (`vbl_count`
+  from the IRQ handler), not once per loop pass: a slow frame must not
+  slow the song. `hwcheck.c` has its own loop and still ticks once.
 - Scene fades ignore input for about 10 frames; test scripts wait 20
   frames before the first press.
 - Moving a box spot, the sign or the pen breaks the scripted walks in

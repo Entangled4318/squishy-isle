@@ -26,12 +26,16 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 HARNESS = os.path.join(HERE, 'build', 'harness')
 SONGS = json.load(open(os.path.join(os.path.dirname(ROM), 'music_songs.json')))
 FPS = 16777216 / 280896
-# clicks: largest DC jump in a frame / the voice's loudness (95th percentile).
-# The lead may step one volume level (about 0.47). A square note that
-# starts from silence steps by sqrt(d / (1 - d)) for duty d (0.58 at 25%):
-# that is a plucked attack, allowed with 20% margin; a hard cut is not.
-LEAD_CLICK = 0.5
+# clicks: largest DC jump in a frame / the voice's full loudness (99th
+# percentile). PSG channels only output positive values, so any volume
+# change moves the DC level. A click is a jump bigger than the smallest
+# step the channel can make, with 20% margin:
+#   lead: one wave volume level (25%) from its full level:
+#         (0.25 / full level) * mean / std of the wave (0.47 for a sine at 75%)
+#   bass: a square note starting from silence, sqrt(d / (1 - d)) for duty d
+#         (0.58 at 25%): a plucked attack. A hard cut is bigger.
 DUTY = (0.125, 0.25, 0.5)
+LEVEL = (1.0, 0.75, 0.5, 0.25)
 fails = []
 
 
@@ -136,17 +140,60 @@ def voice_checks(key, s, voice, a, sr, loops):
                 bad.append(f'note {m} at frame {f + loop * length}: {got:.0f} Hz')
     check(not bad, f'{key} {voice}: every note in tune over {loops} loop(s) (worst {worst:.1f} cents)'
           + (f' {bad[:3]}' if bad else ''))
-    loud = np.percentile(ac, 95)                     # a fading voice is quiet most of the time
+    loud = np.percentile(ac, 99)                     # the voice at full volume (fading voices are quiet most of the time)
     jump = np.abs(np.diff(dc)).max() / loud
-    d = DUTY[s['bass_duty']]
-    limit = LEAD_CLICK if voice == 'lead' else round(1.2 * (d / (1 - d)) ** 0.5, 2)
+    if voice == 'lead':
+        w = np.array(s['wave_samples'], float)
+        limit = round(1.2 * 0.25 / LEVEL[s['lead_level']] * w.mean() / w.std(), 2)
+    else:
+        d = DUTY[s['bass_duty']]
+        limit = round(1.2 * (d / (1 - d)) ** 0.5, 2)
     check(jump <= limit, f'{key} {voice}: no clicks (largest step {jump:.2f} of the voice, limit {limit})')
     if loops >= 2:
         e1 = ac[t0:t0 + length]
         e2 = ac[t0 + length:t0 + 2 * length]
         r = float(np.corrcoef(e1, e2)[0, 1]) if len(e2) == len(e1) and e1.std() > 0 else 1.0
         check(r > 0.95, f'{key} {voice}: loop 2 matches loop 1 (envelope r={r:.3f})')
-    return full, a[int(t0 * spf):int((t0 + length) * spf)]
+    return full, a[int(t0 * spf):int((t0 + length) * spf)], (a, sr, t0)
+
+
+def piano_roll(key, s, recs):
+    """OUTDIR/roll_KEY.png: the notes as written (bars) and the pitch heard
+    in the emulator (dots, every 4 frames), one loop."""
+    from PIL import Image, ImageDraw
+    _, length = timeline(s['lead'], s['tick'])
+    ms = [m for v in ('lead', 'bass') for m, _ in s[v] if m]
+    lo, hi = min(ms) - 2, max(ms) + 2
+    px, row = 0.5, 6
+    W, H = int(length * px) + 20, (hi - lo + 1) * row + 20
+    im = Image.new('RGB', (W, H), (255, 250, 247))
+    d = ImageDraw.Draw(im)
+    for m in range(lo, hi + 1):
+        if m % 12 == 0:
+            d.line([(10, 10 + (hi - m) * row + row // 2), (W - 10, 10 + (hi - m) * row + row // 2)], fill=(230, 215, 225))
+    for f in range(0, length + 1, s['tick'] * 16):
+        d.line([(10 + f * px, 10), (10 + f * px, H - 10)], fill=(225, 210, 220))
+    colors = {'lead': ((255, 196, 214), (176, 64, 110)), 'bass': ((214, 200, 246), (84, 64, 150))}
+    for v in ('lead', 'bass'):
+        notes, _ = timeline(s[v], s['tick'])
+        for m, f, ln in notes:
+            if m:
+                y = 10 + (hi - m) * row
+                d.rectangle([10 + f * px, y, 10 + (f + ln) * px - 1, y + row - 1], fill=colors[v][0])
+        if v in recs:
+            a, sr, t0 = recs[v]
+            spf = sr / FPS
+            for f in range(0, length, 4):
+                seg = a[int((t0 + f) * spf):int((t0 + f + 4) * spf)]
+                if len(seg) < 100 or seg.std() < 300:
+                    continue
+                got = yin(seg, sr)
+                if got <= 0:
+                    continue
+                m = 69 + 12 * np.log2(got / 440)
+                y = 10 + (hi - m) * row + row / 2
+                d.ellipse([10 + (f + 2) * px - 1.5, y - 1.5, 10 + (f + 2) * px + 1.5, y + 1.5], fill=colors[v][1])
+    im.save(os.path.join(OUT, f'roll_{key}.png'))
 
 
 def song_script(index, s, voice_solo, name, loops):
@@ -159,7 +206,7 @@ def song_script(index, s, voice_solo, name, loops):
 
 for key, s in SONGS.items():
     loops = 2 if s['loop'] else 1
-    rms = {}
+    rms, recs = {}, {}
     for voice, ch in (('lead', 3), ('bass', 2)):
         name = f'mus_{key}_{voice}'
         lines, length = song_script(s['index'], s, ch, name, loops)
@@ -175,6 +222,8 @@ for key, s in SONGS.items():
         res = voice_checks(key, s, voice, a, sr, loops)
         if res:
             rms[voice] = float(np.sqrt(np.mean((res[1] - res[1].mean()) ** 2)))
+            recs[voice] = res[2]
+    piano_roll(key, s, recs)
     name = f'mus_{key}_mix'
     lines, length = song_script(s['index'], s, 0, name, 1)
     run(name, lines)
@@ -183,7 +232,7 @@ for key, s in SONGS.items():
     check(peak < 30000, f'{key} mix: no clipping (peak {peak:.0f})')
     if 'lead' in rms and 'bass' in rms:
         ratio = rms['bass'] / rms['lead']
-        check(0.25 <= ratio <= 1.0, f'{key} mix: bass under the lead (bass/lead loudness {ratio:.2f})')
+        check(0.25 <= ratio <= 0.65, f'{key} mix: bass under the lead (bass/lead loudness {ratio:.2f}, 0.25..0.65)')
 
 # a jingle pauses the song; after it, and after the boing, the song goes on
 first = next(iter(SONGS.values()))
