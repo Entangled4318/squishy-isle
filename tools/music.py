@@ -135,6 +135,59 @@ song('meadow', 'Meadow: Sleepy clover', 12,
      bar=12, wave='hollow', lead_level=2, lead_decay=40, lead_gap=2, bass_vol=4, bass_duty=2, bass_step=7)
 
 
+# Open screen: "What's inside?", a tip-toe loop while the child presses.
+# C major pentatonic (C D E G A), so the press chimes (C6, E6) and the pop
+# chime (A6) always fit. 112 bpm, 4 bars (8.5 s), plucked bell notes with
+# rests between, like tiptoeing; bass oom-pah on short plucks. It stops at
+# the pop, where the G major "ta-da" (tune_pop) leads into the reveal.
+song('open', "Open: What's inside?", 8,
+     lead='C5:2 r:2 E5:2 r:2 G5:2 r:2 E5:2 r:2 | D5:2 r:2 G5:2 r:2 A5:2 r:2 G5:2 r:2 | '
+          'E5:2 r:2 G5:2 r:2 C6:2 r:2 A5:2 r:2 | G5:2 A5:2 G5:2 E5:2 D5:4 r:4',
+     bass='C3:4 G2 C3 G2 | G2 D3 G2 D3 | C3 G2 A2 E3 | G2 D3 G2 B2',
+     wave='bell', lead_level=1, lead_decay=4, lead_gap=2, bass_vol=5, bass_duty=1, bass_step=2)
+
+# Reveal: "New friend!", played once when the friend lands on the cushion.
+# Resolves the pop's G major ta-da to C. 150 bpm (6 frames a tick), 2 bars
+# (3.2 s): a climbing arpeggio, a skip, and home on a held high C.
+song('reveal', 'Reveal: New friend!', 6,
+     lead='C5:2 E5:2 G5:2 C6:4 G5:2 C6:2 E6:2 | D6:3 C6:1 D6:2 E6:2 C6:8',
+     bass='C3:4 G2 C3 E3 | G2 G2 C3:8',
+     loop=False, wave='bell', lead_level=1, lead_decay=12, lead_gap=2, bass_vol=6, bass_duty=1, bass_step=3)
+
+
+def alberti(chords):
+    """Music box accompaniment: each chord as "G3:B3:D3" (low, middle,
+    high) gives low-high-middle-high in eighth notes (2 ticks), twice per
+    chord; "|" passes through as a bar line."""
+    out = []
+    for c in chords.split():
+        if c == '|':
+            out.append('|')
+            continue
+        lo, mid, hi = c.split(':')
+        out += [f'{lo}:2', hi, mid, hi]
+    return ' '.join(out)
+
+
+# Shelf: "Music box", a tinkly theme while the child looks at the friends.
+# G major (the other screens are C and F), 90 bpm (10 frames a tick),
+# 16 bars (43 s): A (1-8) states a skipping tune, B (9-16) sings longer
+# notes and ends on D7 to lead back. Bell lead that dies away fast like a
+# music box comb; the bass voice plays a soft Alberti pattern (low, high,
+# middle, high) as eighth-note plinks. Chords: G Em C D G Em Am-D G |
+# C G Am D Em C D D7.
+song('shelf', 'Shelf: Music box', 10,
+     lead='B5:4 G5:2 B5:2 D6:6 B5:2 | B5:4 A5:2 G5:2 E5:8 | C6:4 G5:2 C6:2 E6:6 C6:2 | D6:4 C6:2 A5:2 F#5:8 | '
+          'B5:4 G5:2 B5:2 D6:6 G6:2 | G6:4 E6:2 D6:2 B5:8 | C6:2 E6:2 A5:4 D6:2 F#6:2 A5:4 | G6:8 D6:4 B5:4 | '
+          'E6:6 D6:2 C6:4 G5:4 | D6:6 C6:2 B5:4 G5:4 | C6:6 B5:2 A5:4 E5:4 | F#5:4 A5:4 D6:8 | '
+          'E6:6 D6:2 B5:4 G5:4 | E6:4 C6:4 G6:8 | F#6:6 E6:2 D6:4 A5:4 | C6:4 A5:4 F#5:4 A5:4',
+     bass=alberti('G3:B3:D4 G3:B3:D4 | E3:G3:B3 E3:G3:B3 | C3:E3:G3 C3:E3:G3 | D3:F#3:A3 D3:F#3:A3 | '
+                  'G3:B3:D4 G3:B3:D4 | E3:G3:B3 E3:G3:B3 | A2:C3:E3 D3:F#3:A3 | G3:B3:D4 G3:B3:D4 | '
+                  'C3:E3:G3 C3:E3:G3 | G3:B3:D4 G3:B3:D4 | A2:C3:E3 A2:C3:E3 | D3:F#3:A3 D3:F#3:A3 | '
+                  'E3:G3:B3 E3:G3:B3 | C3:E3:G3 C3:E3:G3 | D3:F#3:A3 D3:F#3:A3 | D3:F#3:C4 D3:F#3:C4'),
+     wave='bell', lead_level=1, lead_decay=8, lead_gap=2, bass_vol=4, bass_duty=1, bass_step=2)
+
+
 # ---------------------------------------------------------------- export
 def sq_rate(f):
     return 2048 - round(CPU_HZ / 128 / f)

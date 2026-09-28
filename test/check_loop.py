@@ -6,6 +6,7 @@ import struct
 import subprocess
 import sys
 
+import numpy as np
 from PIL import Image
 
 OUT, ELF = sys.argv[1], sys.argv[2]
@@ -48,16 +49,28 @@ check(re.search(r'scene shelf page=0 pick=0\n\[game f\d+\] scene closeup', la) i
 check(re.search(r'closeup squish 3\n\[game f\d+\] scene shelf', la) is not None, '3 squishes in the close-up go back to the shelf')
 playing, bad = -1, []                          # music per scene: meadow song on the map and shelf, none on the box
 for ln in la.splitlines():
-    m = re.search(r'song (start|stop) (\d+)|scene (\w+)', ln)
+    m = re.search(r'song (start|resume|stop) (\d+)|scene (\w+)', ln)
     if not m:
         continue
     if m.group(1):
-        playing = int(m.group(2)) if m.group(1) == 'start' else -1
-    elif m.group(3) in ('meadow', 'shelf', 'closeup') and playing != 1 or m.group(3) == 'open' and playing != -1:
+        playing = -1 if m.group(1) == 'stop' else int(m.group(2))
+    elif playing != {'meadow': 1, 'open': 2, 'shelf': 4, 'closeup': 4}.get(m.group(3), playing):
         bad.append(f'{m.group(3)} with song {playing}')
-check(not bad and la.count('song start 1') >= 5, f'the meadow song plays on the map, the shelf and the close-up, stops for the box {bad[:3]}')
+check(not bad and la.count('song start 4') == 1, f'songs per scene: meadow on the map, open tune on the box, music box on the shelf and close-up {bad[:3]}')
+check(la.count('song start 1') == 1 and la.count('song resume 1') >= 5, f'the meadow song starts once and goes on where it was after each box and the shelf '
+      f'({la.count("song start 1")} starts, {la.count("song resume 1")} resumes)')
+check(la.count('scene reveal') >= 5 and len(re.findall(r'open pop.*\n.*song stop 2', la)) + len(re.findall(r'song stop 2\n.*open pop', la)) >= 5,
+      'the open tune stops at the pop')
+check(len(re.findall(r'reveal landed', la)) == len(re.findall(r'reveal landed\n\[game f\d+\] song start 3|song start 3\n\[game f\d+\] reveal landed', la)) >= 5,
+      'the new friend jingle plays when the friend lands')
+import wave
+_w = wave.open(os.path.join(OUT, 'loop_open.wav'))
+_a = np.frombuffer(_w.readframes(_w.getnframes()), dtype=np.int16)
+check(len(_a) > 0 and 2000 < np.abs(_a).max() < 30000,
+      f'box 1 (open tune, chimes, boing, pop, jingle): sound and no clipping (peak {np.abs(_a).max() if len(_a) else 0})')
 trips = re.findall(r'scene shelf.*?scene meadow', la, re.S)
-check(trips and not any('song ' in t for t in trips), f'the meadow song goes on through the shelf, no stop or restart ({len(trips)} trips)')
+check(trips and all(t.count('song ') == 2 and 'song stop 4' in t and 'song resume 1' in t for t in trips),
+      f'the music box plays on through the close-up; back on the map only the meadow song resumes ({len(trips)} trips)')
 check('friends pen=17 follow=3' in lc, 'full meadow: 3 friends follow Pip, 17 live in the pen')
 
 sym, size = {}, {}

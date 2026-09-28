@@ -5,6 +5,7 @@
 #include "collection.h"
 #include "game.h"
 #include "game_assets.h"
+#include "music_data.h"
 #include "sound.h"
 #include "squishy.h"
 #include "system.h"
@@ -44,6 +45,7 @@ static void load_page(void) {
 }
 
 static void enter(void) {
+    music_play(SONG_SHELF);          /* music box; the close-up keeps it */
     dma3_copy32(CHARBLOCK(0), shelf_tiles, sizeof shelf_tiles);
     dma3_copy16(PAL_BG, shelf_pal, sizeof shelf_pal);
     dma3_copy16(PAL_BG + P_TEXT * 16, ui_text_pal, sizeof ui_text_pal);
