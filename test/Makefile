@@ -42,6 +42,8 @@ run: $(HARNESS) $(UNIT)
 	python3 check_pen.py $(OUT)
 	python3 make_save.py $(OUT)/pick.sav 0,1,3,6,8,11,12,15,17,19 17,6,12
 	./$(HARNESS) $(ROM) $(OUT)/pick.sav pick.txt $(OUT) > $(OUT)/pick.log
+	python3 make_save.py $(OUT)/top.sav 0,1,3,6,8,11,12,15,17,19 17,6,12
+	./$(HARNESS) $(ROM) $(OUT)/top.sav sign_top.txt $(OUT) > $(OUT)/sign_top.log
 	python3 check_pick.py $(OUT)
 	python3 make_save.py $(OUT)/pen20.sav $$(seq -s, 0 19) 17,6,12
 	./$(HARNESS) $(ROM) $(OUT)/pen20.sav pen20.txt $(OUT) > $(OUT)/pen20.log

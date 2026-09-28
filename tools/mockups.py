@@ -413,11 +413,11 @@ def selection_frame():
             corner = (min(x, fw - 1 - x) + min(y, fh - 1 - y)) < 3
             if corner:
                 continue
-            if edge == 0:
-                frame[y, x, :3] = rgb15('#f5b43c')
+            if edge <= 1:                       # dark 2 px outline: stands out on every pastel row
+                frame[y, x, :3] = rgb15('#2e1a2a')
                 frame[y, x, 3] = 255
-            elif edge == 1 or (edge == 2 and (min(x, fw - 1 - x) + min(y, fh - 1 - y)) < 6):
-                frame[y, x, :3] = rgb15('#ffe07a')
+            elif edge == 2:                     # thin light inner edge keeps it soft
+                frame[y, x, :3] = rgb15('#fff4e0')
                 frame[y, x, 3] = 255
     return frame
 

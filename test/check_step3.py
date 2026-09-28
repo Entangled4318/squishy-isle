@@ -1,7 +1,9 @@
 """Checks for step 3 (game loop in the meadow). Usage: check_step3.py OUTDIR"""
+import array
 import os
 import re
 import sys
+import wave
 
 from PIL import Image
 
@@ -113,6 +115,10 @@ check(count(o1, (95, 55, 145, 85), bow) > 20 and count(o5, (95, 55, 145, 85), bo
 check(count(o5, (110, 130, 170, 155), heart_on) == 0, 'the A button and hearts go away after the pop')
 b4 = shot('b04_after_open')
 check(count(b4, (0, 0, 240, 160), yellow) < 20, 'no arrow before the wait is over (twinkles share its yellow)')
+_w = wave.open(os.path.join(OUT, 'arrow_quiet.wav'))
+_a = array.array('h', _w.readframes(_w.getnframes()))
+peak = max((abs(v) for v in _a), default=0)
+check(len(_a) > 0 and peak < 500, f'no sound while waiting and when the arrow appears (peak {peak})')
 b5 = shot('b05_arrow')
 b5b = shot('b05b_arrow_blink_off')
 pip_at = re.findall(r'scene meadow pip=(\d+),(\d+)', log)[1]

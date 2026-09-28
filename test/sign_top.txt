@@ -1,0 +1,13 @@
+# Pen sign from the top: Pip walks down the path, left to just above the sign, A opens the picker.
+wait 20
+tap A
+wait 15
+tap A
+wait 25
+hold DOWN 37
+hold LEFT 34
+wait 10
+shot k05_sign_from_top
+tap A
+wait 40
+shot k06_picker_from_top
