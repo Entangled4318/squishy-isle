@@ -30,7 +30,9 @@
 #define P_COUNT   15
 
 #define MAX_BOXES   3
-#define ARROW_DELAY (15 * 60)   /* frames without an open before the arrow shows */
+#define ARROW_DELAY (5 * 60)    /* frames without an open before the arrow shows */
+#define ARROW_R     26          /* px from Pip's middle to the arrow's middle */
+#define ARROW_BLINK 60          /* frames on, then the same off */
 #define RESPAWN     90          /* frames before a new box replaces an opened one */
 #define TOUCH       6           /* px around the box that count as touching */
 #define MAX_PEN     20          /* every meadow friend fits in the pen */
@@ -52,7 +54,6 @@ static int dir = DIR_DOWN, walk_t, cam_x, cam_y, door_cool;
 typedef struct {
     s8 spot;          /* index into meadow_spots, -1 = empty */
     u8 color;
-    u8 near;          /* chimed for this approach */
     s16 wait;         /* frames until an empty slot gets a new box */
     u16 phase;        /* animation offset */
 } Box;
@@ -61,6 +62,7 @@ static Box boxes[MAX_BOXES];
 static bool boxes_ready;
 static int seek_t;                 /* frames since the last open */
 static int arrow_box = -1;         /* box the arrow points at, -1 = none */
+static int arrow_t;                /* frames since the arrow showed, for the blink */
 static int touch_box = -1;
 EWRAM_BSS static TextStrip st_count;   /* rendered into OBJ tiles: the meadow has no free BG palette */
 static int count_last = -1, count_hop;   /* the counter hops when a new friend is counted */
@@ -274,7 +276,7 @@ static void place_box(int i) {
     if (s < 0) return;
     int c = (int)(game_rand() % BOX_COLORS);
     for (int k = 0; k < BOX_COLORS && color_used(c); k++) c = (c + 1) % BOX_COLORS;
-    boxes[i] = (Box){(s8)s, (u8)c, 0, 0, (u16)(game_rand() & 255)};
+    boxes[i] = (Box){(s8)s, (u8)c, 0, (u16)(game_rand() & 255)};
     dbg("box %d at %d,%d color %d", i, spot_x(s), spot_y(s), c);
 }
 
@@ -357,7 +359,7 @@ static void enter(void) {
     dbg("scene meadow pip=%d,%d", (int)(pip_x >> 8), (int)(pip_y >> 8));
     update_camera();
     if (!boxes_ready) {
-        for (int i = 0; i < MAX_BOXES; i++) boxes[i] = (Box){-1, 0, 0, 0, 0};
+        for (int i = 0; i < MAX_BOXES; i++) boxes[i] = (Box){-1, 0, 0, 0};
         boxes_ready = true;
     }
     boxes_fill();
@@ -394,6 +396,13 @@ static void ui_spr(int sx, int sy, u16 shape, int size, u16 flip, int tile, int 
     oam[n_oam].attr1 = A1_X(sx) | A1_SIZE(size) | flip;
     oam[n_oam].attr2 = A2_TILE(tile) | A2_PRIO(1) | A2_PAL(pal);
     n_oam++;
+}
+
+/* Screen overlays (counter, A bubble, arrow) sit over every BG layer, trees too. */
+static void hud_spr(int sx, int sy, u16 shape, int size, u16 flip, int tile, int pal) {
+    if (n_oam >= 128) return;
+    ui_spr(sx, sy, shape, size, flip, tile, pal);
+    oam[n_oam - 1].attr2 = (u16)((oam[n_oam - 1].attr2 & ~A2_PRIO(3)) | A2_PRIO(0));
 }
 
 static void world_spr(int depth, int sx, int sy, u16 shape, int size, u16 flip, int tile, int pal) {
@@ -490,24 +499,29 @@ static void draw_boxes(void) {
     if (touch_box >= 0) {
         int bx = spot_x(boxes[touch_box].spot), by = spot_y(boxes[touch_box].spot);
         int bob = isin((int)(frame_count * 2)) * 2 / 256;
-        ui_spr(bx - cam_x - 8, by - cam_y - 36 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
+        hud_spr(bx - cam_x - 8, by - cam_y - 36 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
     } else if (at_sign) {
         int bob = isin((int)(frame_count * 2)) * 2 / 256;
-        ui_spr(MEADOW_SIGN_X - cam_x - 8, MEADOW_SIGN_Y - cam_y - 46 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
+        hud_spr(MEADOW_SIGN_X - cam_x - 8, MEADOW_SIGN_Y - cam_y - 46 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
     }
 }
 
-/* Guide arrow: over the box when it is on screen, else at the screen edge
- * pointing from Pip toward it. 8 directions from 3 drawings and flips. */
+static int isqrt(int v) {
+    int r = 0;
+    while ((r + 1) * (r + 1) <= v) r++;
+    return r;
+}
+
+/* Guide arrow: floats ARROW_R px from Pip toward the nearest box and blinks
+ * (ARROW_BLINK frames on, the same off). 8 directions from 3 drawings and flips. */
 static void draw_arrow(void) {
     if (arrow_box < 0 || boxes[arrow_box].spot < 0 || touch_box >= 0) return;
-    int bx = spot_x(boxes[arrow_box].spot) - cam_x, by = spot_y(boxes[arrow_box].spot) - cam_y;
-    int bob = (isin((int)(frame_count * 2)) + 256) * 3 / 512;
-    if (bx >= 8 && bx < SCREEN_W - 8 && by >= 28 && by < SCREEN_H + 8) {
-        ui_spr(bx - 8, by - 38 + bob, A0_SQUARE, 1, A1_VFLIP, T_ARROW + 4, P_ARROW);   /* points down */
-        return;
-    }
-    int dx = bx - ((pip_x >> 8) - cam_x), dy = by - ((pip_y >> 8) - cam_y - 12);
+    int t = arrow_t++;
+    if ((t / ARROW_BLINK) & 1) return;
+    int pcx = (pip_x >> 8) - cam_x, pcy = (pip_y >> 8) - cam_y - 12;
+    int dx = spot_x(boxes[arrow_box].spot) - cam_x - pcx, dy = spot_y(boxes[arrow_box].spot) - cam_y - 8 - pcy;
+    int len = isqrt(dx * dx + dy * dy);
+    if (len == 0) return;
     int ax = dx < 0 ? -dx : dx, ay = dy < 0 ? -dy : dy;
     int tile;
     u16 flip = 0;
@@ -522,12 +536,9 @@ static void draw_arrow(void) {
         if (dx < 0) flip |= A1_HFLIP;
         if (dy > 0) flip |= A1_VFLIP;
     }
-    int x = bx < 14 ? 14 : bx > SCREEN_W - 14 ? SCREEN_W - 14 : bx;
-    int y = by < 14 ? 14 : by > SCREEN_H - 14 ? SCREEN_H - 14 : by;
-    int nx = dx > 0 ? 1 : dx < 0 ? -1 : 0, ny = dy > 0 ? 1 : dy < 0 ? -1 : 0;
-    if (tile == 0) ny = 0;
-    if (tile == 1) nx = 0;
-    ui_spr(x - 8 + nx * bob, y - 8 + ny * bob, A0_SQUARE, 1, flip, T_ARROW + tile * 4, P_ARROW);
+    int r = ARROW_R + (isin((int)(frame_count * 2)) + 256) * 3 / 512;   /* a small nudge toward the box */
+    int x = pcx + dx * r / len, y = pcy + dy * r / len;
+    hud_spr(x - 8, y - 8, A0_SQUARE, 1, flip, T_ARROW + tile * 4, P_ARROW);
 }
 
 static void draw_counter(void) {
@@ -538,8 +549,8 @@ static void draw_counter(void) {
         int t = count_hop % 20;
         if (count_hop < 30) hop = t * (20 - t) / 25;
     }
-    ui_spr(6, 6 - hop, A0_SQUARE, 0, 0, T_SPARK + 3, P_SPARK);
-    ui_spr(12, 2 - hop, A0_WIDE, 3, 0, T_COUNT, P_COUNT);
+    hud_spr(6, 6 - hop, A0_SQUARE, 0, 0, T_SPARK + 3, P_SPARK);
+    hud_spr(12, 2 - hop, A0_WIDE, 3, 0, T_COUNT, P_COUNT);
 }
 
 static void draw(void) {
@@ -578,14 +589,6 @@ static void update_boxes(u16 hit) {
         Box *b = &boxes[i];
         if (b->spot < 0) continue;
         if (box_hit(i, px - FEET_W - TOUCH, py - FEET_H - TOUCH, px + FEET_W + TOUCH, py + TOUCH)) touch_box = i;
-        int dx = spot_x(b->spot) - px, dy = spot_y(b->spot) - py;
-        int d2 = dx * dx + dy * dy;
-        if (!b->near && d2 < 56 * 56) {       /* soft chime as Pip comes close */
-            b->near = 1;
-            sfx_chime(4);
-        } else if (b->near && d2 > 96 * 96) {
-            b->near = 0;
-        }
     }
 
     if (touch_box >= 0 && touch_box != was_touching) dbg("touch box %d pip=%d,%d", touch_box, px, py);
@@ -600,7 +603,10 @@ static void update_boxes(u16 hit) {
             if (dx * dx + dy * dy < best) { best = dx * dx + dy * dy; near = i; }
         }
         if (near != arrow_box) {
-            if (arrow_box < 0 && near >= 0) sfx_chime(2);
+            if (arrow_box < 0 && near >= 0) {
+                sfx_chime(2);
+                arrow_t = 0;                /* start the blink with the arrow on */
+            }
             arrow_box = near;
             dbg("arrow on box %d", arrow_box);
         }

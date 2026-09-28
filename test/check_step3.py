@@ -87,7 +87,7 @@ check(len(friends) == 2 and friends[0][0] != friends[1][0] and friends[1][1] == 
 
 # ---- guide arrow
 arrows = [(int(f), b) for f, b in re.findall(r'\[game f(\d+)\] arrow on box (\d)', log)]
-check(arrows and 880 <= arrows[0][0] - back[1] <= 920, f'arrow appears 15 s after coming back from the open ({arrows and arrows[0][0] - back[1]} frames)')
+check(arrows and 290 <= arrows[0][0] - back[1] <= 310, f'arrow appears 5 s after coming back from the open ({arrows and arrows[0][0] - back[1]} frames)')
 check(len(arrows) >= 2 and arrows[0][1] != arrows[1][1], 'arrow switches to a nearer box while walking')
 
 yellow = lambda p: p == (255, 222, 123)          # arrow fill #ffe07a on screen
@@ -114,10 +114,14 @@ check(count(o5, (110, 130, 170, 155), heart_on) == 0, 'the A button and hearts g
 b4 = shot('b04_after_open')
 check(count(b4, (0, 0, 240, 160), yellow) < 20, 'no arrow before the wait is over (twinkles share its yellow)')
 b5 = shot('b05_arrow')
-edge = [(x, y) for y in range(160) for x in range(240) if yellow(b5.getpixel((x, y)))]
-check(len(edge) > 20 and (min(p[0] for p in edge) < 24 or max(p[0] for p in edge) > 216 or
-                          min(p[1] for p in edge) < 24 or max(p[1] for p in edge) > 136),
-      'arrow at the screen edge points to a box off screen')
+b5b = shot('b05b_arrow_blink_off')
+pip_at = re.findall(r'scene meadow pip=(\d+),(\d+)', log)[1]
+pts = [(x, y) for y in range(160) for x in range(240) if yellow(b5.getpixel((x, y)))]
+mx = sorted(p[0] for p in pts)[len(pts) // 2] if pts else -99
+my = sorted(p[1] for p in pts)[len(pts) // 2] if pts else -99
+check(len(pts) > 20 and abs(mx - 120) < 44 and abs(my - 70) < 44, f'the arrow floats next to Pip ({len(pts)} px around {mx},{my})')
+off = sum(1 for y in range(30, 120) for x in range(70, 170) if yellow(b5b.getpixel((x, y))))
+check(off < 10, f'one second later the arrow blinks off ({off} px)')
 b7 = shot('b07_arrow_over_box')
 pts = [(x, y) for y in range(160) for x in range(240) if yellow(b7.getpixel((x, y)))]
 mx = sorted(p[0] for p in pts)[len(pts) // 2] if pts else 0

@@ -195,10 +195,14 @@ per turn:
       small tree at the top right moved to x 410, bridge rails block
       only over the water, so Pip walks the whole shore north to south
       (lane x 445..454, checked). Meadow 903 tiles.
-   2. Top layer for counter, A bubble and arrow (they went behind trees
-      and fence posts); remove the near-box chime; arrow floats next to
-      Pip, points at the nearest box, blinks 1 s on / 1 s off, shows
-      after 5 s without an open (was 15 s).
+   2. **Done.** `hud_spr()` draws the counter, A bubble and arrow at
+      OBJ priority 0 (over the tree-top overlay BG); box twinkles stay at
+      priority 1. The near-box chime and `Box.near` are gone (the arrow
+      still chimes once when it appears). Arrow: `ARROW_R` 26 px from
+      Pip's middle toward the nearest box, 8 directions, blinks
+      `ARROW_BLINK` 60 frames on / 60 off (starts on), shows after
+      `ARROW_DELAY` 5 s without an open. `check_step3.py` checks the 5 s,
+      the arrow next to Pip and the blink (two shots 1 s apart).
    3. Followers: the first 3 found stay until swapped at the sign (new
       friends go to the pen). Save Pip's position; Continue starts there.
    4. Shelf close-up after a catch: friend off centre, under the plate
