@@ -1,5 +1,7 @@
 """Writes a version 2 save with chosen friends, for screenshots and tests.
-Usage: make_save.py FILE FOUND_IDS FOLLOWER_IDS   (comma lists, e.g. 0,3,7 5,2)"""
+Usage: make_save.py FILE FOUND_IDS FOLLOWER_IDS [GATES]   (comma lists, e.g. 0,3,7 5,2)
+GATES: bit n = the way into area n + 1 is built (its scene played). By
+default every way that is open is built, so tests skip the gate scene."""
 import struct
 import sys
 
@@ -20,7 +22,9 @@ fol = bytearray(3)
 for k, i in enumerate(follow[:3]):
     fol[k] = i + 1
 body = struct.pack('<IHHHHI', 0x53495153, 2, 1, 1, 0, 0) + bytes(f) + struct.pack('<II', len(found), 0x1234567)
-body += bytes(fol) + b'\0' + bytes(32)
+gates = int(sys.argv[4]) if len(sys.argv) > 4 else sum(1 << (a - 1) for a in (1, 2, 3)
+                                                         if sum(f[(a - 1) * 20:a * 20]) >= 10)
+body += bytes(fol) + b'\0' + struct.pack('<HHBB', 0, 0, 0, gates) + bytes(26)
 assert len(body) == 140
 slot = body + struct.pack('<I', checksum(body))
 sram = bytearray(b'\xff' * 0x8000)

@@ -309,6 +309,8 @@ static bool box_hit(int i, int x0, int y0, int x1, int y1) {
 /* The way into an area stays shut until the area before it has enough
  * friends (and until its map is built). */
 static bool gate_shut(int to) { return to >= AREA_MAPS || !area_open(to); }
+static bool gate_built(int to) { return to <= 0 || (game_save.gates & (1 << (to - 1))); }   /* the meadow has no gate */
+static bool gate_there(int to) { return gate_shut(to) || !gate_built(to); }   /* the log still lies there */
 
 static bool solid_at(int x, int y) {
     if (x < 0 || y < 0 || x >= A->w || y >= A->h) return true;
@@ -323,14 +325,52 @@ static bool blocked(int fx, int fy) {
         if (box_hit(i, fx - FEET_W, fy - FEET_H, fx + FEET_W, fy)) return true;
     for (int i = 0; i < A->ngates; i++) {
         const u16 *g = &A->gates[i * 5];
-        if (gate_shut(g[4]) && fx + FEET_W >= g[0] && fx - FEET_W < g[0] + g[2] && fy >= g[1] && fy - FEET_H < g[1] + g[3])
+        if (gate_there(g[4]) && fx + FEET_W >= g[0] && fx - FEET_W < g[0] + g[2] && fy >= g[1] && fy - FEET_H < g[1] + g[3])
             return true;
     }
     return false;
 }
 
+/* ---- gate scene: the first time a way opens, the area's friends roll the log away ---- */
+#define GS_PAN     50       /* frames: camera glides to the log */
+#define GS_IN      95       /* helpers have hopped in */
+#define GS_PUSH    165      /* three pushes, the log wobbles */
+#define GS_ROLL    215      /* the log tumbles off the way */
+#define GS_CHEER   255      /* sparkle, jingle, happy hops */
+#define GS_BACK    305      /* camera glides back to Pip; the scene ends */
+static struct {
+    int t;                  /* frames since the start, -1 = none */
+    int gate;               /* index in A->gates */
+    int n, ids[3];          /* helpers: friends of this area */
+} gs = {-1, 0, 0, {0}};
+
+static inline int lerp(int a, int b, int t, int n) { return a + (b - a) * t / n; }
+
+static void gate_center(int *x, int *y) {
+    const u16 *g = &A->gates[gs.gate * 5];
+    *x = g[0] + g[2] / 2;
+    *y = g[1] + g[3];
+}
+
+static void gate_scene_start(int i) {
+    gs.t = 0;
+    gs.gate = i;
+    gs.n = 0;
+    for (int k = 0; k < n_pen && gs.n < 3; k++) gs.ids[gs.n++] = pen[k].id;       /* pen friends first */
+    for (int k = 0; k < n_follow && gs.n < 3; k++) gs.ids[gs.n++] = follow_id[k];
+    dbg("gate scene %d start helpers=%d", A->gates[i * 5 + 4], gs.n);
+}
+
 static void update_camera(void) {
     int px = pip_x >> 8, py = pip_y >> 8;
+    if (gs.t >= 0) {                             /* the scene moves the camera between Pip and the log */
+        int gx, gy, t = gs.t;
+        gate_center(&gx, &gy);
+        gy -= 16;
+        if (t < GS_PAN) { px = lerp(px, gx, t, GS_PAN); py = lerp(py, gy + 12, t, GS_PAN); }
+        else if (t < GS_CHEER) { px = gx; py = gy + 12; }
+        else { px = lerp(gx, px, t - GS_CHEER, GS_BACK - GS_CHEER); py = lerp(gy + 12, py, t - GS_CHEER, GS_BACK - GS_CHEER); }
+    }
     int tx = px - SCREEN_W / 2, ty = py - 12 - SCREEN_H / 2;
     if (tx < 0) tx = 0;
     if (ty < 0) ty = 0;
@@ -621,15 +661,73 @@ static void draw_counter(void) {
 static void draw_gates(void) {
     for (int i = 0; i < A->ngates; i++) {
         const u16 *g = &A->gates[i * 5];
-        if (!gate_shut(g[4])) continue;
+        if (!gate_there(g[4]) || (gs.t >= 0 && gs.gate == i)) continue;
         int sx = g[0] + g[2] / 2 - cam_x, sy = g[1] + g[3] - cam_y;
         if (on_screen(sx - 8, sy - 32, 16, 32)) world_spr(g[1] + g[3], sx - 8, sy - 32, A0_TALL, 2, 0, T_GATE, P_SHADOW);
+    }
+}
+
+static void draw_friend(int id, int x, int y, int hop);
+
+/* The helpers hop in from the west, push the log three times (squished
+ * frame, the log wobbles), it tumbles south and away, they cheer. */
+static void draw_gate_scene(void) {
+    int t = gs.t, gx, gy;
+    gate_center(&gx, &gy);
+    int lx = gx, ly = gy;
+    u16 flip = 0;
+    if (t >= GS_IN && t < GS_PUSH) lx += ((t - GS_IN) % 24 < 8) ? 1 : 0;           /* a nudge on each push */
+    if (t >= GS_PUSH) {
+        int r = t - GS_PUSH;
+        ly += r * r / 40;                                                       /* tumbles off the way */
+        flip = ((r / 6) & 1) ? A1_VFLIP : 0;
+        flip |= ((r / 12) & 1) ? A1_HFLIP : 0;
+    }
+    if (t < GS_ROLL) {
+        int sx = lx - cam_x, sy = ly - cam_y;
+        if (on_screen(sx - 8, sy - 32, 16, 32)) world_spr(ly, sx - 8, sy - 32, A0_TALL, 2, flip, T_GATE, P_SHADOW);
+    } else if (t < GS_CHEER) {                                                  /* sparkles where it lay */
+        static const s8 at[4][2] = {{-6, -24}, {5, -14}, {-4, -6}, {6, -30}};
+        int f = ((t - GS_ROLL) / 5) % 4;
+        for (int k = 0; k < 4; k++)
+            ui_spr(gx + at[k][0] - cam_x - 4, gy + at[k][1] - cam_y - 4, A0_SQUARE, 0, 0, T_SPARK + ((f + k) % 3), P_SPARK);
+    }
+    for (int k = 0; k < gs.n; k++) {
+        int hx = gx - 14 - (k == 1 ? 6 : 0), hy = gy - 20 + k * 10;                /* beside the log, feet on the way */
+        int in = t < GS_PAN ? 0 : t < GS_IN ? t - GS_PAN : GS_IN - GS_PAN;
+        int x = lerp(hx - 64, hx, in, GS_IN - GS_PAN);
+        int hop = 0;
+        if (t < GS_IN) hop = ((t + k * 7) / 5) % 4 == 1 ? 3 : 0;
+        else if (t >= GS_ROLL) hop = ((t + k * 5) / 6) % 3 == 0 ? 4 : 0;
+        if (t >= GS_BACK - 20) break;                                            /* they run off with Pip's camera */
+        int before = n_world;
+        draw_friend(gs.ids[k], x, hy, hop);
+        if (n_world == before + 2 && t >= GS_IN && t < GS_PUSH && (t - GS_IN) % 24 < 8) world[before].a2 += 4;   /* squished frame */
+    }
+}
+
+static void gate_scene_update(void) {
+    int t = gs.t;
+    if (t >= GS_IN && t < GS_PUSH && (t - GS_IN) % 24 == 0)
+        for (int k = 0; k < gs.n; k++) sfx_squeak(friend_flavor(gs.ids[k]));
+    if (t == GS_PUSH) sfx_boing();
+    if (t == GS_ROLL) {
+        sfx_chime(4);
+        song_play(tune_pop, tune_pop_len);
+    }
+    if (++gs.t >= GS_BACK) {
+        int to = A->gates[gs.gate * 5 + 4];
+        game_save.gates |= (u8)(1 << (to - 1));
+        collection_save();
+        dbg("gate scene %d done", to);
+        gs.t = -1;
     }
 }
 
 static void draw(void) {
     n_world = n_oam = 0;
     draw_gates();
+    if (gs.t >= 0) draw_gate_scene();
     draw_counter();
     draw_arrow();
     draw_boxes();
@@ -697,6 +795,20 @@ static void shimmer(void) {
 
 static void update(void) {
     bool fading = scene_fading();      /* a press in a fade would be half done: scene_go ignores it */
+    if (gs.t < 0 && !fading)
+        for (int i = 0; i < A->ngates; i++)
+            if (!gate_shut(A->gates[i * 5 + 4]) && !gate_built(A->gates[i * 5 + 4])) {
+                gate_scene_start(i);
+                break;
+            }
+    if (gs.t >= 0) {                   /* the friends are busy: Pip waits, buttons rest */
+        shimmer();
+        friends_update(false);
+        gate_scene_update();
+        update_camera();
+        draw();
+        return;
+    }
     u16 held = fading ? 0 : key_held();
     shimmer();
     int dx = 0, dy = 0;
@@ -742,7 +854,7 @@ static void update(void) {
     }
     for (int i = 0; i < A->nexits && !fading; i++) {          /* walking off the map into the next area */
         const u16 *e = &A->exits[i * 7];
-        if (px >= e[0] && px < e[0] + e[2] && py >= e[1] && py < e[1] + e[3] && !gate_shut(e[4]) && e[4] < AREA_MAPS) {
+        if (px >= e[0] && px < e[0] + e[2] && py >= e[1] && py < e[1] + e[3] && !gate_there(e[4])) {
             travel_to = e[4];
             travel_x = e[5];
             travel_y = e[6];

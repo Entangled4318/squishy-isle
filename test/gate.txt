@@ -1,0 +1,19 @@
+# 10 meadow friends, the gate scene not played yet: it plays on Continue
+wait 20
+tap A
+wait 15
+tap A
+wait 60
+shot g01_pan
+wait 60
+shot g02_helpers
+wait 30
+shot g03_push
+wait 60
+shot g04_roll
+wait 30
+shot g05_cheer
+wait 120
+shot g06_back
+walkto 470 200 900
+wait 30

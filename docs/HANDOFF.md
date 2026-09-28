@@ -44,6 +44,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  6.3 (on the 10th meadow friend the friends roll the log off the
+  bridge: pace feels right, not too long, squeaks and ta-da sound
+  good), step
   6.2 (with 10 meadow friends walk east over the bridge into the Berry
   Woods and back; with fewer the log blocks the bridge; the woods feel
   different from the meadow; acorns read as acorns; woods song plays;
@@ -82,10 +85,13 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 6.3 (gate scene), see "Step 6 progress". Mailbox (owner):
-  a letter with a happy message from the newest friend (flag up after
-  each new friend; A reads it; no new mail re-reads the last one). Still
-  to ask: what the picnic basket does (before 6.7). Step 6 scope: Shore, Woods, Cloud Hill, each
+- Next: step 6.4 (Seashell Shore), see "Step 6 progress". Owner
+  answers for 6.7: mailbox = a letter with a happy message from the
+  newest friend (flag up after each new friend; A reads it; no new mail
+  re-reads the last one); picnic basket = snack time (A opens the lid, a
+  treat pops out, a different one each time; every follower hops over
+  and shares it with a squeak; with no followers Pip eats it with a
+  hop; any number of times, short cooldown). Step 6 scope: Shore, Woods, Cloud Hill, each
   with 20 unique friends, a way to get there, a pen the size of the
   meadow's; play each area's song from step 5.5. Then step 7 (QA and
   the final ROM). Do not wait for the Brick
@@ -525,7 +531,24 @@ Plan, one sub-step at a time, merge after each:
    (first 7: pastel caps looked like cupcakes). Known: the log gate on
    the bridge stands like a post (it lies across the way; 6.3 rolls it
    away); the open screen still shows a gift box in the woods (6.6).
-3. Gate scene: at 10 friends the squishies roll the log away (once).
+3. Gate scene. **Done.** In `viewer.c` (`gs`, `GS_*` frame marks):
+   when a gate's area is open but its `game_save.gates` bit is not set,
+   the map starts the scene on its first frame (after the 10th friend's
+   reveal, or on Continue). The camera glides to the log (50 frames),
+   3 helpers (pen friends first, then followers) hop in from the west,
+   push 3 times (squished frame, squeaks, the log nudges), the log
+   tumbles south with a boing (flips every 6 frames), sparkles and the
+   pop ta-da, happy hops, the camera glides back to Pip; 304 frames in
+   all, input ignored. Then the bit is set and saved. A gate blocks
+   while it is shut or its scene has not played (`gate_there`); the
+   meadow counts as built (`gate_built(0)`, found when the way back from
+   the woods stayed shut). `make_save.py` takes GATES (default: every
+   open way built, so older tests skip the scene). Tests: `gate.txt`,
+   `gate_again.txt` in `check_woods.py` (plays once with 3 helpers in
+   ~5 s, starts at once, the way opens after, log on the bridge, then
+   below it, then gone; no replay after a reboot). Screenshots
+   `docs/step6_3_gate_scene.png`. Score 8.5 (the log drops into the
+   stream with no splash; a splash could come with step 7 polish).
 4. Seashell Shore map, boardwalk from the Woods.
 5. Cloud Hill map, stairs from the Shore.
 6. Open screen per container (64 px acorn, shell, capsule).

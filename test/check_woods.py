@@ -1,7 +1,9 @@
 """Checks the way to Berry Woods (step 6.2). Usage: check_woods.py OUTDIR
 woods_shut.log: 9 meadow friends, the log on the bridge blocks the way.
 woods.log: 10 friends, over the bridge, an acorn, the shelf, back, again.
-woods_continue.log: after a reboot, Continue starts in the woods."""
+woods_continue.log: after a reboot, Continue starts in the woods.
+gate.log: 10 friends, gate scene not played yet: it plays, then the way is open.
+gate_again.log: after a reboot it does not play again."""
 import os
 import re
 import sys
@@ -65,6 +67,24 @@ pill = (180, 2, 236, 18)
 cap = gba('#c49276')
 check(count(w5, pill, cap) >= 4 and count(w8, pill, cap) == 0,
       f'the woods counter shows an acorn, the meadow counter does not ({count(w5, pill, cap)} / {count(w8, pill, cap)} px)')
+gl = open(os.path.join(OUT, 'gate.log')).read()
+st = re.search(r'\[game f(\d+)\] gate scene 1 start helpers=(\d)', gl)
+dn = re.search(r'\[game f(\d+)\] gate scene 1 done', gl)
+check(st and dn and st.group(2) == '3' and 280 <= int(dn.group(1)) - int(st.group(1)) <= 330,
+      f'10th friend: the gate scene plays once with 3 helpers, about 5 s ({dn and st and int(dn.group(1)) - int(st.group(1))} frames)')
+check(st and int(st.group(1)) - int(re.search(r'\[game f(\d+)\] scene meadow', gl).group(1)) < 20,
+      'it starts as soon as the meadow shows')
+check('exit to area 1' in gl, 'after the scene the bridge leads to the woods')
+check('gate scene' not in open(os.path.join(OUT, 'gate_again.log')).read(), 'after a reboot the scene does not play again (saved)')
+g3, g4, g5 = shot('g03_push'), shot('g04_roll'), shot('g05_cheer')
+at = (206, 60, 228, 98)                         # the log's place with the camera on it
+below = (200, 98, 240, 160)
+check(count(g3, at, ink) >= 20, f'the log lies on the bridge while the friends push ({count(g3, at, ink)} px)')
+check(count(g4, at, ink) < count(g3, at, ink) // 2 and count(g4, below, ink) >= 10,
+      f'then it tumbles off the way ({count(g4, at, ink)} px left, {count(g4, below, ink)} px below)')
+check(count(g5, at, ink) == 0 and count(g5, below, ink) == 0, 'and it is gone')
+for n in ('g01_pan', 'g02_helpers', 'g06_back'):
+    shot(n)
 for n in ('w03_woods_arrive', 'w04_touch_acorn', 'w06_shelf_woods', 'w07_pen_sign', 'w09_continue_woods'):
     shot(n)
 
