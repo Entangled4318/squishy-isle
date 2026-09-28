@@ -34,7 +34,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
-| 5. Music and sound set | In progress (5.1 to 5.4 done); see "Step 5 progress" |
+| 5. Music and sound set | In progress (5.1 to 5.5 done); see "Step 5 progress" |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
 | 7. QA and final ROM with Brick instructions | To do |
 
@@ -44,6 +44,10 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  5.5 (sound test, hold L + R + START at power-on: Shore, Woods and
+  Cloud Hill tunes each sound calm and different from the meadow; the
+  woods reed and the cloud bell are pleasant on the speaker; loops are
+  seamless), step
   5.4 B (shelf music box: tinkly, not too high or sharp on the speaker,
   cursor sounds still clear over it; back on the map the meadow song
   goes on where it was, no pop or click at that moment), step
@@ -72,7 +76,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 5.5 (Shore, Woods and Cloud Hill tunes), then 5.6 (see "Step 5
+- Next: step 5.6 (mix pass, all suites, release ROM, Brick queue,
+  merge), then step 6 (see "Step 5
   progress"). Step 5 owner request: title music, meadow
   music, a different tune per area, a tune for opening boxes. Then
   step 6 (3 more areas with 20 unique friends each, a way to get there,
@@ -413,6 +418,27 @@ Plan agreed with the owner, one sub-step per turn, stop after each task:
    0.34. Score 8.5 first pass (checks clean, harmony reviewed per beat);
    resume 8.5. Piano roll `docs/step5_4_shelf_roll.png`.
 5. Shore, Woods and Cloud Hill tunes (played once step 6 builds them).
+   **Done.** Each area has its own key, meter and lead sound (meadow is F
+   3/4 hollow): "Shore: Sea breeze" (`song('shore', ...)`) D major 6/8
+   (`bar=12`, two dotted beats), tick 10, 24 bars A B A' (48 s), sine
+   lead, bass rocks root - fifth per dotted beat. "Woods: Acorn trail"
+   (`song('woods', ...)`) A minor turning to C major, 4/4, tick 11
+   (82 bpm), 16 bars (47 s), new `reed` wave (odd harmonics, clarinet
+   like), plucked walking bass in quarters, ends on E7 to loop. "Cloud
+   Hill: Floating up" (`song('cloud', ...)`) Eb major, 4/4, tick 12
+   (75 bpm), 16 bars (51 s), bell with a slow fade (`lead_decay` 24),
+   wide leaps, bass rolls root - fifth - octave - fifth. All leads at
+   50% or decaying from 75%, like the meadow. Mix (lead loudness,
+   bass/lead): shore 1786 / 0.38, woods 1876 / 0.33, cloud 1609 / 0.33.
+   Scores: shore 8.5 (first 7.5: lead 2655, louder than the meadow; bass
+   0.51), woods 8.5 (first 7: bass 0.24 under a loud reed), cloud 8.5
+   (first 7.5: Ab6 is 20 cents off on the wave channel and `music.py`
+   refused it; bar 9 rewritten). Step 6: call `music_play(SONG_SHORE)`
+   etc. in each area's `enter()`; each area song resumes like the
+   meadow's. Until then they are in the sound test. Piano rolls
+   `docs/step5_5_area_rolls.png`. Note: high Ab6 (and other notes above
+   ~1500 Hz) can miss the 12-cent limit on the wave channel; `music.py`
+   says so at build time.
 6. Mix pass, all suites, release ROM, Brick queue, merge.
 
 ## What step 3 should do (as promised to the owner)
