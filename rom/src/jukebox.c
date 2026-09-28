@@ -1,7 +1,7 @@
 /* Sound test: every song of the game, for a parent (and for the tests).
  * Hold L + R + START at power-on. LEFT / RIGHT choose, A plays, B stops,
  * SELECT plays a jingle over the song, L boings (both check that the song
- * goes on after an effect). */
+ * goes on after an effect), UP chimes and DOWN squeaks (to judge the mix). */
 #include "game.h"
 #include "game_assets.h"
 #include "music_data.h"
@@ -40,7 +40,7 @@ static void enter(void) {
     strip_init(&st_help2, 2, 157, 31, 2, 16, 26, 2, P_TEXT);
     strip_print(&st_head, "Sound test", 1, 3, 2, 1);
     strip_print(&st_help1, "LEFT RIGHT choose   A play   B stop", 1, 3, 1, 0);
-    strip_print(&st_help2, "SELECT jingle   L boing", 1, 3, 1, 0);
+    strip_print(&st_help2, "SELECT jingle  L boing  UP DOWN fx", 1, 3, 1, 0);
     sel = 0;
     show();
     dbg("scene jukebox songs=%d", SONG_COUNT);
@@ -64,6 +64,8 @@ static void update(void) {
     }
     if (hit & KEY_SELECT) song_play(tune_hello, tune_hello_len);
     if (hit & KEY_L) sfx_boing();
+    if (hit & KEY_UP) sfx_chime(2);
+    if (hit & KEY_DOWN) sfx_squeak(0);
 }
 
 const Scene scene_jukebox = {enter, update};

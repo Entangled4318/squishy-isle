@@ -39,6 +39,11 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  5.2 (hold L + R + START at power-on: the sound test opens; A plays
+  the scale test song, B stops; notes sound clean with no tick at each
+  note; SELECT plays the jingle and the song goes on after it; L boings
+  and the bass comes back; UP / DOWN chime and squeak over the music),
+  step
   5.1 (found counter pill at the top right with the gift box icon, as
   in the mockups; the count reads well at 4x), step
   3.10 (dark shelf frame, no chime when the arrow shows, reading the
@@ -265,6 +270,7 @@ per turn:
    zone reaches 18 px above its base, so Pip can read it from the top;
    the A bubble rises over Pip's head there (`sign_top.txt`,
    `check_pick.py`). 10 suites pass. Release ROM updated.
+   (Step 5.2 added `check_music.py`: 11 suites now.)
 
 The old notes below mention hearts and "rolls lean toward new"; the owner
 replaced those with the rules above.
@@ -301,9 +307,24 @@ Plan agreed with the owner, one sub-step per turn, stop after each task:
    L + R + START at power-on; LEFT/RIGHT choose, A play, B stop, SELECT
    jingle, L boing. One test song ("Scale test"). Checked by hand in the
    emulator: pitches right (C5 524 Hz, C6 1041 Hz), loops on time, the
-   song resumes after a jingle. Task B (next): per-channel recording in
-   the harness, `check_music.py` (pitch, tempo, loop, volume, clicks),
-   score and fix.
+   song resumes after a jingle. Task B **done**: harness `solo N` (hear
+   only PSG channel N; `core->enableAudioChannel` crashes in this libmgba
+   build, so it sets `gba->audio.psg.forceDisableCh` directly).
+   `check_music.py` drives the sound test for every song in
+   `music_songs.json`, records lead and bass alone (2 loops) and the mix,
+   and checks pitch (YIN, 25 cents), exact tempo from the `music loop`
+   log lines, loop 2 = loop 1, no clipping, bass under the lead, clicks,
+   and that the song goes on after a jingle and the boing. Found and
+   fixed: every lead note switched hard on and off, a DC jump of 0.8 of
+   the note's loudness (a click per note start and end; PSG channels
+   only output positive values). The lead now fades in and out one
+   volume level per frame and changes pitch without a restart while it
+   sounds (largest step 0.41, the floor with 4 volume levels). The bass
+   should use a fading envelope (`bass_step`), not a hard cut
+   (`bass_gap` 0); a plucked start steps sqrt(d/(1-d)) for duty d.
+   Score 8.5 (first pass 6.5: clicks). Limits: tempo is whole frames per
+   tick (8 = 112 bpm, 10 = 90, 12 = 75 in quarter notes); the lead has
+   4 volume levels. Screenshot `docs/step5_2_sound_test.png`.
 3. Title and meadow music.
 4. Box-opening tune (open screen), reveal jingle; shelf music box theme
    (DESIGN.md) unless the owner says no.

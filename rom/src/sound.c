@@ -4,6 +4,7 @@
 #include "sound.h"
 
 #include "music_data.h"
+#include "system.h"
 
 #define SQ_RATE(hz)   (2048 - 131072 / (hz))
 #define WAVE_RATE(hz) (2048 - 65536 / (hz))
@@ -130,7 +131,11 @@ static void melody_tick(void) {
 }
 
 /* ---- music ---- */
-static const u16 wave_vol[4] = {0x2000, 0x8000, 0x4000, 0x6000};   /* 100, 75, 50, 25 % */
+/* wave volume by level: 0 = 100%, 1 = 75%, 2 = 50%, 3 = 25%, 4 = off.
+ * PSG channels only output positive values, so switching a voice hard on
+ * or off makes a click. The lead fades in and out one level per frame
+ * and changes pitch without a restart while it sounds. */
+static const u16 wave_vol[5] = {0x2000, 0x8000, 0x4000, 0x6000, 0};
 
 typedef struct {
     const u8 *ev;
@@ -139,6 +144,7 @@ typedef struct {
     int len;         /* frames of the current note */
     int age;         /* frames since the note started */
     int note;        /* current MIDI note, 0 = rest */
+    int level;       /* lead: volume level now (4 = off) */
 } VoiceState;
 
 static struct {
@@ -154,6 +160,7 @@ static void voice_start(VoiceState *v, const u8 *ev, int n) {
     v->n = n;
     v->index = -1;
     v->left = 0;
+    v->level = 4;
 }
 
 void music_play(int id) {
@@ -192,6 +199,7 @@ static bool voice_next(VoiceState *v) {
     if (++v->index >= v->n) {
         if (!mus.song->loop) return false;
         v->index = 0;
+        if (v == &mus.lead) dbg("music loop %d", mus.id);
     }
     v->note = v->ev[v->index * 2];
     v->len = v->left = v->ev[v->index * 2 + 1] * mus.song->tick;
@@ -202,23 +210,35 @@ static bool voice_next(VoiceState *v) {
 static void lead_frame(void) {
     const Song *s = mus.song;
     VoiceState *v = &mus.lead;
-    bool free_ch = !melody.notes && !music_mute;
-    if (v->age == 0) {
-        if (!free_ch) return;
-        if (v->note) {
-            REG_SND3CNT = wave_vol[s->lead_level];
-            REG_SND3FREQ = RESTART | music_wave_rate[v->note];
-        } else {
-            REG_SND3CNT = 0;
-        }
+    if (melody.notes || music_mute) {           /* the channel is busy or muted */
+        v->level = 4;
         return;
     }
-    if (!free_ch || !v->note) return;
-    if (v->left <= s->lead_gap) {
-        REG_SND3CNT = 0;                                     /* short gap before the next note */
-    } else if (s->lead_decay && v->age % s->lead_decay == 0) {
-        int step = s->lead_level + v->age / s->lead_decay;
-        REG_SND3CNT = wave_vol[step > 3 ? 3 : step];
+    int lv = 4;
+    if (v->note) {
+        lv = s->lead_level;
+        if (s->lead_decay) lv += v->age / s->lead_decay;
+        int attack = s->lead_level + 2 - v->age;               /* starts 2 levels quieter */
+        if (attack > lv) lv = attack;
+        if (v->left <= s->lead_gap) {                          /* fades out over the gap */
+            int release = s->lead_level + s->lead_gap - v->left + 1;
+            if (release > lv) lv = release;
+        }
+        if (lv > 3) lv = 3;
+        if (v->age == 0) {
+            u16 rate = music_wave_rate[v->note];
+            if (v->level == 4) {
+                REG_SND3CNT = wave_vol[lv];                    /* from silence: restart is safe */
+                REG_SND3FREQ = RESTART | rate;
+            } else {
+                REG_SND3FREQ = rate;                           /* still sounding: glide on */
+            }
+        }
+    }
+    if (lv != v->level) {
+        if (lv > v->level + 1) lv = v->level + 1;           /* down by at most 1 level a frame */
+        REG_SND3CNT = wave_vol[lv];
+        v->level = lv;
     }
 }
 
@@ -234,7 +254,7 @@ static void bass_frame(void) {
             REG_SND2CNT = 0;
             REG_SND2FREQ = RESTART;
         }
-    } else if (v->note && v->left == s->bass_gap) {
+    } else if (v->note && s->bass_gap && v->left == s->bass_gap) {
         REG_SND2CNT = 0;
         REG_SND2FREQ = RESTART;
     }

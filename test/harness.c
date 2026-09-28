@@ -14,6 +14,8 @@
  *   shot NAME           save OUTDIR/NAME.ppm
  *   audio NAME          start recording OUTDIR/NAME.wav (until "audio end")
  *   audio end           stop recording
+ *   solo N              hear only PSG channel N (1..4) from now on, 0 = all
+ *                       channels again (music checks record each voice alone)
  *   dump NAME           save IO registers, palettes, VRAM, OAM and IWRAM
  *                       to OUTDIR/NAME.bin (checks read game state there)
  *   seek N              in the meadow: walk Pip to the nearest gift box
@@ -25,6 +27,7 @@
 #include <mgba/core/core.h>
 #include <mgba/core/log.h>
 #include <mgba/gba/core.h>
+#include <mgba/internal/gba/gba.h>
 #include <mgba-util/vfs.h>
 
 #include <fcntl.h>
@@ -342,6 +345,12 @@ int main(int argc, char **argv) {
                 for (uint32_t i = 0; i < regions[r].size; i++)
                     fputc(core->busRead8(core, regions[r].base + i), f);
             fclose(f);
+        } else if (!strcmp(cmd, "solo")) {
+            long ch = atol(a);
+            /* core->enableAudioChannel crashes in this libmgba build: set the flags directly */
+            struct GBA *gba = core->board;
+            for (int i = 0; i < 4; i++) gba->audio.psg.forceDisableCh[i] = !(ch == 0 || i == ch - 1);
+            gba->audio.forceDisableChA = gba->audio.forceDisableChB = ch != 0;
         } else if (!strcmp(cmd, "seek")) {
             seek(atol(a));
         } else if (!strcmp(cmd, "audio")) {

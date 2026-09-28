@@ -54,5 +54,6 @@ run: $(HARNESS) $(UNIT)
 	./$(HARNESS) $(ROM) $(OUT)/loop.sav loop_c.txt $(OUT) > $(OUT)/loop_c.log
 	./$(HARNESS) $(ROM) $(OUT)/loop.sav loop_d.txt $(OUT) > $(OUT)/loop_d.log
 	python3 check_loop.py $(OUT) $(ROM:.gba=.elf)
+	python3 check_music.py $(OUT) $(ROM)
 
 .PHONY: run

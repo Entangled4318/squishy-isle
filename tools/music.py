@@ -68,10 +68,13 @@ SONGS = {}
 
 
 def song(key, title, tick, lead, bass, loop=True, wave='sine', lead_level=0, lead_decay=0,
-         lead_gap=1, bass_vol=6, bass_duty=1, bass_step=3, bass_gap=1):
+         lead_gap=2, bass_vol=6, bass_duty=1, bass_step=3, bass_gap=0):
     """lead_level: 0 = 100%, 1 = 75%, 2 = 50%, 3 = 25% wave volume.
     lead_decay: frames per step down (toward 25%), 0 = hold.
-    *_gap: silent frames at the end of each note (detached notes).
+    lead_gap: frames at the end of each note where the lead fades out
+    (one level per frame; the engine also fades in over 2 frames).
+    bass_gap: frames of silence at the end of each bass note (0 = none;
+    a hard cut clicks, so prefer a fading envelope).
     bass_vol, bass_step: square envelope start (0..15) and fade step (0 = hold).
     bass_duty: 0 = 12.5%, 1 = 25%, 2 = 50%."""
     SONGS[key] = dict(title=title, tick=tick, lead=parse(lead), bass=parse(bass), loop=loop, wave=wave,
@@ -85,7 +88,7 @@ def song(key, title, tick, lead, bass, loop=True, wave='sine', lead_level=0, lea
 song('scale', 'Scale test', 8,
      lead='C5:2 D5 E5 F5 G5 A5 B5 C6 | C6 B5 A5 G5 F5 E5 D5 C5',
      bass='C3:8 G2 | G2 C3',
-     lead_level=1, lead_decay=0, bass_vol=6, bass_step=0)
+     lead_level=1, lead_decay=0, bass_vol=7, bass_step=4)
 
 
 # ---------------------------------------------------------------- export
