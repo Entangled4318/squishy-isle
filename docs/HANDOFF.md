@@ -27,7 +27,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
-| 3. Game loop in the meadow | Done, Brick tested. Feedback fixes in progress (3.9); see "Step 3 progress" |
+| 3. Game loop in the meadow | Done. Brick feedback fixed (3.9); owner to re-test on the Brick; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
@@ -35,10 +35,14 @@ shelf. No battles, no fail states, no reading needed. Full design:
 
 ## Owner notes
 
-- Step 3 is merged to main. Brick test pending (owner): new game from
-  the title, open a few boxes (press and no-press), friends follow Pip,
-  pen sign picker, START shelf, power off and on (Continue keeps the
-  friends), 20/20 pen if time allows. Report anything odd before step 4.
+- Step 3.9 (Brick feedback fixes) is merged to main. Brick re-test
+  pending (owner): walk past the pen's bottom-left corner and through
+  rocks, walk close beside bushes, walk the stream shore north to
+  south, arrow next to Pip after 5 s (blinks), no chime near boxes,
+  counter over trees, first 3 friends keep following, START then A on
+  a friend after a catch (centred, 3 squishes close it), power off and
+  Continue (Pip starts where he stood). Next after the re-test: step 5
+  music (owner request), then step 6 areas with mailbox and picnic.
 - Budget: the owner is on limited credit. Stop after each sub-step with a
   short report (score, screenshot when useful) and ask before going on.
   Commit, push and update this file at the end of every sub-step, so a new
@@ -227,7 +231,13 @@ per turn:
       (`scene_fading()`). Tests in `loop_a.txt` / `check_loop.py`: START
       after a catch opens the plain shelf, close-up sprite y 28 (was 72),
       3 squishes return to the shelf.
-   5. Tests, scoring, screenshots, release ROM, merge to main.
+   5. **Done.** 10 suites pass (`check_map.py` is new). Scores: map and
+      walking 8.5, shore 8.5, overlays and arrow 8.5, followers and
+      Continue spot 8.5, close-up 8.5. Release ROM updated;
+      `release/step3_9_screens.png`, `docs/step3_9_collision.png`.
+      Open idea (owner not asked yet): the shelf cursor starts top left
+      even when that friend is not found; starting on the first found
+      friend is a one-line change in `shelf.c`.
    Owner feature requests for later: title, meadow, per-area and open
    music (step 5); mailbox and picnic basket do something (step 6, ask
    the owner one question each); 3 more maps with their own friends

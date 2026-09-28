@@ -7,7 +7,7 @@ tap A
 wait 25
 wait 200
 shot f04_reboot_full
-# Continue starts where Pip opened the last box, on the path east of the pen
+# Continue starts where Pip opened the last box (varies with the rolls); walk a bit
 hold LEFT 150
 wait 60
 dump f_pen
