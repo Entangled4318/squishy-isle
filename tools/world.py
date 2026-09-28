@@ -465,6 +465,21 @@ def fence(n=1):
     return from_ascii(rows, FENCE_LEGEND)
 
 
+def fence_side(h):
+    """Vertical fence run: two rails with a post every 12 px, h px tall."""
+    k, w, sd = FENCE_LEGEND['k'], FENCE_LEGEND['w'], FENCE_LEGEND['s']
+    img = new(7, h)
+    for y in range(h):
+        for x, col in ((0, k), (1, w), (2, sd), (3, k), (4, w), (5, sd), (6, k)):
+            img[y, x, :3] = col
+            img[y, x, 3] = 255
+    for y0 in range(0, h - 4, 12):
+        for y in range(y0, y0 + 4):
+            for x in range(7):
+                img[y, x, :3] = w if 0 < x < 6 and y0 < y < y0 + 3 else k
+    return img
+
+
 def lily_pad(flower_on=False):
     rows = [
         '..llll..',
@@ -577,6 +592,12 @@ def mailbox():
     img[10, 8, :3] = C['white']
     img[11, 7, :3] = C['white']
     return img
+
+
+def mini_heart():
+    # same three colors as mini_shell, so the sign costs no extra palette
+    return from_ascii(['.kk.kk.', 'kwpkppk', 'kpppppk', '.kpppk.', '..kpk..', '...k...'],
+                      {'k': rgb15('#b0607e'), 'p': rgb15('#ffcadb'), 'w': C['white']})
 
 
 def signpost(icon=None):

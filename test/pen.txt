@@ -1,0 +1,12 @@
+# Friends in the pen and a line of followers behind Pip.
+wait 20
+tap A
+wait 15
+tap A
+wait 25
+hold DOWN 30
+hold LEFT 80
+wait 2
+shot p01_walk_line
+wait 90
+shot p02_pen

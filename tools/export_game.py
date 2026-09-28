@@ -325,6 +325,11 @@ def export_area(cw, a):
     spots = [v for p in a.spots for v in p]
     cw.u16(f'{a.name}_spots', spots)
     cw.define(f'{up}_FIRST_SPOT', a.first_spot)
+    if a.pen:
+        for k, v in zip(('X0', 'Y0', 'X1', 'Y1'), a.pen):
+            cw.define(f'{up}_PEN_{k}', v)
+        cw.define(f'{up}_SIGN_X', a.sign[0])
+        cw.define(f'{up}_SIGN_Y', a.sign[1])
     cw.define(f'{up}_NSPOTS', len(a.spots))
     # palette slots holding the water shimmer color, for runtime cycling
     target = bgr555(C['w_lt'])

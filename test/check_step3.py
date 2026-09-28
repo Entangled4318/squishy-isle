@@ -120,7 +120,9 @@ check(len(edge) > 20 and (min(p[0] for p in edge) < 24 or max(p[0] for p in edge
       'arrow at the screen edge points to a box off screen')
 b7 = shot('b07_arrow_over_box')
 pts = [(x, y) for y in range(160) for x in range(240) if yellow(b7.getpixel((x, y)))]
-floating = len(pts) > 20 and min(p[0] for p in pts) > 24 and max(p[0] for p in pts) < 216 and min(p[1] for p in pts) > 16
+mx = sorted(p[0] for p in pts)[len(pts) // 2] if pts else 0
+my = sorted(p[1] for p in pts)[len(pts) // 2] if pts else 0
+floating = len(pts) > 20 and 24 < mx < 216 and 20 < my < 140      # median: box twinkles share the yellow
 touching = len(pts) < 20 and count(b7, (0, 0, 240, 160), pink_a) > 25
 check(floating or touching, 'near a box the arrow floats above it, or gives way to the A button once Pip touches it')
 

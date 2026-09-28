@@ -32,6 +32,8 @@ class Area:
         self.spawn = (w // 2, h // 2)
         self.spots = []          # container spots (x, y of the sprite's bottom centre)
         self.first_spot = 0      # spot of the very first container of a game (in view of the spawn)
+        self.pen = None          # (x0, y0, x1, y1) where found friends roam (their feet)
+        self.sign = None         # (x, y) of the pen sign's base centre
         self.doors = []          # (x, y, w, h, target)
 
     def block(self, x0, y0, x1, y1):
@@ -167,7 +169,20 @@ def meadow():
     for x, y in ((56, 112), (388, 150), (262, 300)):
         a.decor(world.mushrooms(), x, y)
     for x, y in ((200, 102), (250, 104), (262, 212), (196, 214), (110, 212), (330, 186)):
-        a.place(world.decor('tulips'), x, y, block_w=10, tall=6)
+        a.place(world.decor('tulips'), x, y)         # walk-through: they looked too small to block
+
+    # ---- friend pen left of the cottage: fence all round, sign by the corner
+    px0, py0, px1, py1 = 36, 98, 104, 156            # outer fence box
+    top = world.fence(4)
+    a.place(top, px0, py0 - 6, block_w=top.shape[1], tall=6)
+    a.place(top, px0, py1 - top.shape[0], block_w=top.shape[1], tall=6)
+    side = world.fence_side(py1 - py0 - 6)
+    a.place(side, px0 - 3, py0, block_w=7, tall=side.shape[0])
+    a.place(side, px1 - 4, py0, block_w=7, tall=side.shape[0])
+    a.pen = (px0 + 8, py0 + 20, px1 - 8, py1 - 14)     # feet area; keeps heads off the rails
+    sign_img = world.signpost(world.mini_heart())
+    a.place(sign_img, px1 + 2, py1 - 22, block_w=8, tall=6)
+    a.sign = (px1 + 2 + sign_img.shape[1] // 2, py1 + 1)
     for name, x, y in (('patch_mix', 60, 150), ('patch_yellow', 350, 196), ('patch_pink', 124, 170),
                        ('tuft', 220, 250), ('patch_mix', 420, 226), ('tuft', 100, 110)):
         a.decor(world.decor(name), x, y)
@@ -181,7 +196,7 @@ def meadow():
     a.block(472, 0, 480, 320)                          # map edge beyond the stream
 
     a.spawn = (232, 124)
-    a.spots = [(64, 160), (150, 212), (286, 180), (200, 150), (120, 120), (330, 210), (400, 220),
+    a.spots = [(60, 178), (150, 212), (286, 180), (200, 150), (120, 120), (330, 210), (400, 220),
                (270, 260), (100, 260), (380, 166)]
     a.first_spot = 3                                   # (200, 150), just below the cottage
     return a

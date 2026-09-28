@@ -7,6 +7,7 @@
 #include "collection.h"
 #include "game.h"
 #include "game_assets.h"
+#include "squishy.h"
 #include "sound.h"
 #include "system.h"
 
@@ -16,17 +17,22 @@
 #define T_SPARK   70       /* twinkle tiny/small/big, heart */
 #define T_ABTN    74       /* 16x32 */
 #define T_ARROW   82       /* right, up, upright: 16x16 each */
+#define T_SQ16    94       /* 4 meadow species x (idle, squish) x 4 tiles */
 #define P_PIP     0
 #define P_SHADOW  1
 #define P_BOX     2        /* 2..6 */
 #define P_SPARK   7
 #define P_ABTN    8
 #define P_ARROW   9
+#define P_SQ      10       /* 10..14: the meadow's 5 flavor palettes */
 
 #define MAX_BOXES   3
 #define ARROW_DELAY (15 * 60)   /* frames without an open before the arrow shows */
 #define RESPAWN     90          /* frames before a new box replaces an opened one */
 #define TOUCH       6           /* px around the box that count as touching */
+#define MAX_PEN     20          /* every meadow friend fits in the pen */
+#define TRAIL       64          /* Pip's recent steps, for followers */
+#define TRAIL_GAP   14          /* steps between followers in the line */
 
 #define SPEED     320      /* 8.8 fixed: 1.25 px per frame */
 #define FEET_W    5        /* half width of Pip's feet box */
@@ -59,6 +65,84 @@ void meadow_reset(void) {
     boxes_ready = false;
     seek_t = 0;
     arrow_box = touch_box = -1;
+}
+
+/* ---- friends: a line behind Pip, the rest roam in the pen ---- */
+typedef struct {
+    s16 x, y, tx, ty, wait;
+    u8 id, step;
+} Roamer;
+
+static Roamer pen[MAX_PEN];
+static int n_pen, n_follow, follow_id[MAX_FOLLOWERS];
+static s16 trail_x[TRAIL], trail_y[TRAIL];
+static int trail_i;
+static u32 pen_seed = 12345;
+
+static int pen_rand(int n) {          /* local: the pen must not use up the saved random numbers */
+    pen_seed = pen_seed * 1103515245u + 12345u;
+    return (int)((pen_seed >> 16) % (u32)n);
+}
+
+static void pen_target(Roamer *r) {
+    r->tx = (s16)(MEADOW_PEN_X0 + pen_rand(MEADOW_PEN_X1 - MEADOW_PEN_X0));
+    r->ty = (s16)(MEADOW_PEN_Y0 + pen_rand(MEADOW_PEN_Y1 - MEADOW_PEN_Y0));
+}
+
+static void friends_setup(void) {
+    for (int sp = 0; sp < 4; sp++) sq_load_frames(sp, 16, 0, 2, T_SQ16 + sp * 8);
+    dma3_copy16(PAL_OBJ + P_SQ * 16, sq_area_pals[0], 5 * 32);
+    pen_seed ^= frame_count;
+    n_follow = 0;
+    for (int i = 0; i < MAX_FOLLOWERS; i++) {
+        int id = follower_get(i);
+        if (id >= 0 && id < 20 && friend_found(id)) follow_id[n_follow++] = id;
+    }
+    n_pen = 0;
+    for (int id = 0; id < 20; id++) {
+        bool following = false;
+        for (int k = 0; k < n_follow; k++) following |= follow_id[k] == id;
+        if (!friend_found(id) || following) continue;
+        Roamer *r = &pen[n_pen++];
+        r->id = (u8)id;
+        pen_target(r);
+        r->x = r->tx;
+        r->y = r->ty;
+        r->wait = (s16)pen_rand(120);
+        r->step = 0;
+        pen_target(r);
+    }
+    dbg("friends pen=%d follow=%d", n_pen, n_follow);
+    for (int i = 0; i < TRAIL; i++) {            /* line starts tucked behind Pip */
+        trail_x[i] = (s16)(pip_x >> 8);
+        trail_y[i] = (s16)(pip_y >> 8);
+    }
+    trail_i = 0;
+}
+
+static void friends_update(bool pip_moved) {
+    if (pip_moved) {
+        trail_i = (trail_i + 1) & (TRAIL - 1);
+        trail_x[trail_i] = (s16)(pip_x >> 8);
+        trail_y[trail_i] = (s16)(pip_y >> 8);
+    }
+    for (int i = 0; i < n_pen; i++) {
+        Roamer *r = &pen[i];
+        if (r->wait > 0) {
+            r->wait--;
+            continue;
+        }
+        if ((frame_count & 1) == 0) {            /* half a pixel per frame: a calm waddle */
+            r->x += (r->tx > r->x) - (r->tx < r->x);
+            r->y += (r->ty > r->y) - (r->ty < r->y);
+            r->step++;
+        }
+        if (r->x == r->tx && r->y == r->ty) {
+            r->wait = (s16)(60 + pen_rand(180));
+            r->step = 0;
+            pen_target(r);
+        }
+    }
 }
 
 static inline int spot_x(int s) { return meadow_spots[s * 2]; }
@@ -186,6 +270,7 @@ static void enter(void) {
         boxes_ready = true;
     }
     boxes_fill();
+    friends_setup();
     scene_blend(BLD_BG2 << 8, 5 | (11 << 8));
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG1 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;
 }
@@ -205,7 +290,7 @@ static void move(int dx, int dy) {
 
 /* ---- sprites: UI first (on top), then world sprites sorted front to back ---- */
 typedef struct { s16 y; u16 a0, a1, a2; } Spr;
-static Spr world[16];
+static Spr world[64];
 static int n_world, n_oam;
 
 static bool on_screen(int sx, int sy, int w, int h) {
@@ -221,7 +306,7 @@ static void ui_spr(int sx, int sy, u16 shape, int size, u16 flip, int tile, int 
 }
 
 static void world_spr(int depth, int sx, int sy, u16 shape, int size, u16 flip, int tile, int pal) {
-    if (n_world >= 16) return;
+    if (n_world >= 64) return;
     Spr *w = &world[n_world++];
     w->y = (s16)depth;
     w->a0 = A0_Y(sy) | shape;
@@ -266,6 +351,31 @@ static void draw_pip(void) {
     int sx = (pip_x >> 8) - cam_x, sy = py - cam_y;
     world_spr(py, sx - 8, sy - PIP_FEET_ROW - 1 - bob, A0_TALL, 2, hflip ? A1_HFLIP : 0, T_PIP + frame * 8, P_PIP);
     world_spr(py - 1, sx - 8, sy - 5, A0_WIDE | A0_BLEND, 0, 0, T_SHADOW, P_SHADOW);
+}
+
+/* one friend: 16 px sprite standing on (x, y), with a small shadow */
+static void draw_friend(int id, int x, int y, int hop) {
+    int sx = x - cam_x, sy = y - cam_y;
+    if (!on_screen(sx - 8, sy - 16, 16, 18)) return;
+    int sp = friend_species(id);
+    world_spr(y, sx - 8, sy - 15 - hop, A0_SQUARE, 1, 0, T_SQ16 + sp * 8, P_SQ + friend_flavor(id));
+    world_spr(y - 1, sx - 8, sy - 5, A0_WIDE | A0_BLEND, 0, 0, T_SHADOW, P_SHADOW);
+}
+
+static int hop_of(int step) {             /* little hops while walking */
+    int ph = (step / 5) % 4;
+    return ph == 1 ? 2 : ph == 2 ? 3 : 0;
+}
+
+static void draw_friends(void) {
+    for (int i = 0; i < n_pen; i++) {
+        Roamer *r = &pen[i];
+        draw_friend(r->id, r->x, r->y, r->wait > 0 ? 0 : hop_of(r->step));
+    }
+    for (int k = 0; k < n_follow; k++) {
+        int t = (trail_i - (k + 1) * TRAIL_GAP) & (TRAIL - 1);
+        draw_friend(follow_id[k], trail_x[t], trail_y[t], walk_t > 0 ? hop_of(walk_t + k * 5) : 0);
+    }
 }
 
 static void draw_boxes(void) {
@@ -330,6 +440,7 @@ static void draw(void) {
     n_world = n_oam = 0;
     draw_arrow();
     draw_boxes();
+    draw_friends();
     draw_pip();
     flush_world();
 }
@@ -410,12 +521,14 @@ static void update(void) {
         dx = dx * 181 / 256;
         dy = dy * 181 / 256;
     }
+    s32 was_x = pip_x, was_y = pip_y;
     if (dx || dy) {
         move(dx, dy);
         walk_t++;
     } else {
         walk_t = 0;
     }
+    friends_update(pip_x != was_x || pip_y != was_y);   /* the line follows real steps only */
     update_camera();
 
     if (door_cool > 0) door_cool--;

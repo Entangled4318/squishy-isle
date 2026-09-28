@@ -35,5 +35,8 @@ run: $(HARNESS) $(UNIT)
 	./$(HARNESS) $(ROM) $(OUT)/reset.sav boot_only.txt $(OUT) > $(OUT)/reset_reboot.log
 	python3 check_step3.py $(OUT)
 	python3 check_title.py $(OUT)
+	python3 make_save.py $(OUT)/pen.sav 0,1,3,6,8,11,12,15,17,19 17,6,12
+	./$(HARNESS) $(ROM) $(OUT)/pen.sav pen.txt $(OUT) > $(OUT)/pen.log
+	python3 check_pen.py $(OUT)
 
 .PHONY: run

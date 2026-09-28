@@ -27,7 +27,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | Mockups (8 screens, 80 squishies) | Done. `mockups/`, scorecard in DESIGN.md |
 | 1. Toolchain, header, test harness, hardware check ROM | Done. Tested on the Brick: boots, all buttons, sound, save all work |
 | 2. Art in the ROM: walkable meadow, Squishy Shelf, close-up | Done. `release/squishy-isle.gba`. Tested on desktop mGBA and the Brick: works |
-| 3. Game loop in the meadow | In progress, sub-steps 1 to 5 of 8 done; see "Step 3 progress". `main` has 1 to 4 |
+| 3. Game loop in the meadow | In progress: 1 to 5 and 6a done, 6b next; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | To do |
 | 5. Music and sound set | To do |
 | 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
@@ -39,12 +39,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   short report (score, screenshot when useful) and ask before going on.
   Commit, push and update this file at the end of every sub-step, so a new
   chat can pick up from the exact place.
-- Known issue (fix later): invisible blocks in the meadow make Pip walk
-  around empty-looking ground. Likely the 26 px "tall object" collision
-  above bases, or collision cells that reach past the art. Check the
-  collision grid against the art in `tools/areas.py`. The collision
-  preview shows solid cells under the small flower tufts beside the path
-  and by the cottage; those are the likely cause.
+- Fixed in 6a: the "invisible blocks" were small tulip clumps placed as
+  solid. They are walk-through now. Owner should confirm on the Brick.
 
 ## Step 3 progress
 
@@ -105,11 +101,22 @@ per turn:
    shift the saved random sequence). Tests: `title_new.txt`,
    `title_reset.txt`, `check_title.py`; the older scripts now tap A twice
    at the start to pass the title.
-6. Followers and the friend pen (owner request): found friends live in a
-   fenced pen left of the cottage and roam inside it. Talking to something
-   at the pen (sign or NPC) opens a picker to choose up to 3 followers.
-   The newest friend follows Pip by default. This replaces the earlier
-   "wander the meadow" and "pick in the close-up" ideas.
+6. Followers and the friend pen (owner request). Split in two for budget.
+   6a **Done.** Pen left of the cottage in `tools/areas.py` (fence all
+   round, `world.fence_side`, heart sign `world.mini_heart` in the shell
+   icon's colors so it costs no palette; meadow is at 16/16 palettes, 963
+   tiles). `a.pen` (feet area) and `a.sign` export as `MEADOW_PEN_*`,
+   `MEADOW_SIGN_*`. In `viewer.c`: followers (save `followers[]`, newest
+   first, max 3) walk Pip's recent steps (`TRAIL_GAP` 14 steps apart);
+   every other found meadow friend waddles in the pen (local `pen_rand`,
+   not `game_rand`). 16 px friend sprites, palettes 10..14, depth sorted.
+   Box spot (64,160) moved to (60,178) below the pen. The small tulip
+   clumps are no longer solid (the owner's "invisible blocks").
+   Tests: `make_save.py` builds a save with chosen friends, `pen.txt`,
+   `check_pen.py`.
+   6b **Next.** Pressing A at the pen sign (`MEADOW_SIGN_X/Y`) opens a
+   picker of found friends; choose up to 3 followers (write
+   `game_save.followers`, then `collection_save()`).
 7. Found counter (sprites) and the real shelf (silhouettes).
 8. Full-loop test with reboot, scoring pass, screenshots, release ROM.
 
