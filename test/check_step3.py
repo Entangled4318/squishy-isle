@@ -37,15 +37,32 @@ check(len(set(spots)) == 3, 'the three boxes use different spots')
 # ---- touch and open
 m = re.search(r'touch box 0 pip=(\d+),(\d+)', log)
 check(m is not None, 'walking into the box counts as touching it')
-m = re.search(r'box 0 open friend (\d+) found 1 pip=(\d+),(\d+)', log)
-check(m is not None and 0 <= int(m.group(1)) < 20, 'A opens it and a meadow friend joins the collection')
+m = re.search(r'box 0 open friend (\d+) pip=(\d+),(\d+)', log)
+check(m is not None and 0 <= int(m.group(1)) < 20, 'A opens it with a meadow friend inside')
 check(m is not None and int(m.group(2)) >= 212, f'the box is solid (Pip stopped at x={m and m.group(2)}, box edge 207)')
 check(re.search(r'\[game f(\d+)\] box 0 at (?!200,150)', log) is not None, 'a new box appears at another spot after the open')
-opened = frames.get('box 0 open', 0)
+
+# ---- open screen, pressed by the child
+fr = lambda pat: [int(f) for f in re.findall(r'\[game f(\d+)\] ' + pat, log)]
+enter = fr(r'scene open color 1')
+presses = fr(r'open press \d$') or fr(r'open press \d\n')
+child = re.findall(r'open press (\d)\n', log)
+check(enter and child[:3] == ['1', '2', '3'], 'the open screen shows the meadow box color; A, B, A count as 3 presses')
+check(re.search(r'open press 3\n\[game f\d+\] open pop friend (\d+) found 1', log) is not None, 'the third press pops it and the friend joins the collection')
+back = fr(r'scene meadow')
+check(len(back) >= 2, 'after the pop the game returns to the meadow')
+
+# ---- open screen, nobody presses
+auto = fr(r'open press \d \(auto\)')
+enter2 = fr(r'scene open color 3')
+check(len(auto) == 3 and enter2 and 230 <= auto[0] - enter2[0] <= 250, f'with no press the box starts opening itself after 4 s ({auto and enter2 and auto[0] - enter2[0]} frames)')
+check(len(auto) == 3 and all(60 <= auto[i + 1] - auto[i] <= 80 for i in range(2)), 'then presses itself about every 1.2 s until it pops')
+friends = re.findall(r'open pop friend (\d+) found (\d)', log)
+check(len(friends) == 2 and friends[0][0] != friends[1][0] and friends[1][1] == '2', 'the second box holds a different friend')
 
 # ---- guide arrow
-arrows = re.findall(r'\[game f(\d+)\] arrow on box (\d)', log)
-check(arrows and 880 <= int(arrows[0][0]) - opened <= 920, f'arrow appears 15 s after the last open ({arrows and int(arrows[0][0]) - opened} frames)')
+arrows = [(int(f), b) for f, b in re.findall(r'\[game f(\d+)\] arrow on box (\d)', log)]
+check(arrows and 880 <= arrows[0][0] - back[1] <= 920, f'arrow appears 15 s after coming back from the open ({arrows and arrows[0][0] - back[1]} frames)')
 check(len(arrows) >= 2 and arrows[0][1] != arrows[1][1], 'arrow switches to a nearer box while walking')
 
 yellow = lambda p: p == (255, 222, 123)          # arrow fill #ffe07a on screen
@@ -55,19 +72,32 @@ b1 = shot('b01_first_box')
 check(count(b1, (70, 95, 110, 125), lambda p: p[2] > 200 and p[0] > 170 and p[1] < 210) > 30, 'first box is visible (lavender) near Pip')
 b2 = shot('b02_touch_a_bubble')
 check(count(b2, (100, 40, 140, 80), pink_a) > 25, 'touching shows the A bubble above the box')
-b3 = shot('b03_open_burst')
-check(count(b3, (80, 40, 140, 120), lambda p: p[0] > 240 and p[1] > 235 and p[2] > 150 and p[2] < 230) > 6, 'the box pops in a sparkle burst')
+heart_on = lambda p: p == (255, 156, 189)
+o1 = shot('o01_open_idle')
+check(count(o1, (95, 60, 150, 125), lambda p: p[2] > 200 and p[0] < 225 and p[1] < 210) > 400, 'open screen: big lavender box on the cushion')
+check(count(o1, (110, 130, 170, 155), heart_on) == 0, 'open screen: no hearts filled before a press')
+o2 = shot('o02_jump1')
+check(count(o2, (110, 130, 170, 155), heart_on) > 20, 'open screen: first press fills a heart')
+o3 = shot('o03_jump2')
+check(count(o3, (110, 130, 170, 155), heart_on) > count(o2, (110, 130, 170, 155), heart_on) + 20, 'open screen: second press fills another')
+o4 = shot('o04_pop')
+o5 = shot('o05_pop_sparkles')
+bow = lambda p: p[1] > 200 and p[0] > 240 and p[2] < 140
+check(count(o1, (95, 55, 145, 85), bow) > 40 and count(o5, (95, 55, 145, 85), bow) == 0,
+      'after the pop the lid (yellow bow) has flown off the box')
+check(count(o5, (110, 130, 170, 155), heart_on) == 0, 'the A button and hearts go away after the pop')
 b4 = shot('b04_after_open')
 check(count(b4, (0, 0, 240, 160), yellow) < 10, 'no arrow before the wait is over')
 b5 = shot('b05_arrow')
 check(count(b5, (0, 0, 30, 160), yellow) > 20, 'arrow at the left edge points to the box off screen')
-shot('b06_arrow_walking')
 b7 = shot('b07_arrow_over_box')
 check(count(b7, (170, 60, 200, 95), yellow) > 20, 'arrow floats above the box once it is on screen')
 
 # ---- the friend is saved
 reboot = open(os.path.join(OUT, 'boxes_reboot.log')).read()
-check('save: loaded v2 boots=2 found=1' in reboot, 'the found friend survives a reboot')
+check('save: loaded v2 boots=2 found=2' in reboot, 'both found friends survive a reboot')
+for n in ('b06_arrow_walking', 'b08_touch_second', 'o06_waiting'):
+    shot(n)
 
 if fails:
     sys.exit(1)

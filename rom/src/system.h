@@ -16,6 +16,7 @@ extern ObjAffine *const affine;
 void oam_hide_all(void);
 void oam_commit(void);
 void affine_scale(int n, int sx, int sy);   /* 8.8 fixed, 256 = 1.0 */
+void affine_rot_scale(int n, int angle, int sx, int sy);   /* angle: 256 steps per turn */
 
 /* debug output to the mGBA log; is_mgba() tells which emulator runs us */
 bool is_mgba(void);

@@ -51,6 +51,21 @@ void affine_scale(int n, int sx, int sy) {
     affine[n].pd = (s16)((256 * 256) / sy);
 }
 
+void affine_rot_scale(int n, int angle, int sx, int sy) {
+    extern const s16 sin64[64];
+    if (sx < 16) sx = 16;
+    if (sy < 16) sy = 16;
+    /* sin64 has 64 steps; interpolate for 256 */
+    int i = (angle >> 2) & 63, f = angle & 3;
+    int s = sin64[i] + ((sin64[(i + 1) & 63] - sin64[i]) * f) / 4;
+    int j = (i + 16) & 63;
+    int c = sin64[j] + ((sin64[(j + 1) & 63] - sin64[j]) * f) / 4;
+    affine[n].pa = (s16)(c * 256 / sx);
+    affine[n].pb = (s16)(-s * 256 / sx);
+    affine[n].pc = (s16)(s * 256 / sy);
+    affine[n].pd = (s16)(c * 256 / sy);
+}
+
 /* ---------------------------------------------------------------- debug */
 #define MGBA_DEBUG_ENABLE (*(vu16 *)0x04FFF780)
 #define MGBA_DEBUG_FLAGS  (*(vu16 *)0x04FFF700)

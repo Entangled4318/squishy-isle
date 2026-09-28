@@ -76,6 +76,12 @@ void sfx_tick(void) {
     REG_SND4FREQ = RESTART | (2 << 4) | 1;     /* bright short noise */
 }
 
+void sfx_pop(void) {
+    REG_SND4CNT = ENV(11, 2);
+    REG_SND4FREQ = RESTART | (4 << 4) | 2;     /* soft low noise puff */
+    sfx_chime(4);
+}
+
 void sfx_boing(void) {
     boing_t = 0;
     REG_SND2CNT = DUTY_50 | ENV(11, 2);
@@ -131,3 +137,9 @@ const Note tune_hello[] = {
     {523, 8, 12}, {659, 8, 12}, {784, 8, 12}, {1047, 14, 12}, {0, 4, 0}, {784, 8, 10}, {1047, 20, 12},
 };
 const int tune_hello_len = sizeof tune_hello / sizeof tune_hello[0];
+
+/* after the pop: a little rising "ta-da" */
+const Note tune_pop[] = {
+    {784, 5, 11}, {988, 5, 11}, {1175, 5, 11}, {1568, 16, 12},
+};
+const int tune_pop_len = sizeof tune_pop / sizeof tune_pop[0];

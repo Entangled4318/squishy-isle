@@ -1,4 +1,4 @@
-# Step 3.2: gift boxes in the meadow, touch + A to open, guide arrow.
+# Step 3: gift boxes in the meadow, touch + A to open, the open screen, guide arrow.
 wait 30
 shot b01_first_box
 hold DOWN 20
@@ -7,11 +7,24 @@ wait 4
 shot b02_touch_a_bubble
 hold LEFT 20
 tap A
-wait 10
-shot b03_open_burst
+wait 50
+shot o01_open_idle
+tap A
+wait 9
+shot o02_jump1
+wait 20
+tap B
+wait 11
+shot o03_jump2
+wait 20
+tap A
+wait 5
+shot o04_pop
+wait 18
+shot o05_pop_sparkles
 wait 120
 shot b04_after_open
-wait 930
+wait 900
 shot b05_arrow
 hold RIGHT 60
 hold DOWN 40
@@ -20,3 +33,11 @@ shot b06_arrow_walking
 hold RIGHT 70
 wait 2
 shot b07_arrow_over_box
+hold DOWN 60
+hold RIGHT 60
+wait 4
+shot b08_touch_second
+tap A
+wait 200
+shot o06_waiting
+wait 400

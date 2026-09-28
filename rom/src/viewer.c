@@ -26,7 +26,7 @@
 #define MAX_BOXES   3
 #define ARROW_DELAY (15 * 60)   /* frames without an open before the arrow shows */
 #define RESPAWN     90          /* frames before a new box replaces an opened one */
-#define TOUCH       3           /* px around the box that count as touching */
+#define TOUCH       6           /* px around the box that count as touching */
 
 #define SPEED     320      /* 8.8 fixed: 1.25 px per frame */
 #define FEET_W    5        /* half width of Pip's feet box */
@@ -51,7 +51,6 @@ static bool boxes_ready;
 static int seek_t;                 /* frames since the last open */
 static int arrow_box = -1;         /* box the arrow points at, -1 = none */
 static int touch_box = -1;
-static int burst_t, burst_x, burst_y;
 
 static inline int spot_x(int s) { return meadow_spots[s * 2]; }
 static inline int spot_y(int s) { return meadow_spots[s * 2 + 1]; }
@@ -283,14 +282,6 @@ static void draw_boxes(void) {
         int bob = isin((int)(frame_count * 2)) * 2 / 256;
         ui_spr(bx - cam_x - 8, by - cam_y - 36 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
     }
-    if (burst_t > 0) {             /* sparkles fly out of an opened box */
-        int r = (40 - burst_t) * 3 / 2;
-        for (int k = 0; k < 8; k++) {
-            int a = k * 8 + (int)(frame_count & 3);
-            int x = burst_x + isin(a + 16) * r / 256, y = burst_y - 8 + isin(a) * r / 256;
-            ui_spr(x - cam_x - 4, y - cam_y - 4, A0_SQUARE, 0, 0, T_SPARK + (burst_t > 12 ? 2 : 1), P_SPARK);
-        }
-    }
 }
 
 /* Guide arrow: over the box when it is on screen, else at the screen edge
@@ -334,26 +325,22 @@ static void draw(void) {
     flush_world();
 }
 
-/* Opens box i. The open and reveal screens come in the next sub-steps; for
- * now the box pops in a sparkle burst and its friend joins the collection. */
+/* Opens box i: rolls its friend and shows the open screen. */
 static void open_box(int i) {
-    int id = collection_roll(0, frame_count);
-    burst_x = spot_x(boxes[i].spot);
-    burst_y = spot_y(boxes[i].spot);
-    burst_t = 40;
+    open_friend = collection_roll(0, frame_count);
+    open_color = boxes[i].color;
     boxes[i].spot = -1;
     boxes[i].wait = RESPAWN;
     touch_box = -1;
     arrow_box = -1;
     seek_t = 0;
-    song_play(tune_hello, tune_hello_len);
-    if (id >= 0) collection_add(id);
-    dbg("box %d open friend %d found %d pip=%d,%d", i, id, found_total(), (int)(pip_x >> 8), (int)(pip_y >> 8));
+    sfx_chime(3);
+    dbg("box %d open friend %d pip=%d,%d", i, open_friend, (int)(pip_x >> 8), (int)(pip_y >> 8));
+    scene_go(&scene_open);
 }
 
 static void update_boxes(u16 hit) {
     int px = pip_x >> 8, py = pip_y >> 8;
-    if (burst_t > 0) burst_t--;
     for (int i = 0; i < MAX_BOXES; i++)
         if (boxes[i].spot < 0 && boxes[i].wait > 0) boxes[i].wait--;
     boxes_fill();
@@ -442,7 +429,7 @@ static void update(void) {
     }
     u16 hit = key_hit();
     update_boxes(hit);
-    if ((hit & (KEY_A | KEY_B)) && touch_box < 0 && burst_t == 0) sfx_tick();
+    if ((hit & (KEY_A | KEY_B)) && touch_box < 0) sfx_tick();
     draw();
 }
 

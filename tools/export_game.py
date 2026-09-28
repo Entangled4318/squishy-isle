@@ -73,6 +73,12 @@ def closeup_background():
     return img
 
 
+def open_background():
+    img = mockups.sunburst(rgb15('#f3edff'), rgb15('#e7ddfb'), rgb15('#fbf8ff'), cy=74, glow_r=48)
+    blit(img, mockups.stage(), 68, 110)
+    return img
+
+
 def main():
     os.makedirs(OUT, exist_ok=True)
     cw = CWriter('game_assets')
@@ -115,6 +121,32 @@ def main():
 
     # ---------------- close-up screen
     export_multi_bg(cw, 'closeup', [closeup_background()])
+
+    # ---------------- open screen: box in 5 colors (closed body, open body, lid)
+    export_multi_bg(cw, 'openbg', [open_background()])
+    for color in ('pink', 'lav', 'mint', 'yellow', 'sky'):
+        parts = [props.box64(color, 'body'), props.box64(color, 'open'), props.box64(color, 'lid')]
+        lk, pal = palette_and_lookup(parts)
+        cw.u32_bytes(f'box64_{color}_tiles', b''.join(obj(p, lk) for p in parts))
+        cw.u16(f'box64_{color}_pal', pal)
+    cw.h.append('extern const uint32_t *const box64_tiles[5];\nextern const uint16_t *const box64_pal[5];')
+    cw.c.append('const uint32_t *const box64_tiles[5] = {' + ', '.join(f'box64_{c}_tiles' for c in ('pink', 'lav', 'mint', 'yellow', 'sky')) + '};')
+    cw.c.append('const uint16_t *const box64_pal[5] = {' + ', '.join(f'box64_{c}_pal' for c in ('pink', 'lav', 'mint', 'yellow', 'sky')) + '};')
+    abig = [pad_to(props.a_button_big(False), 32, 32), pad_to(props.a_button_big(True), 32, 32)]
+    lk, pal = palette_and_lookup(abig)
+    cw.u32_bytes('abig_tiles', b''.join(obj(a, lk) for a in abig))
+    cw.u16('abig_pal', pal)
+    heart_off = mockups.hearts_progress(0, 1)
+    x2 = lambda im: np.repeat(np.repeat(im, 2, axis=0), 2, axis=1)
+    bits = [pad_to(x2(props.HEART), 16, 16), pad_to(x2(heart_off), 16, 16), pad_to(mockups.motion_arcs('left'), 8, 8),
+            pad_to(mockups.puff(), 16, 8)]
+    lk, pal = palette_and_lookup(bits)
+    cw.u32_bytes('openui_tiles', b''.join(obj(b, lk) for b in bits))
+    cw.u16('openui_pal', pal)
+    cw.define('OPENUI_HEART_ON', 0)
+    cw.define('OPENUI_HEART_OFF', 4)
+    cw.define('OPENUI_ARC', 8)
+    cw.define('OPENUI_PUFF', 9)
 
     # ---------------- UI sprites
     frame = pad_to(mockups.selection_frame(), 64, 32)

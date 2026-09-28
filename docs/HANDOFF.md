@@ -69,11 +69,19 @@ per turn:
    A or B opens it. Guide arrow after 15 s without an open (`ARROW_DELAY`),
    always to the nearest box: at the screen edge in 8 directions, or above
    the box when it is on screen. World sprites are depth sorted by y.
-   For now `open_box()` pops the box in a sparkle burst and adds the friend
-   directly; sub-steps 3 and 4 replace that with the open and reveal
-   screens. Tests: `step3_boxes.txt`, `check_step3.py`.
-3. Open screen: wobble on cushion, rising note per press, third press
-   pops, auto-open after about 4 s.
+   `open_box()` rolls the friend and goes to the open screen. Touch zone
+   is 6 px around the box footprint (toddler friendly). Tests:
+   `step3_boxes.txt`, `check_step3.py`.
+3. Open screen. **Done.** `rom/src/open.c`: lavender sunburst and cushion
+   (BG1), 64 px box in the meadow box's color (body and lid sprites share
+   one affine matrix, so they wobble together; `affine_rot_scale` takes 256
+   steps per turn). Big A button and 3 hearts (14 px) show progress. Press
+   1 and 2 (A or B, 14 frame cooldown) jump higher with rising chimes and
+   a boing; press 3 pops: lid flies off spinning, sparkle ring, puffs,
+   `sfx_pop` and `tune_pop`. The friend is added and saved at the pop. No
+   press for 4 s (`AUTO_WAIT`) starts self-presses every 70 frames. For now
+   it returns to the meadow 70 frames after the pop; sub-step 4 puts the
+   reveal there.
 4. Reveal and squish: confetti, star burst, name pill; 3 squishes or a
    wait returns to the meadow and saves.
 5. Intro and title: logo intro (skippable), Continue / New game, guarded
