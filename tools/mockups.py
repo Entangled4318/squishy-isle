@@ -7,7 +7,7 @@ import numpy as np
 from gba import new, blit, solid, save_scaled, rgb15, W, H, flip_h, affine
 from palette import C, FL
 from scene import Scene
-from squishies import SPECIES, render
+from squishies import AREAS, SPECIES, render
 from pip import frames as pip_frames
 import world
 from world import render_terrain, MEADOW_KINDS, tree, cottage, bush, flower, stepping_stone
@@ -392,7 +392,8 @@ def shelf_background(active=0, locked=(), pill_w=None):
         depth = [0, 1, 2, 2, 2, 2, 1, 0][(x - (x0 - 5)) % 8]
         for y in range(y0 - 4, y0 - 4 + depth + 1):
             img[y, x, :3] = C['wd_hi'] if y == y0 - 4 else C['wd_lt']
-    icons = [box16('pink'), props.shell('pink', 16), props.acorn16(), props.capsule16()]
+    by_kind = {'box': box16('pink'), 'shell': props.shell('pink', 16), 'acorn': props.acorn16(), 'capsule': props.capsule16()}
+    icons = [by_kind[a[2]] for a in AREAS]           # tabs in play order
     for i, ic in enumerate(icons):
         if i in locked:
             ic = silhouette(ic, rgb15('#e6d6de'), rgb15('#cdb8c4'))

@@ -1,6 +1,7 @@
-/* Blossom Meadow: Pip walks around the full-size map (2x2 screens).
+/* The walkable areas (Blossom Meadow first): Pip walks around a full-size
+ * map (2x2 screens) described by area_maps[game_save.area].
  * Ground layer under Pip, overlay (tree tops, roof) over Pip, collision
- * from the exported solid grid (MEADOW_CELL_SHIFT: 4x4 px cells). The cottage door opens the shelf.
+ * from the exported solid grid (4x4 px cells). The cottage door opens the shelf.
  * Gift boxes wait at the map's container spots; touching one shows a
  * bouncing A button and A or B opens it. After a while without finding
  * one, a guide arrow points the way. */
@@ -19,7 +20,7 @@
 #define T_SPARK   70       /* twinkle tiny/small/big, heart */
 #define T_ABTN    74       /* 16x32 */
 #define T_ARROW   82       /* right, up, upright: 16x16 each */
-#define T_SQ16    94       /* 4 meadow species x (idle, squish) x 4 tiles */
+#define T_SQ16    94       /* the area's 4 species x (idle, squish) x 4 tiles */
 #define P_PIP     0
 #define P_SHADOW  1
 #define P_BOX     2        /* 2..6 */
@@ -28,7 +29,7 @@
 #define P_ARROW   9
 #define T_COUNT   128      /* found counter: pill with icon (two 32x16), then text 32x16 */
 #define T_COUNT_TXT (T_COUNT + 16)
-#define P_SQ      10       /* 10..14: the meadow's 5 flavor palettes */
+#define P_SQ      10       /* 10..14: the area's 5 flavor palettes */
 #define P_COUNT   15
 
 #define MAX_BOXES   3
@@ -37,7 +38,7 @@
 #define ARROW_BLINK 60          /* frames on, then the same off */
 #define RESPAWN     90          /* frames before a new box replaces an opened one */
 #define TOUCH       6           /* px around the box that count as touching */
-#define MAX_PEN     20          /* every meadow friend fits in the pen */
+#define MAX_PEN     20          /* every friend of an area fits in its pen */
 #define PEN_TRIES   10           /* random spots tried for each new pen target */
 #define PEN_ROOM    13          /* px: pen friends do not walk closer than this */
 #define TRAIL       64          /* Pip's recent steps, for followers */
@@ -49,19 +50,21 @@
 
 enum { DIR_DOWN, DIR_UP, DIR_RIGHT, DIR_LEFT };
 
+static const AreaMap *A = &area_maps[0];   /* the area Pip is in */
+static const u8 area_song[AREA_COUNT] = {SONG_MEADOW, SONG_WOODS, SONG_SHORE, SONG_CLOUD};
 static s32 pip_x = MEADOW_SPAWN_X << 8, pip_y = MEADOW_SPAWN_Y << 8;
 static int dir = DIR_DOWN, walk_t, cam_x, cam_y, door_cool;
 
 /* ---- gift boxes (kept while other scenes run) ---- */
 typedef struct {
-    s8 spot;          /* index into meadow_spots, -1 = empty */
+    s8 spot;          /* index into the area's spots, -1 = empty */
     u8 color;
     s16 wait;         /* frames until an empty slot gets a new box */
     u16 phase;        /* animation offset */
 } Box;
 
 static Box boxes[MAX_BOXES];
-static bool boxes_ready;
+static bool boxes_ready;           /* false: place new boxes (new game, other area) */
 static int seek_t;                 /* frames since the last open */
 static int arrow_box = -1;         /* box the arrow points at, -1 = none */
 static int arrow_t;                /* frames since the arrow showed, for the blink */
@@ -75,8 +78,9 @@ static bool pos_dirty;             /* Pip moved since the position was last save
 #define POS_SAVE_WAIT 60           /* save the position after Pip stands still this long */
 
 void meadow_reset(void) {
-    pip_x = MEADOW_SPAWN_X << 8;
-    pip_y = MEADOW_SPAWN_Y << 8;
+    A = &area_maps[0];
+    pip_x = A->spawn_x << 8;
+    pip_y = A->spawn_y << 8;
     dir = DIR_DOWN;
     boxes_ready = false;
     seek_t = 0;
@@ -106,8 +110,8 @@ static int pen_rand(int n) {          /* local: the pen must not use up the save
 static void pen_target(Roamer *r) {
     int best = -1;
     for (int k = 0; k < PEN_TRIES; k++) {
-        int x = MEADOW_PEN_X0 + pen_rand(MEADOW_PEN_X1 - MEADOW_PEN_X0);
-        int y = MEADOW_PEN_Y0 + pen_rand(MEADOW_PEN_Y1 - MEADOW_PEN_Y0);
+        int x = A->pen_x0 + pen_rand(A->pen_x1 - A->pen_x0);
+        int y = A->pen_y0 + pen_rand(A->pen_y1 - A->pen_y0);
         int room = 1 << 30;
         for (int i = 0; i < n_pen; i++) {
             const Roamer *o = &pen[i];
@@ -156,16 +160,17 @@ static void trail_line(void) {
 }
 
 static void friends_setup(void) {
-    for (int sp = 0; sp < 4; sp++) sq_load_frames(sp, 16, 0, 2, T_SQ16 + sp * 8);
-    dma3_copy16(PAL_OBJ + P_SQ * 16, sq_area_pals[0], 5 * 32);
+    int first = A->area * 20;
+    for (int sp = 0; sp < 4; sp++) sq_load_frames(A->area * 4 + sp, 16, 0, 2, T_SQ16 + sp * 8);
+    dma3_copy16(PAL_OBJ + P_SQ * 16, sq_area_pals[A->area], 5 * 32);
     pen_seed ^= frame_count;
     n_follow = 0;
     for (int i = 0; i < MAX_FOLLOWERS; i++) {
-        int id = follower_get(i);
-        if (id >= 0 && id < 20 && friend_found(id)) follow_id[n_follow++] = id;
+        int id = follower_get(A->area, i);
+        if (id >= 0 && friend_found(id)) follow_id[n_follow++] = id;
     }
     n_pen = 0;
-    for (int id = 0; id < 20; id++) {
+    for (int id = first; id < first + 20; id++) {
         bool following = false;
         for (int k = 0; k < n_follow; k++) following |= follow_id[k] == id;
         if (!friend_found(id) || following) continue;
@@ -233,11 +238,11 @@ static void friends_update(bool pip_moved) {
     }
 }
 
-static inline int spot_x(int s) { return meadow_spots[s * 2]; }
-static inline int spot_y(int s) { return meadow_spots[s * 2 + 1]; }
+static inline int spot_x(int s) { return A->spots[s * 2]; }
+static inline int spot_y(int s) { return A->spots[s * 2 + 1]; }
 
 static int boxes_wanted(void) {
-    int left = 20 - found_in_area(0);
+    int left = 20 - found_in_area(A->area);
     return left < MAX_BOXES ? left : MAX_BOXES;
 }
 
@@ -264,9 +269,9 @@ static bool color_used(int c) {
  * near the cottage. */
 static int choose_spot(void) {
     int px = pip_x >> 8, py = pip_y >> 8;
-    if (game_save.opens == 0 && boxes_out() == 0 && !spot_used(MEADOW_FIRST_SPOT)) return MEADOW_FIRST_SPOT;
+    if (found_in_area(A->area) == 0 && boxes_out() == 0 && !spot_used(A->first_spot)) return A->first_spot;
     int best = -1, best_score = -1;
-    for (int s = 0; s < MEADOW_NSPOTS; s++) {
+    for (int s = 0; s < A->nspots; s++) {
         if (spot_used(s)) continue;
         int dx = spot_x(s) - px, dy = spot_y(s) - py;
         if (dx * dx + dy * dy < 48 * 48) continue;
@@ -300,8 +305,8 @@ static bool box_hit(int i, int x0, int y0, int x1, int y1) {
 }
 
 static bool solid_at(int x, int y) {
-    if (x < 0 || y < 0 || x >= MEADOW_W || y >= MEADOW_H) return true;
-    return meadow_solid[(y >> MEADOW_CELL_SHIFT) * (MEADOW_W >> MEADOW_CELL_SHIFT) + (x >> MEADOW_CELL_SHIFT)];
+    if (x < 0 || y < 0 || x >= A->w || y >= A->h) return true;
+    return A->solid[(y >> A->cell_shift) * (A->w >> A->cell_shift) + (x >> A->cell_shift)];
 }
 
 static bool blocked(int fx, int fy) {
@@ -318,8 +323,8 @@ static void update_camera(void) {
     int tx = px - SCREEN_W / 2, ty = py - 12 - SCREEN_H / 2;
     if (tx < 0) tx = 0;
     if (ty < 0) ty = 0;
-    if (tx > MEADOW_W - SCREEN_W) tx = MEADOW_W - SCREEN_W;
-    if (ty > MEADOW_H - SCREEN_H) ty = MEADOW_H - SCREEN_H;
+    if (tx > A->w - SCREEN_W) tx = A->w - SCREEN_W;
+    if (ty > A->h - SCREEN_H) ty = A->h - SCREEN_H;
     cam_x = tx;
     cam_y = ty;
     for (int i = 1; i <= 2; i++) {
@@ -335,7 +340,7 @@ static void restore_pos(void) {
     if (pos_restored) return;
     pos_restored = true;
     int x = game_save.pip_x, y = game_save.pip_y;
-    if ((x || y) && x < MEADOW_W && y < MEADOW_H && !blocked(x, y)) {
+    if ((x || y) && x < A->w && y < A->h && !blocked(x, y)) {
         pip_x = x << 8;
         pip_y = y << 8;
         dbg("restore pip=%d,%d", x, y);
@@ -353,15 +358,18 @@ static void save_pos(bool now) {
 }
 
 static void enter(void) {
+    const AreaMap *was = A;
+    A = &area_maps[game_save.area < AREA_MAPS ? game_save.area : 0];
+    if (A != was) boxes_ready = false;         /* boxes belong to the area they were placed in */
     restore_pos();
-    music_play(SONG_MEADOW);         /* after the shelf or a box it goes on where it was */
-    dma3_copy32(CHARBLOCK(0), meadow_tiles, sizeof meadow_tiles);
-    dma3_copy16(PAL_BG, meadow_pal, sizeof meadow_pal);
-    dma3_copy32(SCREENBLOCK(24), meadow_ground, sizeof meadow_ground);
-    dma3_copy32(SCREENBLOCK(28), meadow_overlay, sizeof meadow_overlay);
+    music_play(area_song[A->area]);  /* after the shelf or a box it goes on where it was */
+    dma3_copy32(CHARBLOCK(0), A->tiles, A->tiles_bytes);
+    dma3_copy16(PAL_BG, A->pal, A->pal_bytes);
+    dma3_copy32(SCREENBLOCK(24), A->ground, 4096 * 2);
+    dma3_copy32(SCREENBLOCK(28), A->overlay, 4096 * 2);
     REG_BGCNT(2) = BG_PRIO(2) | BG_CBB(0) | BG_SBB(24) | 0xC000;     /* 64x64 */
     REG_BGCNT(1) = BG_PRIO(0) | BG_CBB(0) | BG_SBB(28) | 0xC000;
-    PAL_BG[0] = meadow_pal[1];
+    PAL_BG[0] = A->pal[1];
 
     dma3_copy32(OBJ_TILES + T_PIP * 16, pip_tiles, sizeof pip_tiles);
     dma3_copy16(PAL_OBJ + P_PIP * 16, pip_pal, sizeof pip_pal);
@@ -377,19 +385,19 @@ static void enter(void) {
     dma3_copy16(PAL_OBJ + P_ARROW * 16, arrow_pal, sizeof arrow_pal);
 
     char buf[8];             /* found counter, top right: area icon and "7/20" */
-    int n = found_in_area(0), k = 0;
+    int n = found_in_area(A->area), k = 0;
     if (count_last >= 0 && n > count_last) count_hop = 40;
     count_last = n;
     if (n >= 10) buf[k++] = (char)('0' + n / 10);
     buf[k++] = (char)('0' + n % 10);
     buf[k++] = '/'; buf[k++] = '2'; buf[k++] = '0'; buf[k] = 0;
-    dma3_copy32(OBJ_TILES + T_COUNT * 16, count_pill_tiles, 16 * 32);   /* area 0: gift box */
-    dma3_copy16(PAL_OBJ + P_COUNT * 16, count_pill_pal, 32);
+    dma3_copy32(OBJ_TILES + T_COUNT * 16, count_pill_tiles + A->area * 16 * 8, 16 * 32);   /* the area's container icon */
+    dma3_copy16(PAL_OBJ + P_COUNT * 16, count_pill_pal + A->area * 16, 32);
     st_count.tw = 4; st_count.th = 2; st_count.cbb = 4; st_count.first_tile = T_COUNT_TXT;
     strip_print(&st_count, buf, 1, 4, 1, 0);        /* centred after the icon */
 
     door_cool = 30;          /* do not walk straight back in */
-    dbg("scene meadow pip=%d,%d", (int)(pip_x >> 8), (int)(pip_y >> 8));
+    dbg("scene meadow pip=%d,%d area=%d", (int)(pip_x >> 8), (int)(pip_y >> 8), A->area);
     update_camera();
     if (!boxes_ready) {
         for (int i = 0; i < MAX_BOXES; i++) boxes[i] = (Box){-1, 0, 0, 0};
@@ -535,8 +543,8 @@ static void draw_boxes(void) {
         hud_spr(bx - cam_x - 8, by - cam_y - 36 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
     } else if (at_sign) {
         int bob = isin((int)(frame_count * 2)) * 2 / 256;
-        int top = (pip_y >> 8) < MEADOW_SIGN_Y ? (pip_y >> 8) : MEADOW_SIGN_Y;   /* over Pip's head when he stands above the sign */
-        hud_spr(MEADOW_SIGN_X - cam_x - 8, top - cam_y - 46 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
+        int top = (pip_y >> 8) < A->sign_y ? (pip_y >> 8) : A->sign_y;   /* over Pip's head when he stands above the sign */
+        hud_spr(A->sign_x - cam_x - 8, top - cam_y - 46 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
     }
 }
 
@@ -576,7 +584,7 @@ static void draw_arrow(void) {
 }
 
 static void draw_counter(void) {
-    if (!found_in_area(0)) return;
+    if (!found_in_area(A->area)) return;
     int hop = 0;
     if (count_hop > 0) {                /* two small hops, starting after the fade-in */
         count_hop--;
@@ -601,7 +609,7 @@ static void draw(void) {
 
 /* Opens box i: rolls its friend and shows the open screen. */
 static void open_box(int i) {
-    open_friend = collection_roll(0, frame_count);
+    open_friend = collection_roll(A->area, frame_count);
     open_color = boxes[i].color;
     boxes[i].spot = -1;
     boxes[i].wait = RESPAWN;
@@ -653,7 +661,7 @@ static void update_boxes(u16 hit) {
 static void shimmer(void) {
     if ((frame_count % 12) != 0) return;
     u16 c = water_shimmer_cycle[(frame_count / 12) & 3];
-    for (int i = 0; i < MEADOW_NSHIMMER; i++) PAL_BG[meadow_shimmer[i]] = c;
+    for (int i = 0; i < A->nshimmer; i++) PAL_BG[A->shimmer[i]] = c;
 }
 
 static void update(void) {
@@ -688,8 +696,8 @@ static void update(void) {
 
     if (door_cool > 0) door_cool--;
     int px = pip_x >> 8, py = pip_y >> 8;
-    for (int i = 0; i < MEADOW_NDOORS; i++) {
-        const u16 *d = &meadow_doors[i * 4];
+    for (int i = 0; i < A->ndoors; i++) {
+        const u16 *d = &A->doors[i * 4];
         if (!door_cool && px >= d[0] && px < d[0] + d[2] && py >= d[1] && py < d[1] + d[3] + 12 &&
             (held & KEY_UP)) {
             sfx_chime(3);
@@ -714,8 +722,8 @@ static void update(void) {
         return;
     }
     bool was_at = at_sign;             /* by the pen sign: A picks who follows Pip */
-    at_sign = touch_box < 0 && found_in_area(0) > 0 && px > MEADOW_SIGN_X - 20 && px < MEADOW_SIGN_X + 20 &&
-              py > MEADOW_SIGN_Y - 18 && py < MEADOW_SIGN_Y + 22;   /* above it too: the sign blocks Pip at y-8 */
+    at_sign = touch_box < 0 && found_in_area(A->area) > 0 && A->sign_x && px > A->sign_x - 20 && px < A->sign_x + 20 &&
+              py > A->sign_y - 18 && py < A->sign_y + 22;   /* above it too: the sign blocks Pip at y-8 */
     if (at_sign && !was_at) dbg("at sign pip=%d,%d", px, py);
     if (at_sign && (hit & KEY_A)) {
         sfx_chime(3);

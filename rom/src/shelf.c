@@ -60,10 +60,14 @@ static void enter(void) {
     dma3_copy16(PAL_OBJ + P_SIL * 16, sq_sil_pal, sizeof sq_sil_pal);
     dma3_copy16(PAL_OBJ + P_FRAME * 16, ui_frame_pal, sizeof ui_frame_pal);
     dma3_copy16(PAL_OBJ + P_SMALL * 16, ui_small_pal, sizeof ui_small_pal);
+    static int page_area = -1;        /* after a walk to another area, start on its page */
+    if (shelf_pick || game_save.area != page_area) {
+        page = game_save.area;
+        page_area = game_save.area;
+    }
     if (shelf_pick) {                 /* start on the first follower, or the first friend found */
-        page = 0;
-        int id = follower_get(0);
-        for (int i = 0; id < 0 && i < 20; i++)
+        int id = follower_get(page, 0);
+        for (int i = page * 20; id < 0 && i < page * 20 + 20; i++)
             if (friend_found(i)) id = i;
         if (id >= 0) { cur_r = friend_species(id); cur_c = friend_flavor(id); }
         pop_id = -1;
@@ -112,7 +116,7 @@ static void draw(void) {
     }
     for (int i = 0; i < MAX_FOLLOWERS; i++) {      /* a heart on each friend that follows Pip */
         ObjAttr *h = &oam[25 + i];
-        int id = shelf_pick ? follower_get(i) : -1;
+        int id = shelf_pick ? follower_get(page, i) : -1;
         if (id < 0) { h->attr0 = A0_HIDE; continue; }
         int hx = SHELF_X0 + friend_flavor(id) * SHELF_CW + 3;
         int hy = SHELF_Y0 + friend_species(id) * SHELF_CH + 3;
@@ -164,7 +168,7 @@ static void update(void) {
         if (hit & (KEY_START | KEY_B)) {
             shelf_pick = false;
             sfx_chime(2);
-            dbg("pick done %d %d %d", follower_get(0), follower_get(1), follower_get(2));
+            dbg("pick done %d %d %d", follower_get(page, 0), follower_get(page, 1), follower_get(page, 2));
             scene_go(&scene_meadow_view);
         }
         draw();

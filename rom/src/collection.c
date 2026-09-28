@@ -31,6 +31,8 @@ int found_total(void) {
     return n;
 }
 
+bool area_open(int area) { return area <= 0 || (area < AREA_COUNT && found_in_area(area - 1) >= GATE_NEED); }
+
 /* Sparkle is the rare flavor: weight 1 against 4 for the others, so the
  * Sparkles of an area tend to come last. */
 static int weight(int id) { return friend_flavor(id) == 4 ? 1 : 4; }
@@ -67,14 +69,25 @@ bool collection_add(int id) {
 void collection_new_game(u32 seed) {
     memset(game_save.found, 0, sizeof game_save.found);
     memset(game_save.followers, 0, sizeof game_save.followers);
+    memset(game_save.lines, 0, sizeof game_save.lines);
     game_save.opens = 0;
     game_save.pip_x = game_save.pip_y = 0;
+    game_save.area = 0;
+    game_save.gates = 0;
     game_save.rng = seed | 1;
     collection_save();
 }
 
+/* Each area has its own line of up to 3 followers (friend sprites use the
+ * area's palettes, so only that area's friends can walk there). */
+static u8 *line_of(int area) {
+    if (area <= 0) return game_save.followers;
+    return game_save.lines[(area > AREA_COUNT - 1 ? AREA_COUNT - 1 : area) - 1];
+}
+static u8 *line_for(int id) { return line_of(friend_area(id)); }
+
 void follower_add(int id) {
-    u8 *l = game_save.followers;
+    u8 *l = line_for(id);
     int at = MAX_FOLLOWERS - 1;          /* drops the oldest unless id is already in line */
     for (int i = 0; i < MAX_FOLLOWERS; i++)
         if (l[i] == id + 1) at = i;
@@ -83,7 +96,7 @@ void follower_add(int id) {
 }
 
 void follower_join(int id) {
-    u8 *l = game_save.followers;
+    u8 *l = line_for(id);
     for (int i = 0; i < MAX_FOLLOWERS; i++) {
         if (l[i] == id + 1) return;
         if (l[i] == 0) {
@@ -93,16 +106,17 @@ void follower_join(int id) {
     }
 }
 
-int follower_get(int i) { return game_save.followers[i] - 1; }
+int follower_get(int area, int i) { return line_of(area)[i] - 1; }
 
 bool follower_has(int id) {
+    const u8 *l = line_for(id);
     for (int i = 0; i < MAX_FOLLOWERS; i++)
-        if (game_save.followers[i] == id + 1) return true;
+        if (l[i] == id + 1) return true;
     return false;
 }
 
 void follower_remove(int id) {
-    u8 *l = game_save.followers;
+    u8 *l = line_for(id);
     int n = 0;
     for (int i = 0; i < MAX_FOLLOWERS; i++)
         if (l[i] && l[i] != id + 1) l[n++] = l[i];

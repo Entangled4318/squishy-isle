@@ -23,10 +23,16 @@ typedef struct {
     u32 rng;                  /* roll state, kept so every boot rolls differently */
     u8 followers[MAX_FOLLOWERS];  /* friend id + 1, 0 = empty; [0] walks nearest Pip */
     u8 pad;
-    u16 pip_x, pip_y;         /* meadow position (feet) for Continue; 0,0 = start at the house */
-    u32 reserved[7];
+    u16 pip_x, pip_y;         /* position (feet) in `area` for Continue; 0,0 = the area's start */
+    u8 area;                  /* area Pip is in: 0 meadow, 1 woods, 2 shore, 3 cloud hill */
+    u8 gates;                 /* bit n set: the way into area n + 1 is built (its scene has played) */
+    u8 lines[3][MAX_FOLLOWERS];   /* follower lines of areas 1..3 (the meadow's is `followers`) */
+    u8 pad2[5];
+    u32 reserved[3];
     u32 checksum;
 } SaveData;
+
+_Static_assert(sizeof(SaveData) == 144, "save layout: older saves must still load");
 
 typedef enum { SAVE_NEW, SAVE_LOADED, SAVE_BROKEN } SaveStatus;
 

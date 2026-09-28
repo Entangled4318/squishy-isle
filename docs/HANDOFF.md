@@ -35,7 +35,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
-| 6. Shore, Woods, Cloud Hill, unlocks, title, parent reset | To do |
+| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | In progress; see "Step 6 progress" |
 | 7. QA and final ROM with Brick instructions | To do |
 
 ## Owner notes
@@ -78,9 +78,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 6 (3 more areas). Ask the owner one question at a time
-  first: how to reach each area, then what the mailbox does, then what
-  the picnic basket does. Step 6 scope: Shore, Woods, Cloud Hill, each
+- Next: step 6.2 (Berry Woods), see "Step 6 progress". Still to ask
+  the owner, one at a time: what the mailbox does, then what the picnic
+  basket does (before 6.7). Step 6 scope: Shore, Woods, Cloud Hill, each
   with 20 unique friends, a way to get there, a pen the size of the
   meadow's; play each area's song from step 5.5. Then step 7 (QA and
   the final ROM). Do not wait for the Brick
@@ -451,6 +451,44 @@ Plan agreed with the owner, one sub-step per turn, stop after each task:
    the songs' typical loudness. Box 1 audio peak 19868 (no clipping).
    Sound test screen with 8 songs `docs/step5_6_sound_test.png` (the
    status line is for the selected song). Score 8.5. 11 suites pass.
+
+## Step 6 progress
+
+Owner decisions: the areas open in a line, Meadow, Woods, Shore, Cloud
+Hill (Woods first, the owner's pick); each opens when the area before it
+has 10 friends (`GATE_NEED`); until then the way is visibly blocked.
+Plan, one sub-step at a time, merge after each:
+
+1. Area framework. **Done.** `AREAS` in `squishies.py` is in play order
+   (friend ids: meadow 0-19, woods 20-39, shore 40-59, cloud 60-79;
+   shelf tabs and counter icons follow it). `export_game.py` writes an
+   `AreaMap` per built area (`area_maps[]`, `AREA_MAPS`; must follow the
+   play order); the old `meadow_*` arrays and `MEADOW_*` defines stay
+   because the harness `seek` reads them. `viewer.c` reads everything
+   from `A = &area_maps[game_save.area]`: maps, collision, spots, pen,
+   sign, doors, shimmer, the area's 4 species and 5 palettes, counter
+   icon, and its song (`area_song[]`). Boxes reset when the area
+   changes; the first box of each area sits at its `first_spot`. Save
+   (still version 2, same 144 bytes, `_Static_assert`): `area`, `gates`
+   (bit n: the way into area n + 1 is built) and `lines[3][3]`, the
+   follower lines of areas 1..3 (the meadow's stays `followers`, so old
+   saves keep their line). `follower_get(area, i)`; add/join/remove find
+   the line from the friend id (`friend_area`). `area_open(a)`. The shelf
+   opens on the current area's page; the picker uses that area's line.
+   Tests: `test_collection.c` (separate lines, the woods open at 10, new
+   game goes home), `check_step2.py` (page 1 is the Woods, Matcha Fox).
+   Screenshot `docs/step6_1_shelf_order.png`. Score 8.5 (refactor, no
+   visible change besides the tab order; first pass had a wrong line
+   index, `& 3 % 3`, caught in review before the build).
+2. Berry Woods: map (acorns, pen, sign, woods song), the meadow bridge
+   leads there (east edge; the meadow sign by the bridge gets an acorn),
+   blocked by a log until 10 meadow friends. Harness `seek` per area.
+3. Gate scene: at 10 friends the squishies roll the log away (once).
+4. Seashell Shore map, boardwalk from the Woods.
+5. Cloud Hill map, stairs from the Shore.
+6. Open screen per container (64 px acorn, shell, capsule).
+7. Mailbox and picnic basket (ask the owner first).
+8. Full 80-friend loop, scores, release.
 
 ## What step 3 should do (as promised to the owner)
 
