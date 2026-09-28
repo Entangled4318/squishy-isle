@@ -18,8 +18,8 @@ def check(cond, msg):
         fails.append(msg)
 
 
-la, lb, lc = (open(os.path.join(OUT, 'loop_%s.log' % p)).read() for p in 'abc')
-for n in ('f01_after5', 'f02_continue', 'f03_full_meadow', 'f04_reboot_full', 'f05_full_pen', 'f06_full_shelf'):
+la, lb, lc, ld = (open(os.path.join(OUT, 'loop_%s.log' % p)).read() for p in 'abcd')
+for n in ('f01_after5', 'f02_continue', 'f03_full_meadow', 'f04_reboot_full', 'f05_full_pen', 'f06_full_shelf', 'f07_continue_spot'):
     im = Image.open(os.path.join(OUT, n + '.ppm')).convert('RGB')
     im.resize((im.width * 4, im.height * 4), Image.NEAREST).save(os.path.join(OUT, n + '.png'))
 
@@ -35,6 +35,11 @@ check('save: loaded v2 boots=3 found=20 opens=20' in lc, 'reboot 2: all 20 frien
 last_pop = lb.rindex('found 20')
 check(re.search(r'box \d at', lb[last_pop:]) is None, 'no new box after the 20th friend')
 check(re.search(r'box \d at', lc) is None, 'no box after a reboot with a full meadow')
+last_open = re.findall(r'open friend \d+ pip=(\d+,\d+)', lb)[-1]
+check(f'restore pip={last_open}' in lc, f'reboot 2: Continue starts where Pip opened the last box ({last_open})')
+saved = re.findall(r'save pip=(\d+,\d+)', lc)
+check(saved and f'restore pip={saved[-1]}' in ld, f'reboot 3: Continue starts where Pip last stood still ({saved and saved[-1]})')
+check('restore pip' not in la, 'a new game starts at the house')
 check('friends pen=17 follow=3' in lc, 'full meadow: 3 friends follow Pip, 17 live in the pen')
 
 sym, size = {}, {}

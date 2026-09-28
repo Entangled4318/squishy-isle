@@ -203,8 +203,18 @@ per turn:
       `ARROW_BLINK` 60 frames on / 60 off (starts on), shows after
       `ARROW_DELAY` 5 s without an open. `check_step3.py` checks the 5 s,
       the arrow next to Pip and the blink (two shots 1 s apart).
-   3. Followers: the first 3 found stay until swapped at the sign (new
-      friends go to the pen). Save Pip's position; Continue starts there.
+   3. **Done.** `collection_add` calls `follower_join` (joins the end
+      only while the line has room), so the first 3 found keep
+      following; the sign picker still uses `follower_add`. Save has
+      `pip_x, pip_y` in 4 of the old reserved bytes (same layout, still
+      version 2; 0,0 = house). `save_pos()` in `viewer.c` writes it when
+      Pip has stood still `POS_SAVE_WAIT` (1 s) after moving and before
+      every scene change (box, door, START, sign); `restore_pos()` puts
+      Pip there on the first meadow visit after boot if walkable; new
+      game clears it. Tests: `test_collection.c` (first 3 stay, free
+      place fills, new game clears, layout), `loop_c/d.txt` +
+      `check_loop.py` (Continue at the last box, then at the last still
+      spot).
    4. Shelf close-up after a catch: friend off centre, under the plate
       and behind its name (state left over from the reveal); 3 squishes
       close the close-up like B.

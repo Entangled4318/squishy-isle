@@ -1,0 +1,7 @@
+# Full loop, part D: reboot again; Continue puts Pip where he last stood still.
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+shot f07_continue_spot

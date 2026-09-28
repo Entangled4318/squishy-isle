@@ -67,6 +67,10 @@ static int touch_box = -1;
 EWRAM_BSS static TextStrip st_count;   /* rendered into OBJ tiles: the meadow has no free BG palette */
 static int count_last = -1, count_hop;   /* the counter hops when a new friend is counted */
 static bool at_sign;               /* Pip stands by the pen sign: A opens the picker */
+static bool pos_restored;          /* the saved position is used once, on the first visit after boot */
+static int still_t;                /* frames Pip stood still since the last step */
+static bool pos_dirty;             /* Pip moved since the position was last saved */
+#define POS_SAVE_WAIT 60           /* save the position after Pip stands still this long */
 
 void meadow_reset(void) {
     pip_x = MEADOW_SPAWN_X << 8;
@@ -75,6 +79,7 @@ void meadow_reset(void) {
     boxes_ready = false;
     seek_t = 0;
     arrow_box = touch_box = -1;
+    pos_restored = true;               /* a new game starts at the house */
 }
 
 /* ---- friends: a line behind Pip, the rest roam in the pen ---- */
@@ -321,7 +326,32 @@ static void update_camera(void) {
     }
 }
 
+static bool blocked(int fx, int fy);
+
+/* Continue: put Pip back where the save says, once per boot, if it is walkable. */
+static void restore_pos(void) {
+    if (pos_restored) return;
+    pos_restored = true;
+    int x = game_save.pip_x, y = game_save.pip_y;
+    if ((x || y) && x < MEADOW_W && y < MEADOW_H && !blocked(x, y)) {
+        pip_x = x << 8;
+        pip_y = y << 8;
+        dbg("restore pip=%d,%d", x, y);
+    }
+}
+
+/* Keeps the save's position up to date without writing SRAM on every step. */
+static void save_pos(bool now) {
+    if (!pos_dirty || (!now && still_t < POS_SAVE_WAIT)) return;
+    pos_dirty = false;
+    game_save.pip_x = (u16)(pip_x >> 8);
+    game_save.pip_y = (u16)(pip_y >> 8);
+    collection_save();
+    dbg("save pip=%d,%d", game_save.pip_x, game_save.pip_y);
+}
+
 static void enter(void) {
+    restore_pos();
     dma3_copy32(CHARBLOCK(0), meadow_tiles, sizeof meadow_tiles);
     dma3_copy16(PAL_BG, meadow_pal, sizeof meadow_pal);
     dma3_copy32(SCREENBLOCK(24), meadow_ground, sizeof meadow_ground);
@@ -574,6 +604,7 @@ static void open_box(int i) {
     seek_t = 0;
     sfx_chime(3);
     dbg("box %d open friend %d pip=%d,%d", i, open_friend, (int)(pip_x >> 8), (int)(pip_y >> 8));
+    save_pos(true);
     scene_go(&scene_open);
 }
 
@@ -642,6 +673,13 @@ static void update(void) {
         walk_t = 0;
     }
     friends_update(pip_x != was_x || pip_y != was_y);   /* the line follows real steps only */
+    if (pip_x != was_x || pip_y != was_y) {
+        still_t = 0;
+        pos_dirty = true;
+    } else if (still_t < POS_SAVE_WAIT) {
+        still_t++;
+    }
+    save_pos(false);
     update_camera();
 
     if (door_cool > 0) door_cool--;
@@ -654,12 +692,15 @@ static void update(void) {
             dbg("door %d", i);
             pip_y = (d[1] + d[3] + 16) << 8;        /* step back out when we return */
             dir = DIR_DOWN;
+            pos_dirty = true;                       /* save the spot outside the door */
+            save_pos(true);
             scene_go(&scene_shelf);
         }
     }
     if (key_hit() & KEY_START) {
         sfx_chime(2);
         dbg("meadow start pip=%d,%d", px, py);
+        save_pos(true);
         scene_go(&scene_shelf);
     }
     u16 hit = key_hit();
@@ -672,6 +713,7 @@ static void update(void) {
         sfx_chime(3);
         dir = DIR_DOWN;
         shelf_pick = true;
+        save_pos(true);
         scene_go(&scene_shelf);
         return;
     }

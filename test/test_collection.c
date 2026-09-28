@@ -1,3 +1,4 @@
+#include <stddef.h>
 /* Host unit test for the roll and collection rules (rom/src/collection.c). */
 #define HOST_TEST
 #include "../rom/src/collection.c"
@@ -77,6 +78,18 @@ int main(void) {
     reset(5);
     follower_add(0);
     CHECK(follower_get(0) == 0 && follower_get(1) == -1, "friend id 0 works, empty places read -1");
+
+    /* new friends: the first 3 found stay in line, later ones go to the pen */
+    reset(5);
+    collection_add(7); collection_add(3); collection_add(9); collection_add(12);
+    CHECK(follower_get(0) == 7 && follower_get(1) == 3 && follower_get(2) == 9, "the first 3 friends found keep following (7,3,9)");
+    follower_remove(3);
+    collection_add(14);
+    CHECK(follower_get(0) == 7 && follower_get(1) == 9 && follower_get(2) == 14, "a new friend fills a free place at the end (7,9,14)");
+    game_save.pip_x = 300; game_save.pip_y = 200;
+    collection_new_game(99);
+    CHECK(game_save.pip_x == 0 && game_save.pip_y == 0, "new game forgets Pip's saved position");
+    CHECK(offsetof(SaveData, checksum) == 140, "save layout unchanged by the position field (checksum at %u)", (unsigned)offsetof(SaveData, checksum));
 
     CHECK(sizeof(SaveData) <= 0x100, "SaveData fits a 256-byte slot (%u bytes)", (unsigned)sizeof(SaveData));
     return fails ? 1 : 0;

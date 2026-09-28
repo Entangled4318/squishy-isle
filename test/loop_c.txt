@@ -7,11 +7,13 @@ tap A
 wait 25
 wait 200
 shot f04_reboot_full
-hold DOWN 54
-hold LEFT 90
+# Continue starts where Pip opened the last box, on the path east of the pen
+hold LEFT 150
 wait 60
 dump f_pen
 shot f05_full_pen
 hold START 3
 wait 60
 shot f06_full_shelf
+hold START 3
+wait 60
