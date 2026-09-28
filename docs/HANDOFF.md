@@ -275,8 +275,9 @@ Plan agreed with the owner, one sub-step per turn, stop after each task:
 
 1. Found counter pill. **Done.** Owner request: match the mockups. A
    rounded pill at the top right (`COUNT_PILL_W` 52 px, 4 px from the
-   edge) with the area's container icon at the left end (gift box for
-   the meadow; shell, acorn, capsule are exported too, in
+   edge) with the area's container icon inside its left end. Owner
+   follow-up: the icon is smaller, 12 px hand-drawn `props.icon12()`
+   (box, shell, acorn, capsule), fully inside the pill; exported in
    `count_pill_tiles` / `count_pill_pal`, 16 tiles and one palette per
    area, ink is color 1). The count is printed at run time into a 32x16
    OBJ strip, centred after the icon (`COUNT_TEXT_X` 18). Two 32x16
@@ -284,7 +285,8 @@ Plan agreed with the owner, one sub-step per turn, stop after each task:
    while the area has 0 friends, still hops twice on a new friend.
    `check_loop.py` and `check_pick.py` look for the pill fill and ink at
    the top right. Screenshot `docs/step5_1_counter.png`. Score 8.5 (first
-   pass 7.5: "20/20" was left-aligned and touched the right end).
+   pass 7.5: "20/20" was left-aligned and touched the right end; the
+   12 px shell took 3 drafts, the first read as a cupcake).
 2. Music engine: looping 2-voice songs (wave lead on channel 3, soft
    square bass on channel 2), effects keep channels 1 and 4, the boing
    borrows channel 2, jingles pause the song and it resumes. Songs

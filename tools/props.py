@@ -415,3 +415,81 @@ def capsule16(top='#ffb6cb', top_dk='#ec8fae'):
         if img[8, x, 3]:
             img[8, x, :3] = ink
     return img
+
+
+# ------------------------------------------------ 12 px area icons (counter pill)
+_ICON12 = {
+    'box': [
+        '..kkk..kkk..',
+        '.kRRRkkRRRk.',
+        '.kRrrRRrrRk.',
+        '..kkkRRkkk..',
+        'kkkkkRrkkkkk',
+        'kTTTTRrTTTTk',
+        'kttttRrttttk',
+        'kkkkkRrkkkkk',
+        '.kFhFRrFFfk.',
+        '.kFFdRrFdfk.',
+        '.kfffRrfffk.',
+        '..kkkkkkkk..',
+    ],
+    'shell': [
+        '..kk.kk.kk..',
+        '.klhkbbkbdk.',
+        '.klhldbbdbk.',
+        'klhldlbdbbdk',
+        'kllldlbdbbdk',
+        'kdlldlbdbbdk',
+        '.kdldlbdbdk.',
+        '..kdldbdbk..',
+        '...kdlbdk...',
+        '..kkbbbbkk..',
+        '..kddddddk..',
+        '...kkkkkk...',
+    ],
+    'acorn': [
+        '.....kk.....',
+        '....kCCk....',
+        '..kkkCCkkk..',
+        '.kcccdcdcck.',
+        'kcdcdcdcdcck',
+        'kddddddddddk',
+        '.kkkkkkkkkk.',
+        '.kNwNNNNnnk.',
+        '.kNNNNNNnnk.',
+        '..knNNNnnk..',
+        '...knnnnk...',
+        '....kkkk....',
+    ],
+    'capsule': [
+        '....kkkk....',
+        '..kkTTTTkk..',
+        '.kTwwTTTTtk.',
+        '.kTwTTTTTtk.',
+        'kTTTTTTTTttk',
+        'kkkkkkkkkkkk',
+        'kWWWWWWWWggk',
+        'kWhWWWWWWggk',
+        '.kWWWWWWggk.',
+        '.kgWWWWgggk.',
+        '..kkggggkk..',
+        '....kkkk....',
+    ],
+}
+
+
+def icon12(kind):
+    """Small area icons for the found counter: box, shell, acorn, capsule."""
+    if kind == 'box':
+        k, T, t, F, f, d, R, r = (rgb15(h) for h in BOX_COLORS['pink'])
+        legend = {'k': k, 'T': T, 't': t, 'F': F, 'f': f, 'd': d, 'h': C['white'], 'R': R, 'r': r}
+    elif kind == 'shell':
+        legend = {'k': rgb15('#b0607e'), 'h': C['white'], 'l': rgb15('#ffd6e3'), 'b': rgb15('#ffb3cb'),
+                  'd': rgb15('#e98aaa')}
+    elif kind == 'acorn':
+        legend = {'k': rgb15('#6e4a4a'), 'C': rgb15('#a0725f'), 'c': rgb15('#d8ae88'),
+                  'd': rgb15('#c49276'), 'N': rgb15('#ffdcb0'), 'n': rgb15('#f5c28c'), 'w': C['white']}
+    else:
+        legend = {'k': rgb15('#8a5a7a'), 'T': rgb15('#ffb6cb'), 't': rgb15('#ec8fae'), 'w': C['white'],
+                  'W': rgb15('#e4dcf2'), 'g': rgb15('#c8b8e4'), 'h': rgb15('#fbf6ff')}
+    return from_ascii(_ICON12[kind], legend)

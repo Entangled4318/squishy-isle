@@ -254,12 +254,12 @@ def main():
     # found counter pill, top right, as in the mockups: the area's container
     # icon at the left end, the count ("7/20") printed over it at run time in
     # color 1 (ui_ink). Two 32x16 sprites and one palette per area.
-    icons = [props.box16('pink'), props.shell('pink', 16), props.acorn16(), props.capsule16()]
+    icons = [props.icon12(k) for k in ('box', 'shell', 'acorn', 'capsule')]
     pills, pals = [], []
     for ic in icons:
         img = new(64, 16)
         blit(img, props.pill(COUNT_PILL_W, 15, C['ui_bg'], C['ui_pk'], C['ui_ink'], C['white']), 0, 1)
-        blit(img, ic, 1, 0)
+        blit(img, ic, 4, 2)             # inside the pill, clear of its left end
         lk, _ = palette_and_lookup([img])
         cs = [C['ui_ink']] + sorted(c for c in lk if c != C['ui_ink'])
         if len(cs) > 15:
