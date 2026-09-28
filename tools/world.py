@@ -1298,3 +1298,97 @@ def boardwalk(w, h=14):
     for y in range(h):
         img[y, w - 1, :3] = C['wd_ink']
     return img
+
+
+# ------------------------------------------------ Cloud Hill (step 6.5)
+def sky_map(w, h, bands, dither=2):
+    """Sky gradient for a whole map: bands of (y_start, color), dithered
+    2-row transitions that repeat every 2 px across, so rows share tiles."""
+    img = new(w, h)
+    img[..., 3] = 255
+    ys, xs = np.mgrid[0:h, 0:w]
+    for i, (y0, col) in enumerate(bands):
+        y1 = bands[i + 1][0] if i + 1 < len(bands) else h
+        img[y0:y1, :, :3] = col
+        if i > 0:
+            prev = bands[i - 1][1]
+            m = (ys >= y0) & (ys < y0 + dither) & (((xs + ys) % 2) == 0)
+            img[..., :3][m] = prev
+            m2 = (ys >= y0 + dither) & (ys < y0 + 2 * dither) & ((xs % 2) == 0) & ((ys % 2) == 0)
+            img[..., :3][m2] = prev
+    return img
+
+
+def star_glint(big=False):
+    """Cloud Hill star: the fill is st_lt, so it twinkles with the palette glint."""
+    if big:
+        rows = ['...k...', '..kyk..', 'kkyyykk', 'kyyyyyk', '.kyyyk.', '.kykyk.', 'kk...kk']
+    else:
+        rows = ['.k.', 'kyk', '.k.']
+    return from_ascii(rows, {'k': C['st_ink'], 'y': C['st_lt']})
+
+
+def glint_moon():
+    rows = [
+        '...kkkk..',
+        '..kyyyk..',
+        '.kyyyk...',
+        'kyyyk....',
+        'kyyyk....',
+        'kyyyyk...',
+        '.kyyyykk.',
+        '..kyyyyyk',
+        '...kkkkk.',
+    ]
+    return from_ascii(rows, {'k': C['st_ink'], 'y': C['st_lt']})
+
+
+def cloud_bed():
+    """Momo's comfy bed on Cloud Hill: a puffy cloud mattress with a round
+    pillow at the left (the blanket is a sprite, so it can tuck Momo in)."""
+    pillow = [C['cl_hi'], C['cl_hi'], C['cl_base'], C['cl_dk'], C['cl_dk2']]
+    mattress = [C['cl_hi'], C['cl_base'], C['cl_dk'], C['cl_dk2'], C['cl_ink']]
+    ink = C['cl_ink']
+    w, h = 48, 22
+    parts = [
+        P(Mochi(24, 14, 22, 7.5, nt=2.4, nb=5.0), mattress, z=0, k=3.0, line=ink),
+        P(Ellipse(9, 9, 7.5, 5), pillow, z=2, k=3.5, line=ink, levels=(0.95, 0.75, 0.40, 0.15)),
+    ]
+    img = shade_parts(w, h, parts, outline=ink)
+    for (x, y) in ((33, 17), (41, 13)):                        # two little stars stitched on the mattress
+        for dx, dy in ((0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)):
+            img[y + dy, x + dx, :3] = C['st_lt'] if (dx, dy) == (0, 0) else rgb15('#f5d97a')
+    return img
+
+
+def cloud_puff(w, h, seed=0):
+    """Small walkable cloud step for the way up from the shore (outlined)."""
+    import random
+    rnd = random.Random(seed)
+    blobs = [Mochi(w / 2, h * 0.62, w / 2 - 1.5, h * 0.34, nt=2.0, nb=5.0)]
+    for i in range(3):
+        cx = 4 + (w - 8) * (i + 0.5) / 3
+        r = h * rnd.uniform(0.28, 0.36) * (1.2 if i == 1 else 1.0)
+        blobs.append(Ellipse(cx, h * 0.52 - r * 0.4, r, r * 0.9))
+    rp = [C['cl_hi'], C['cl_hi'], C['cl_base'], C['cl_dk'], C['cl_dk2']]
+    return shade_parts(w, h, [P(Union(*blobs), rp, k=5.0, levels=(0.9, 0.62, 0.30, 0.12))], outline=C['cl_ink'])
+
+
+def lollipop(kind='pink'):
+    """Swirl lollipop on a stick, Cloud Hill decor (8x15)."""
+    a, b = {'pink': ('#ffb3c8', '#ec8fae'), 'blue': ('#bfe0ff', '#86b4e6'), 'mint': ('#bff0cc', '#7cc8a0')}[kind]
+    rows = [
+        '.kkkkk.',
+        'kawwaak',
+        'kwaawbk',
+        'kwbwawk',
+        'kbaawbk',
+        'kawbbak',
+        '.kkkkk.',
+        '...s...',
+        '...s...',
+        '...s...',
+        '...s...',
+        '..kkk..',
+    ]
+    return from_ascii(rows, {'k': C['rf_ink'], 'a': rgb15(a), 'b': rgb15(b), 'w': C['white'], 's': C['wl_dk']})

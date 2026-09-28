@@ -35,7 +35,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
-| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | In progress; see "Step 6 progress" |
+| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | In progress (6.1 to 6.5 done); see "Step 6 progress" |
 | 7. QA and final ROM with Brick instructions | To do |
 
 ## Owner notes
@@ -44,6 +44,12 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  6.5 (with 10 shore friends Momo wakes on the shore and waddles up the
+  cloud steps; the east edge leads up to Cloud Hill and back down; the
+  sky, rainbow and candy trees read well at 4x; the stars and moon
+  twinkle softly, not flashy; Momo sleeps tucked in on its cloud bed and
+  hops with hearts when Pip comes close; the Cloud Hill song plays; the
+  capsules read on the white cloud), step
   6.4 (with 10 woods friends Momo wakes in the woods and the east trail
   leads onto the shore boardwalk; the sea glints; shells read as
   shells; the shore song plays), step
@@ -89,7 +95,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 6.5 (Cloud Hill), see "Step 6 progress". Owner
+- Next: step 6.6 (open screen per container), see "Step 6 progress".
+  Owner (step 6 session 2): do all of step 6 without stopping (merge
+  after each sub-step), then ask before step 7. Owner
   answers for 6.7: mailbox = a letter with a happy message from the
   newest friend (flag up after each new friend; A reads it; no new mail
   re-reads the last one); picnic basket = snack time (A opens the lid, a
@@ -589,7 +597,39 @@ Plan, one sub-step at a time, merge after each:
    2, shore song, Momo at the way on with 1/10, back to the woods).
    13 suites. Screenshots `docs/step6_4_shore.png`. Score 8.5 (first
    pass 8: Momo's bubble cut at the edge, a palm over Momo).
-5. Cloud Hill map, stairs from the Shore.
+5. Cloud Hill. **Done.** `areas.clouds()` (480x320) from the 08
+   mockup: a lavender to pink sky over the whole map (`world.sky_map`,
+   bands repeat across so rows share tiles), a rainbow behind the big
+   island, soft far clouds, a moon and stars. Walkable = cloud
+   (`CloudBlob` islands joined by `puff_bridge()` chains of small puffs;
+   a cell is solid unless 70% of it is cloud). Big island: capsule
+   machine (`world.gacha`) under the rainbow, candy trees, lollipops, pen
+   the meadow's size at 282..402 x 168..252 with its sign. A garden
+   island south-west, Momo's island north-east. West: cloud steps down
+   to the shore (exit 12 px wide, arrive on the shore at 452,150); on the
+   shore, 4 cloud puffs at the east edge show the way up (arrive 24,204).
+   Stars and moon use `st_lt`, the area's glint color, so they twinkle.
+   682 tiles, 14 palettes. Capsules in 5 colors (`props.CAPSULE_COLORS`,
+   one index image). Momo's happy end: `Area.momo` / `AreaMap.momo_x,y`
+   is its bed (`world.cloud_bed`, BG: mattress and pillow); once every
+   way is open Momo sleeps there tucked in under a sky-blue blanket
+   sprite (`npc.blanket()`, 64x32, Momo's palette, `NPC_BLANKET`, drawn
+   in front of Momo), z's rising. Pip within 40 px: Momo wakes, hops
+   twice every 48 frames, hearts float up, a chime (log `momo home
+   near`). `T_NPC_TXT` moved to 232 (Momo now takes 66 tiles). Fixed on
+   the way: a save with no position (0,0) put Pip at the meadow's spawn
+   in any area; `restore_pos` now uses the area's spawn.
+   `make_save.py` takes AREA (5th argument; GATES may be `-`). Tests:
+   `clouds.txt`, `clouds_continue.txt`, `check_clouds.py` (Momo's shore
+   scene, up the steps, cloud song, a capsule gives a cloud friend, shelf
+   page 3, Momo asleep under the blanket and awake, no gate Momo left,
+   back down, Continue on Cloud Hill, sky and pill colors within one
+   5-bit step: mGBA's output differs by a step). 14 suites. Screenshots
+   `docs/step6_5_clouds.png`, map `docs/step6_5_clouds_map.png`. Scores:
+   map 8.5 (first 7: flat capsule bridges, the sign under the machine,
+   a bridge neck too narrow for Pip's feet; second 8: the west exit at
+   6 px), Momo's bed 8.5 (first 7: Momo sat on the bed and the counter
+   pill hid its z's; a first blanket read as a blue tub).
 6. Open screen per container (64 px acorn, shell, capsule).
 7. Mailbox and picnic basket (ask the owner first).
 8. Full 80-friend loop, scores, release.
@@ -684,6 +724,11 @@ memory dump. Checks read the log, pixels and audio pitch.
   `step3_boxes.txt`, `pen.txt`, `pick.txt`, `pen20.txt` and the spot in
   `check_step3.py`. Probe Pip's position with a `dump` (IWRAM, `pip_x` /
   `pip_y` from `nm`) instead of guessing frame counts.
+- An exit at the map edge must be at least 12 px wide: Pip's feet box
+  stops 5 px from the edge, so a 6 px exit leaves one reachable column.
+- A small prop that puts sky, cloud edge and its own colors in one 8x8
+  tile can cost 2 BG palettes (Cloud Hill lollipop: 14 to 16). Check
+  `bg(...)` after every placement near an edge.
 - The scene manager leaves `pending` equal to `current` after a switch
   (it is not cleared to NULL); test drivers must compare, not test 0.
 - Map objects split at Pip's height (26 px): upper part on the overlay BG

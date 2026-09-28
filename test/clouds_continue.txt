@@ -1,0 +1,7 @@
+# Continue on Cloud Hill after a power off
+wait 20
+tap A
+wait 15
+tap A
+wait 60
+shot c09_continue

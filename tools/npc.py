@@ -41,6 +41,55 @@ def zz():
     return out
 
 
+def blanket():
+    """64x32 sprite, blanket in its bottom 16 rows: a sky-blue quilt (the
+    nightcap's colors) that drapes over Momo on its cloud bed, a folded
+    cream edge at the top and a wavy hem, so Momo's face peeks out."""
+    import math
+    from gba import rgb15
+    k, w, c, b, d = (rgb15(h) for h in ('#6b5a84', '#fffff7', '#fff7e7', '#bde7ff', '#94ceef'))
+    img = new(64, 32)
+    cx, top, bot = 32, 17, 30
+    m = np.zeros((32, 64), bool)
+    for y in range(top, bot + 1):
+        t = (y - top) / (bot - top)
+        half = 17 + 4 * t ** 0.7                         # drapes wider toward the hem
+        for x in range(64):
+            dx = x + 0.5 - cx
+            if abs(dx) > half:
+                continue
+            if (y == top and abs(dx) > half - 2) or (y >= bot - 1 and abs(dx) > half - (y - bot + 3)):
+                continue                                 # rounded corners
+            m[y, x] = True
+    out = np.zeros_like(m)
+    out[1:] |= m[:-1]; out[:-1] |= m[1:]; out[:, 1:] |= m[:, :-1]; out[:, :-1] |= m[:, 1:]
+    inner = m & ~(out & ~m)
+    edge = m & ~(np.roll(m, 1, 0) & np.roll(m, -1, 0) & np.roll(m, 1, 1) & np.roll(m, -1, 1))
+    for y in range(32):
+        for x in range(64):
+            if not m[y, x]:
+                continue
+            img[y, x, 3] = 255
+            if edge[y, x]:
+                col = k
+            elif y <= top + 1:
+                col = w
+            elif y == top + 2:
+                col = c
+            elif y == top + 3:
+                col = d
+            elif not m[y + 1, x] or not m[y + 2, x] or not m[y, x + 2] or not m[y, x - 2]:
+                col = d                                          # soft shade at the hem and sides
+            elif (x - cx) % 9 == 4 and y >= top + 6:
+                col = d                                          # soft folds hanging down
+            elif (x - cx) % 9 == 0 and y % 4 == 1 and y < bot - 2:
+                col = w                                          # little white dots between the folds
+            else:
+                col = b
+            img[y, x, :3] = col
+    return img
+
+
 if __name__ == '__main__':
     from gba import save_scaled
     f = frames()
