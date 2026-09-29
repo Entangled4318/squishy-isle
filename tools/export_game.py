@@ -82,6 +82,64 @@ def open_background():
     return img
 
 
+def letter_parts():
+    """Letter scene: a pink polka-dot backdrop, and a cream card (transparent
+    around it) with a scalloped pink edge, ruled lines under the text, a
+    round frame for the friend's portrait and a heart stamp."""
+    ys, xs = np.mgrid[0:H, 0:W]
+    back = new(W, H)
+    back[..., 3] = 255
+    back[..., :3] = rgb15('#fbe4ee')
+    back[..., :3][((xs % 16) == 3) & ((ys % 16) == 4)] = rgb15('#f6d0e0')
+    back[..., :3][((xs % 16) == 11) & ((ys % 16) == 12)] = rgb15('#f6d0e0')
+    card = new(W, H)
+    x0, y0, x1, y1 = 12, 8, 228, 152
+    paper, rule, band, ink = rgb15('#fffaf0'), rgb15('#f6dccf'), rgb15('#ffd2df'), rgb15('#e088a8')
+    inside = (xs >= x0) & (xs < x1) & (ys >= y0) & (ys < y1)
+    # scalloped edge: bumps every 8 px around the card
+    bump = np.zeros_like(inside)
+    for cx in range(x0 + 4, x1, 8):
+        for cy in (y0, y1 - 1):
+            bump |= (xs - cx) ** 2 + (ys - cy) ** 2 <= 16
+    for cy in range(y0 + 4, y1, 8):
+        for cx in (x0, x1 - 1):
+            bump |= (xs - cx) ** 2 + (ys - cy) ** 2 <= 16
+    shape = inside | bump
+    card[shape, :3] = band
+    card[shape, 3] = 255
+    inner = (xs >= x0 + 4) & (xs < x1 - 4) & (ys >= y0 + 4) & (ys < y1 - 4)
+    card[inner, :3] = paper
+    out = np.zeros_like(shape)
+    out[1:] |= shape[:-1]; out[:-1] |= shape[1:]; out[:, 1:] |= shape[:, :-1]; out[:, :-1] |= shape[:, 1:]
+    out &= ~shape
+    card[out, :3] = ink
+    card[out, 3] = 255
+    edge = inner & ~((xs >= x0 + 5) & (xs < x1 - 5) & (ys >= y0 + 5) & (ys < y1 - 5))
+    card[edge, :3] = rgb15('#f5c4d4')
+    for y in (38, 60, 74, 100, 114):                   # ruled lines under the text (see letter.c)
+        card[y, 110:214, :3] = rule
+    # round frame for the portrait: soft pink disc with a dotted rim
+    d2 = (xs - 60) ** 2 + (ys - 80) ** 2
+    card[(d2 <= 36 * 36) & inner, :3] = rgb15('#ffeef3')
+    ring = (d2 <= 37 * 37) & (d2 > 35 * 35) & (((xs + ys) // 3) % 2 == 0)
+    card[ring, :3] = rgb15('#f5b8cc')
+    # heart stamp, top right
+    sx, sy = 196, 14
+    card[sy:sy + 24, sx:sx + 20, :3] = rgb15('#ffffff')
+    for x in range(sx, sx + 20, 2):
+        card[sy, x, :3] = paper
+        card[sy + 23, x, :3] = paper
+    for y in range(sy, sy + 24, 2):
+        card[y, sx, :3] = paper
+        card[y, sx + 19, :3] = paper
+    card[sy + 3:sy + 21, sx + 3:sx + 17, :3] = rgb15('#ffe0ea')
+    blit(card, props.HEART_BIG, sx + 6, sy + 8)
+    # small hearts in the bottom corners
+    blit(card, props.HEART, x0 + 8, y1 - 16)
+    blit(card, props.HEART, x1 - 15, y1 - 16)
+    return back, card
+
+
 def title_parts():
     """Title screen from the mockup: one flat background (sky, island and the
     cast's shadows) plus the logo letters as separate bouncing sprites."""
@@ -255,9 +313,29 @@ def main():
     heart = new(8, 8)
     blit(heart, props.HEART, 0, 0)
     cells.append(heart)
-    lk, pal = palette_and_lookup(cells)
+    # meadow extras in the same palette (the maps use all 16 OBJ palettes):
+    # 8 snacks, the envelope over the mailbox, its flag up and down (16x16 each)
+    extras = [props.snack16(k) for k in props.SNACK_ORDER] + [props.envelope16(), props.mail_flag(True),
+                                                              props.mail_flag(False)]
+    lk, pal = palette_and_lookup(cells + extras)
     cw.u32_bytes('ui_small_tiles', b''.join(obj(c, lk) for c in cells))
     cw.u16('ui_small_pal', pal)
+    cw.u32_bytes('ui_extra_tiles', b''.join(obj(c, lk) for c in extras))
+    cw.define('SNACK_KINDS', len(props.SNACK_ORDER))
+    cw.define('EXTRA_ENVELOPE', len(props.SNACK_ORDER) * 4)
+    cw.define('EXTRA_FLAG_UP', len(props.SNACK_ORDER) * 4 + 4)
+    cw.define('EXTRA_FLAG_DOWN', len(props.SNACK_ORDER) * 4 + 8)
+    cw.c.append('const char *const snack_names[' + str(len(props.SNACK_ORDER)) + '] = {' +
+                ', '.join(f'"{k}"' for k in props.SNACK_ORDER) + '};\n')
+    cw.h.append(f'extern const char *const snack_names[{len(props.SNACK_ORDER)}];\n')
+    save_scaled(np.concatenate(extras, axis=1), os.path.join(OUT, 'meadow_extras.png'), 6)
+
+    # ---------------- letter: static background (map0), the card that slides up (map1), envelope
+    export_multi_bg(cw, 'letter', list(letter_parts()))
+    env = [props.envelope64(False), props.envelope64(True)]
+    lk, pal = palette_and_lookup(env)
+    cw.u32_bytes('envelope64_tiles', b''.join(obj(e, lk) for e in env))
+    cw.u16('envelope64_pal', pal)
     cw.define('UI_TWINKLE0', 0)
     cw.define('UI_HEART', 3)
 
@@ -374,6 +452,7 @@ def main():
                 '    const uint16_t *exits; uint8_t nexits;   /* x, y, w, h, to area, arrive x, arrive y */\n'
                 '    const uint16_t *gates; uint8_t ngates;   /* x, y, w, h, to area: Momo lies there while it is shut */\n'
                 '    uint16_t momo_x, momo_y;             /* Momo sleeps on its bed here once every way is open (0 = none) */\n'
+                '    uint16_t mail_x, mail_y, basket_x, basket_y;   /* base centres of the mailbox and picnic basket (0 = none) */\n'
                 '} AreaMap;\n')
     built = [b() for b in AREA_BUILDERS]
     names = [a[0] for a in AREAS]
@@ -479,12 +558,14 @@ def export_area(cw, a, index):
     pen = a.pen or (0, 0, 0, 0)
     sign = a.sign or (0, 0)
     momo = a.momo or (0, 0)
+    mail = a.mailbox or (0, 0)
+    basket = a.basket or (0, 0)
     n = a.name
     return (f'    {{{index}, {n}_tiles, {len(b["tiles"])}, {n}_pal, {len(b["palettes"]) * 32}, {n}_ground, {n}_overlay,\n'
             f'     {n}_solid, {areas.CELL.bit_length() - 1}, {a.w}, {a.h}, {a.spawn[0]}, {a.spawn[1]},\n'
             f'     {n}_spots, {len(a.spots)}, {a.first_spot}, {pen[0]}, {pen[1]}, {pen[2]}, {pen[3]}, {sign[0]}, {sign[1]},\n'
             f'     {n}_shimmer, {len(slots)}, {n}_shimmer_cycle, {n}_doors, {len(a.doors)}, {n}_exits, {len(a.exits)},\n'
-            f'     {n}_gates, {len(a.gates)}, {momo[0]}, {momo[1]}}}')
+            f'     {n}_gates, {len(a.gates)}, {momo[0]}, {momo[1]}, {mail[0]}, {mail[1]}, {basket[0]}, {basket[1]}}}')
 
 
 if __name__ == '__main__':

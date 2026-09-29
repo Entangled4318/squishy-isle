@@ -1,0 +1,12 @@
+# snack time with no followers: Pip hops and eats it
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+walkto 329 258 1500
+wait 10
+tap A
+wait 50
+shot m10_pip_snack
+wait 120

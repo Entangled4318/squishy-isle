@@ -35,7 +35,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
-| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | In progress (6.1 to 6.6 done); see "Step 6 progress" |
+| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | In progress (6.1 to 6.7 done); see "Step 6 progress" |
 | 7. QA and final ROM with Brick instructions | To do |
 
 ## Owner notes
@@ -44,6 +44,11 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  6.7 (after a new friend the mailbox flag waves and an envelope bobs;
+  A by the mailbox: the envelope drops, the letter slides up, the
+  friend squeaks; the flag goes down after; snack time at the basket:
+  a treat pops out, the followers hop over and squeak, the pace feels
+  cosy, not slow; with no followers Pip hops), step
   6.6 (open an acorn, a seashell and a capsule: each reads at 4x, the
   cap, top shell and dome fly off, the pearl and the hollow nut read),
   step
@@ -98,7 +103,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 6.7 (mailbox and picnic basket), see "Step 6 progress".
+- Next: step 6.8 (full 80-friend loop, scores, release), see "Step 6 progress".
   Owner (step 6 session 2): do all of step 6 without stopping (merge
   after each sub-step), then ask before step 7. Owner
   answers for 6.7: mailbox = a letter with a happy message from the
@@ -654,7 +659,44 @@ Plan, one sub-step at a time, merge after each:
    15-bit). 15 suites. Screenshots `docs/step6_6_open.png`, art sheet
    `docs/step6_6_containers64.png`. Scores: acorn 8.5, seashell 8.5
    (first 7.5: a tiny pearl on the rim, a small fan), capsule 8.5.
-7. Mailbox and picnic basket (ask the owner first).
+7. Mailbox and picnic basket (owner answers above). **Done.**
+   Mailbox: the map's mailbox has no flag now (`world.mailbox(flag=False)`);
+   the flag is a sprite, up (waving) while `game_save.mail_new`, down
+   after reading, and an envelope bobs over the mailbox while a letter
+   waits. Save (still v2, 144 bytes, in the old padding): `mail` (newest
+   friend id + 1, set with `mail_new` by `collection_add`), cleared by new
+   game. By the mailbox (the sign's zone, `near_prop`, only once a letter
+   exists) the A bubble shows; A opens `scene_letter` (`letter.c`): a
+   pink envelope drops in, wobbles, opens, the card slides up out of it
+   (BG1 paper + BG0 text scroll together, BG2 backdrop stays; the card
+   starts 96 px low because the 256 px map wraps and only rows 160..255
+   are blank; BG0/BG1 show from the flap), then the friend pops into its
+   round frame with a squeak, hearts and `tune_hello`. Text on the ruled
+   lines: "Dear Pip," / one of 12 two-line messages (`(id * 5) % 12`) /
+   "Love," / the friend's name. A squishes (3 go back), B or START go
+   back, any press while it opens skips to the letter. Reading clears
+   `mail_new`; with no new mail A re-reads the last letter. Basket: A
+   pops a treat (8 kinds in `props.SNACKS`, the next in turn each time,
+   the first random) out of the basket onto the blanket; the followers
+   hop over to seats left, behind and in front of it (clear of Pip and
+   the basket), each takes a bite with a squeak and a heart, a twinkle
+   when it is gone, they hop back into line (134 frames). With no
+   followers Pip hops twice and eats it. Pip waits during snack time;
+   60 frames cooldown; no guide arrow meanwhile. Sprites: `ui_extra_tiles`
+   (8 snacks, envelope, flag up / down, 16x16) share the sparkle palette
+   (`ui_small_pal`, now 15 colors; the maps use all 16 OBJ palettes);
+   the flag uses the flower yellows, not the arrow's (tests find the
+   arrow by its yellow). `AreaMap.mail_x/y, basket_x/y`. Meadow 902
+   tiles, 15 palettes. Tests: `mail.txt`, `mail_solo.txt`,
+   `check_mail.py` (no bubble before a letter, the newest friend's
+   letter, squish, back, re-read, flag up / down and envelope pixels,
+   envelope and card, two different treats with 3 followers, Pip alone),
+   `test_collection.c` (mail set by a new friend, not by a known one,
+   cleared by new game, offset 123). 16 suites. Screenshot
+   `docs/step6_7_mail_snack.png`. Scores: mailbox and letter 8.5 (first
+   7: the card's bottom showed at the top while the envelope dropped; the
+   flag was 4 px), snack time 8.5 (first 7.5: the right seat stood on
+   Pip and the basket; the arrow drew over the treat).
 8. Full 80-friend loop, scores, release.
 
 ## What step 3 should do (as promised to the owner)
@@ -747,6 +789,13 @@ memory dump. Checks read the log, pixels and audio pitch.
   `step3_boxes.txt`, `pen.txt`, `pick.txt`, `pen20.txt` and the spot in
   `check_step3.py`. Probe Pip's position with a `dump` (IWRAM, `pip_x` /
   `pip_y` from `nm`) instead of guessing frame counts.
+- Test randomness follows boot time: a new game's seed uses
+  `frame_count` at the press, so a ROM that reaches the title one frame
+  later (f3, not f2) shuffles differently and `step3_boxes.txt` walks
+  past the wrong boxes. Boot time grows with zeroed RAM (`.sbss`, 47 KB):
+  the letter's 5 text strips (10 KB) did it; one shared strip fixed it.
+  Keep big buffers shared, and check `boot_only.txt` still shows
+  "scene title" at f2.
 - An exit at the map edge must be at least 12 px wide: Pip's feet box
   stops 5 px from the edge, so a 6 px exit leaves one reachable column.
 - A small prop that puts sky, cloud edge and its own colors in one 8x8

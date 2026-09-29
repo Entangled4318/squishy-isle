@@ -61,6 +61,8 @@ bool collection_add(int id) {
     if (id < 0 || id >= NUM_FRIENDS || friend_found(id)) return false;
     game_save.found[id] = 1;
     game_save.opens++;
+    game_save.mail = (u8)(id + 1);           /* a letter from the new friend: the mailbox flag goes up */
+    game_save.mail_new = 1;
     follower_join(id);
     collection_save();
     return true;
@@ -74,6 +76,7 @@ void collection_new_game(u32 seed) {
     game_save.pip_x = game_save.pip_y = 0;
     game_save.area = 0;
     game_save.gates = 0;
+    game_save.mail = game_save.mail_new = 0;
     game_save.rng = seed | 1;
     collection_save();
 }

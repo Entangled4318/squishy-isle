@@ -667,7 +667,9 @@ class SmoothUnion(SDF):
 
 
 # ------------------------------------------------------------ more props
-def mailbox():
+def mailbox(flag=True):
+    """flag=False: without its flag (the ROM draws the flag as a sprite, so
+    it can go up when a letter waits)."""
     pink = ramp('rf_hi', 'rf_lt', 'rf_base', 'rf_dk', 'rf_dk')
     parts = [
         P(Poly([(5.5, 11), (8.5, 11), (8.5, 21), (5.5, 21)], 0.2), WOOD, z=0, bevel=True),
@@ -675,7 +677,7 @@ def mailbox():
           k=2.0, levels=(0.97, 0.8, 0.4, 0.15), line=C['rf_ink']),
         P(Poly([(12.5, 1), (14.5, 1), (14.5, 9), (12.5, 9)], 0.3), ramp('f_yel', 'f_yel', 'f_yel', 'f_yel_dk', 'f_yel_dk'),
           z=2, bevel=True, line=C['rf_ink']),
-    ]
+    ][:3 if flag else 2]
     img = shade_parts(16, 23, parts, outline=C['rf_ink'])
     for x in range(4, 10):
         img[8, x, :3] = C['rf_ink']
