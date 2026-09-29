@@ -95,6 +95,8 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	./$(HARNESS) $(ROM) $(OUT)/mail.sav mail.txt $(OUT) > $(OUT)/mail.log
 	python3 make_save.py $(OUT)/mail_solo.sav 0,1,2,3 ""
 	./$(HARNESS) $(ROM) $(OUT)/mail_solo.sav mail_solo.txt $(OUT) > $(OUT)/mail_solo.log
+	python3 make_save.py $(OUT)/mailq.sav 0,1,2 ""
+	./$(HARNESS) $(ROM) $(OUT)/mailq.sav mail_queue.txt $(OUT) > $(OUT)/mail_queue.log
 	python3 check_mail.py $(OUT)
 	python3 make_save.py $(OUT)/house_m.sav 0,1,6,7,12,15,19 0
 	./$(HARNESS) $(ROM) $(OUT)/house_m.sav house_meadow.txt $(OUT) > $(OUT)/house_meadow.log

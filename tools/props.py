@@ -231,6 +231,16 @@ SPARK_HUGE = from_ascii([
 ], {'w': rgb15('#fff6c0'), 'y': rgb15('#ffe07a'), 'W': C['white']})
 SPARK_TINY = from_ascii(['.w.', 'wWw', '.w.'], {'w': rgb15('#fff6c0'), 'W': C['white']})
 
+# Map container twinkles (Brick test, 8.1): the pale ones above vanished on
+# sand and cloud. Gold with a tan outline, in colors the sparkle palette
+# already holds (it is full), 16x16 frames: small, medium, big.
+_MAP_TW = {'o': rgb15('#b5845a'), 'g': rgb15('#f7b54a'), 'y': rgb15('#ffe07a'), 'w': C['white']}
+MAP_TWINKLES = [from_ascii(rows, _MAP_TW) for rows in (
+    ['..o..', '.oyo.', 'oywyo', '.oyo.', '..o..'],
+    ['...o...', '..oyo..', '.oywyo.', 'oywwwyo', '.oywyo.', '..oyo..', '...o...'],
+    ['.....o.....', '....ogo....', '....oyo....', '...oyyyo...', '.oooywyooo.', 'ogyywwwyygo',
+     '.oooywyooo.', '...oyyyo...', '....oyo....', '....ogo....', '.....o.....'])]
+
 
 def shadow(w, h, color=None):
     s = new(w, h)
@@ -585,7 +595,7 @@ def shell64(color='pink', part='all'):
         dish = new(64, 64)
         for y in range(44, 62):
             for x in range(64):
-                dx, dy = (x + 0.5 - 32) / 29.0, (y + 0.5 - 52.5) / 9.0
+                dx, dy = (x + 0.5 - 32) / 28.0, (y + 0.5 - 52.5) / 9.0
                 if dx * dx + dy * dy <= 1:
                     dish[y, x, 3] = 255
                     ridge = int((x + 0.5 - 32) / 5.5 + 50) % 2
@@ -619,7 +629,7 @@ def shell64(color='pink', part='all'):
                 th = math.atan2(-dy, dx)
                 t = th / math.pi * n
                 ridge = abs((t % 1.0) - 0.5) * 2
-                R = 30.5 + 3.2 * (1 - ridge) ** 0.8
+                R = 27.6 + 2.9 * (1 - ridge) ** 0.8          # scallop tips 1 px inside the 64 px frame (8.1: they were cut)
                 if r > R:
                     continue
                 shade = 0.55 + 0.45 * math.cos(th - 2.2)

@@ -64,6 +64,20 @@ check(count(letter, ('#fffaf0',), (30, 50, 90, 110)) < 1500, 'the friend waves f
 snack = img('m08_snack')
 check(count(snack, ('#ff6f86', '#f0c890', '#b8805a', '#4a3a5c', '#5fa870', '#ff9fbd'), (80, 60, 120, 95)) > 8,
       'the treat sits on the picnic blanket')
+# step 8.2: each new friend's letter waits its turn
+q = open(os.path.join(OUT, 'mail_queue.log')).read()
+pops = [int(v) for v in re.findall(r'open pop friend (\d+)', q)]
+reads = re.findall(r'scene letter friend (\d+) new (\d) msg \d+ waiting (\d)', q)
+check(len(pops) == 2 and len(reads) == 3, f'two new friends, three visits to the mailbox ({pops}, {reads})')
+if len(pops) == 2 and len(reads) == 3:
+    check([int(r[0]) for r in reads[:2]] == pops and reads[0][1:] == ('1', '1') and reads[1][1:] == ('1', '0'),
+          'their letters come oldest first; the flag stays up until the last one is read')
+    check(reads[2] == (str(pops[1]), '0', '0'), 'none waiting: A re-reads the last letter')
+fu, fd = img('mq_flag_up'), img('mq_flag_down')
+box = (116, 44, 152, 78)                  # Pip below the mailbox (goto mail, 276,110): the flag at screen ~125..141, 54..70
+check(count(fu, flag, box) >= 20 and count(fd, flag, box) <= 6,
+      f'the flag is up between the two letters, down after ({count(fu, flag, box)}, {count(fd, flag, box)} px)')
+
 for n in ('m02_mail_bubble', 'm05_letter_squish', 'm07_basket_bubble', 'm09_snack2', 'm10_pip_snack'):
     img(n)
 if fails:

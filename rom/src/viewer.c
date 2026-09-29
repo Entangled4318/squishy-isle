@@ -31,7 +31,7 @@
 #define T_COUNT_TXT (T_COUNT + 16)
 #define T_NPC     160      /* Momo: asleep, awake (32x32 each), two z's; palette P_SHADOW */
 #define T_NPC_TXT 232      /* "7/10" in Momo's bubble, 32x16 (after Momo's 66 tiles) */
-#define T_EXTRA   240      /* snacks, envelope, flag up / down (16x16 each), palette P_SPARK */
+#define T_EXTRA   240      /* snacks, envelope, flag up / down, map twinkles (16x16 each, 56 tiles), palette P_SPARK */
 #define T_PARADE  320      /* parade: the area's 4 species x (idle, open) at 32 px, 16 tiles each */
 #define P_SQ      10       /* 10..14: the area's 5 flavor palettes */
 #define P_COUNT   15
@@ -774,11 +774,12 @@ static void draw_boxes(void) {
         int hop = t < 16 ? isin(t * 2) * 3 / 256 : 0;
         world_spr(by, sx - 8, sy - 15 - hop, A0_SQUARE, 1, 0, T_BOX, P_BOX + b->color);
         world_spr(by - 1, sx - 8, sy - 5, A0_WIDE | A0_BLEND, 0, 0, T_SHADOW, P_SHADOW);
-        /* one twinkle walks around the box: tiny, small, big, small */
-        static const s8 around[6][2] = {{-9, -14}, {7, -17}, {9, -6}, {-3, -20}, {-11, -4}, {4, -12}};
+        /* one twinkle walks around the box: small, medium, big, medium. Gold
+         * with a tan outline (8.1: the pale 8 px ones vanished on sand and cloud) */
+        static const s8 around[6][2] = {{-10, -15}, {8, -18}, {10, -6}, {-3, -22}, {-12, -4}, {4, -12}};
         int k = (int)((frame_count + b->phase) / 24) % 6;
         int f = (int)((frame_count + b->phase) / 6) % 4;
-        ui_spr(sx + around[k][0] - 4, sy + around[k][1] - 4, A0_SQUARE, 0, 0, T_SPARK + (f == 3 ? 1 : f), P_SPARK);
+        ui_spr(sx + around[k][0] - 8, sy + around[k][1] - 8, A0_SQUARE, 1, 0, T_EXTRA + EXTRA_TWINKLE + (f == 3 ? 1 : f) * 4, P_SPARK);
     }
     if (touch_box >= 0) {
         int bx = spot_x(boxes[touch_box].spot), by = spot_y(boxes[touch_box].spot);

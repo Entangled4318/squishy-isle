@@ -118,8 +118,26 @@ int main(void) {
     game_save.mail_new = 0;
     collection_add(27);
     CHECK(game_save.mail == 28 && !game_save.mail_new, "no letter for a friend found before");
+    /* step 8.2: every new friend's letter waits its turn, oldest first */
+    reset(6);
+    collection_add(3);
+    collection_add(45);
+    collection_add(61);
+    int l1 = letter_open(), f1 = game_save.mail_new;      /* CHECK evaluates its condition twice: read first */
+    CHECK(l1 == 3 && f1, "the oldest letter first (friend 3), two still wait");
+    int l2 = letter_open(), f2 = game_save.mail_new;
+    CHECK(l2 == 45 && f2, "then friend 45");
+    int l3 = letter_open(), f3 = game_save.mail_new;
+    CHECK(l3 == 61 && !f3, "then friend 61; the flag goes down with the last one");
+    int l4 = letter_open(), f4 = game_save.mail_new;
+    CHECK(l4 == 61 && !f4, "none waiting: A re-reads the last letter");
+    for (int i = 0; i < MAX_LETTERS + 2; i++) collection_add(20 + i);
+    int l5 = letter_open();
+    CHECK(l5 == 22 && game_save.letters[MAX_LETTERS - 2] == 20 + MAX_LETTERS + 2,
+          "a full queue drops the oldest letters (%d kept)", MAX_LETTERS);
     collection_new_game(3);
-    CHECK(game_save.mail == 0 && !game_save.mail_new, "new game empties the mailbox");
+    CHECK(game_save.mail == 0 && !game_save.mail_new && !game_save.letters[0] && !game_save.letter_read,
+          "new game empties the mailbox");
     CHECK(offsetof(SaveData, mail) == 123 && offsetof(SaveData, checksum) == 140, "mail sits in the old padding (at %u)",
           (unsigned)offsetof(SaveData, mail));
     return fails ? 1 : 0;

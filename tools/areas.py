@@ -277,8 +277,8 @@ def woods():
     a.doors.append((232, 60, 16, 10, 'home'))
 
     # ---- props: berry bushes, stumps, fallen logs
-    for kind, x, y in (('red', 88, 116), ('blue', 176, 100), ('red', 262, 214), ('blue', 110, 188),
-                       ('red', 402, 90), ('blue', 36, 252), ('red', 136, 250)):
+    for kind, x, y in (('red', 88, 116), ('blue', 176, 100), ('red', 262, 214), ('blue', 70, 166),
+                       ('red', 402, 90), ('blue', 36, 252), ('red', 136, 250)):   # blue 70,166 was on the trail (8.1)
         a.place(world.berry_bush(kind), x, y, block_w=10, tall=6)
     for x, y in ((282, 84), (380, 90)):
         a.place(world.stump(), x, y, block_w=12, tall=6)
@@ -344,7 +344,7 @@ def shore():
     world.footprints(a.ground, [(130, 120), (135, 126), (129, 134), (134, 141), (128, 148), (133, 155), (127, 162)])
     a.decor(world.boardwalk(92), 0, 193)
     a.decor(world.towel(), 248, 128)
-    for (w_, x, y) in ((36, 201, 136), (26, 2, 148), (26, 402, 126), (26, 166, 298), (26, 442, 282)):
+    for (w_, x, y) in ((36, 201, 136), (26, 2, 148), (26, 402, 126), (26, 166, 298), (26, 434, 282)):
         a.decor(world.tree_shadow(w_, C['s_dk']), x, y)
     for x, y in ((40, 22), (330, 34)):
         a.decor(world.sailboat(), x, y)
@@ -352,10 +352,11 @@ def shore():
     # ---- objects; the beach hut up the beach (its door opens the room with the shore gifts)
     a.place(world.beach_hut(), 294, 72, block_w=46, tall=18)
     a.doors.append((314, 118, 16, 10, 'home'))
-    a.place(world.palm(), -6, 100, block_w=10, tall=6)
-    a.place(world.palm(flip=True), 396, 78, block_w=10, tall=6)
-    a.place(world.palm(), 160, 250, block_w=10, tall=6)
-    a.place(world.palm(flip=True), 436, 232, block_w=10, tall=6)
+    P_, T_ = world.PALM_PAD, world.PALM_TOP            # the palm image grew in 8.1 (its fronds were cut)
+    a.place(world.palm(), -6 - P_, 100 - T_, block_w=10, tall=6)
+    a.place(world.palm(flip=True), 396 - P_, 78 - T_, block_w=10, tall=6)
+    a.place(world.palm(), 160 - P_, 250 - T_, block_w=10, tall=6)
+    a.place(world.palm(flip=True), 428 - P_, 232 - T_, block_w=10, tall=6)   # 8 px west: its leaves clear the east fence
     a.place(world.umbrella(), 196, 92, block_w=6, tall=6)
     a.place(world.sandcastle(), 110, 146, block_w=30, tall=10)
     a.place(world.bucket(), 148, 170)

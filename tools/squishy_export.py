@@ -42,11 +42,23 @@ SILHOUETTE = {  # per shelf row tint: fill, rim
 }
 
 
+def _fits(im, size):
+    cols = (im[..., 3] > 0).any(0).nonzero()[0]
+    return cols.min() >= 1 and cols.max() <= size - 2
+
+
 def role_render(species, size, frame):
-    expr, squash = FRAMES[frame]
+    """One stored frame. The squish widens the friend (squash sx); wide
+    friends (chick, crab, shroom...) went past the frame and lost their
+    sides (Brick test, step 8.1), so sx shrinks until a 1 px margin is left."""
+    expr, (sx, sy) = FRAMES[frame]
     squishies.ROM_MODE = True
     try:
-        return render(SPECIES[species], '_role', size, expr=expr, squash=squash)
+        im = render(SPECIES[species], '_role', size, expr=expr, squash=(sx, sy))
+        while not _fits(im, size) and sx > 0.9:
+            sx -= 0.01
+            im = render(SPECIES[species], '_role', size, expr=expr, squash=(sx, sy))
+        return im
     finally:
         squishies.ROM_MODE = False
 

@@ -9,6 +9,7 @@
 
 #define NUM_FRIENDS   80      /* 16 species x 5 flavors, id = species * 5 + flavor */
 #define MAX_FOLLOWERS 3
+#define MAX_LETTERS   10     /* unread letters kept; more push out the oldest */
 
 typedef struct {
     u32 magic;
@@ -31,7 +32,13 @@ typedef struct {
     u8 mail_new;              /* 1: not read yet, the mailbox flag is up */
     u8 parades;               /* bit n: area n's full-page parade has played */
     u8 pad2[2];
-    u32 reserved[3];
+    /* step 8.2 (in the old reserved bytes, still version 2): every new
+     * friend's letter waits its turn. letters: friend id + 1, oldest first,
+     * 0 = empty; letter_read: the last letter read (A re-reads it when none
+     * wait). mail_new stays 1 while any letter waits. */
+    u8 letters[MAX_LETTERS];
+    u8 letter_read;
+    u8 pad3;
     u32 checksum;
 } SaveData;
 

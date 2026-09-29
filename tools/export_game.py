@@ -317,8 +317,13 @@ def main():
     cells.append(heart)
     # meadow extras in the same palette (the maps use all 16 OBJ palettes):
     # 8 snacks, the envelope over the mailbox, its flag up and down (16x16 each)
+    twinkles = []
+    for tw in props.MAP_TWINKLES:                  # container twinkles on the map (8.1), centred in 16x16
+        f = new(16, 16)
+        blit(f, tw, (16 - tw.shape[1]) // 2, (16 - tw.shape[0]) // 2)
+        twinkles.append(f)
     extras = [props.snack16(k) for k in props.SNACK_ORDER] + [props.envelope16(), props.mail_flag(True),
-                                                              props.mail_flag(False)]
+                                                              props.mail_flag(False)] + twinkles
     lk, pal = palette_and_lookup(cells + extras)
     cw.u32_bytes('ui_small_tiles', b''.join(obj(c, lk) for c in cells))
     cw.u16('ui_small_pal', pal)
@@ -327,6 +332,7 @@ def main():
     cw.define('EXTRA_ENVELOPE', len(props.SNACK_ORDER) * 4)
     cw.define('EXTRA_FLAG_UP', len(props.SNACK_ORDER) * 4 + 4)
     cw.define('EXTRA_FLAG_DOWN', len(props.SNACK_ORDER) * 4 + 8)
+    cw.define('EXTRA_TWINKLE', len(props.SNACK_ORDER) * 4 + 12)   # 3 frames, 4 tiles each
     cw.c.append('const char *const snack_names[' + str(len(props.SNACK_ORDER)) + '] = {' +
                 ', '.join(f'"{k}"' for k in props.SNACK_ORDER) + '};\n')
     cw.h.append(f'extern const char *const snack_names[{len(props.SNACK_ORDER)}];\n')
