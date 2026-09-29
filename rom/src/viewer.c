@@ -31,6 +31,7 @@
 #define T_COUNT_TXT (T_COUNT + 16)
 #define T_NPC     160      /* Momo: asleep, awake (32x32 each), two z's; palette P_SHADOW */
 #define T_NPC_TXT 232      /* "7/10" in Momo's bubble, 32x16 (after Momo's 66 tiles) */
+#define T_EXTRA   240      /* snacks, envelope, flag up / down (16x16 each), palette P_SPARK */
 #define P_SQ      10       /* 10..14: the area's 5 flavor palettes */
 #define P_COUNT   15
 
@@ -75,6 +76,7 @@ static int touch_box = -1;
 EWRAM_BSS static TextStrip st_count, st_npc;   /* rendered into OBJ tiles: the meadow has no free BG palette */
 static int count_last = -1, count_hop;   /* the counter hops when a new friend is counted */
 static bool at_sign;               /* Pip stands by the pen sign: A opens the picker */
+static bool at_mail, at_basket;    /* by the mailbox (A reads the letter) or the picnic basket (A: snack time) */
 static bool pos_restored;          /* the saved position is used once, on the first visit after boot */
 static int still_t;                /* frames Pip stood still since the last step */
 static bool pos_dirty;             /* Pip moved since the position was last saved */
@@ -443,6 +445,7 @@ static void enter(void) {
     dma3_copy16(PAL_OBJ + P_BOX * 16, cont16_pal + A->area * 5 * 16, 5 * 32);
     dma3_copy32(OBJ_TILES + T_NPC * 16, npc_tiles, sizeof npc_tiles);
     dma3_copy32(OBJ_TILES + T_SPARK * 16, ui_small_tiles, sizeof ui_small_tiles);
+    dma3_copy32(OBJ_TILES + T_EXTRA * 16, ui_extra_tiles, sizeof ui_extra_tiles);
     dma3_copy16(PAL_OBJ + P_SPARK * 16, ui_small_pal, sizeof ui_small_pal);
     dma3_copy32(OBJ_TILES + T_ABTN * 16, abubble_tiles, sizeof abubble_tiles);
     dma3_copy16(PAL_OBJ + P_ABTN * 16, abubble_pal, sizeof abubble_pal);
@@ -543,6 +546,132 @@ static void flush_world(void) {
     for (int i = n_oam; i < 128; i++) oam[i].attr0 = A0_HIDE;
 }
 
+static int hop_of(int step);
+
+/* ---- snack time at the picnic basket: a treat pops out onto the blanket,
+ * the followers hop over, share it with a squeak each, then go back ---- */
+#define SN_LAND    24       /* the treat has landed on the blanket */
+#define SN_THERE   44       /* the followers stand round it */
+#define SN_GONE    104      /* eaten: a twinkle where it was */
+#define SN_BACK    134      /* the followers are back in line; the snack ends */
+#define SN_COOL    60       /* frames before the next snack */
+static struct {
+    int t;                  /* frames since A, -1 = none */
+    int kind, cool;
+} snack = {-1, 0, 0};
+static int snack_next = -1;         /* the next treat: a different one each time */
+static int pip_hop;                 /* px Pip is lifted (hops for joy, no followers) */
+
+static void snack_spot(int *x, int *y) {   /* where the treat sits: on the blanket, left of the basket */
+    *x = A->basket_x - 22;
+    *y = A->basket_y + 4;
+}
+
+/* follower k's place round the treat (left, behind, in front): clear of
+ * the basket and of Pip, who stands by the basket */
+static void snack_seat(int k, int *x, int *y) {
+    static const s8 seat[3][2] = {{-17, 1}, {1, -11}, {-7, 12}};
+    snack_spot(x, y);
+    *x += seat[k][0];
+    *y += seat[k][1];
+}
+
+static void snack_start(void) {
+    if (snack_next < 0) snack_next = pen_rand(SNACK_KINDS);
+    snack.kind = snack_next;
+    snack_next = (snack_next + 1) % SNACK_KINDS;
+    snack.t = 0;
+    sfx_boing();
+    sfx_chime(4);
+    dbg("snack %s followers=%d", snack_names[snack.kind], n_follow);
+}
+
+static void snack_update(void) {
+    int t = snack.t;
+    if (t == SN_LAND) sfx_chime(2);
+    if (n_follow) {
+        for (int k = 0; k < n_follow; k++)                         /* one bite each, in turn */
+            if (t == SN_THERE + 6 + k * 16) sfx_squeak(friend_flavor(follow_id[k]));
+    } else if (t == SN_THERE || t == SN_THERE + 20) {
+        sfx_boing();                                               /* Pip hops and eats it */
+    }
+    if (t == SN_GONE) sfx_chime(5);
+    pip_hop = 0;
+    if (!n_follow && t >= SN_THERE && t < SN_THERE + 40) {
+        int h = (t - SN_THERE) % 20;
+        pip_hop = h < 14 ? h * (14 - h) / 8 : 0;
+    }
+    int end = n_follow ? SN_BACK : SN_GONE + 20;
+    if (++snack.t >= end) {
+        snack.t = -1;
+        snack.cool = SN_COOL;
+        pip_hop = 0;
+        dbg("snack done");
+    }
+}
+
+/* where follower k stands this frame: its place in line, or on its way to / at the treat */
+static void follower_pos(int k, int *x, int *y, int *hop) {
+    int t = (trail_i - (k + 1) * TRAIL_GAP) & (TRAIL - 1);
+    *x = trail_x[t];
+    *y = trail_y[t];
+    *hop = walk_t > 0 ? hop_of(walk_t + k * 5) : 0;
+    int st = snack.t, f = 0;
+    if (st < 0 || !n_follow) return;
+    if (st >= 10 && st < SN_THERE) f = (st - 10) * 256 / (SN_THERE - 10);
+    else if (st >= SN_THERE && st < SN_GONE + 6) f = 256;
+    else if (st >= SN_GONE + 6) f = 256 - (st - SN_GONE - 6) * 256 / (SN_BACK - SN_GONE - 6);
+    if (f < 0) f = 0;
+    int sx, sy;
+    snack_seat(k, &sx, &sy);
+    *x += (sx - *x) * f / 256;
+    *y += (sy - *y) * f / 256;
+    if ((st >= 10 && st < SN_THERE) || st >= SN_GONE + 6) *hop = hop_of(st * 2 + k * 5);   /* hopping over and back */
+    int bite = st - (SN_THERE + 6 + k * 16);
+    if (bite >= 0 && bite < 10) *hop = bite < 5 ? bite : 10 - bite;                     /* a happy hop at its bite */
+}
+
+static void draw_snack(void) {
+    if (snack.t < 0) return;
+    int st = snack.t, tx, ty;
+    snack_spot(&tx, &ty);
+    if (st < SN_GONE) {
+        int x = tx, y = ty;
+        if (st < SN_LAND) {                                          /* arcs out of the basket */
+            x = A->basket_x + (tx - A->basket_x) * st / SN_LAND;
+            y = A->basket_y - 8 + (ty - A->basket_y + 8) * st / SN_LAND - isin(st * 32 / SN_LAND) * 26 / 256;
+        }
+        world_spr(y, x - 8 - cam_x, y - 15 - cam_y, A0_SQUARE, 1, 0, T_EXTRA + snack.kind * 4, P_SPARK);
+    } else if (st < SN_GONE + 16) {                                  /* all gone: a twinkle */
+        int f = (st - SN_GONE) / 4;
+        ui_spr(tx - 4 - cam_x, ty - 10 - cam_y, A0_SQUARE, 0, 0, T_SPARK + (f < 3 ? 2 - f % 3 : 0), P_SPARK);
+    }
+    /* a heart rises over each friend after its bite (over Pip without friends) */
+    int n = n_follow ? n_follow : 1;
+    for (int k = 0; k < n; k++) {
+        int ht = st - (n_follow ? SN_THERE + 10 + k * 16 : SN_THERE + 8);
+        if (ht < 0 || ht > 36) continue;
+        int hx, hy, hop;
+        if (n_follow) follower_pos(k, &hx, &hy, &hop);
+        else { hx = pip_x >> 8; hy = (pip_y >> 8) - 12; }
+        ui_spr(hx - 4 - cam_x + isin(ht * 3) * 3 / 256, hy - 26 - ht / 2 - cam_y, A0_SQUARE, 0, 0, T_SPARK + 3, P_SPARK);
+    }
+}
+
+/* the mailbox flag (a sprite: up while a letter waits) and the envelope that bobs over it */
+static void draw_mailbox(void) {
+    if (!A->mail_x) return;
+    int sx = A->mail_x - cam_x, sy = A->mail_y - cam_y;
+    if (!on_screen(sx - 8, sy - 40, 24, 44)) return;
+    bool waiting = game_save.mail_new;
+    int wave = waiting && ((frame_count / 16) & 1);
+    world_spr(A->mail_y, sx + 5, sy - 24 - wave, A0_SQUARE, 1, 0, T_EXTRA + (waiting ? EXTRA_FLAG_UP : EXTRA_FLAG_DOWN), P_SPARK);
+    if (waiting && !at_mail) {
+        int bob = isin((int)(frame_count * 2)) * 3 / 256;
+        hud_spr(sx - 8, sy - 44 + bob, A0_SQUARE, 1, 0, T_EXTRA + EXTRA_ENVELOPE, P_SPARK);
+    }
+}
+
 static void draw_pip(void) {
     static const u8 walk_down[4] = {1, 0, 2, 0};
     int frame, hflip = 0;
@@ -560,7 +689,7 @@ static void draw_pip(void) {
     default:
         frame = walking ? walk_down[step] : 0;
     }
-    int bob = (walking && (step & 1)) ? 1 : 0;
+    int bob = ((walking && (step & 1)) ? 1 : 0) + pip_hop;
     int py = pip_y >> 8;
     int sx = (pip_x >> 8) - cam_x, sy = py - cam_y;
     world_spr(py, sx - 8, sy - PIP_FEET_ROW - 1 - bob, A0_TALL, 2, hflip ? A1_HFLIP : 0, T_PIP + frame * 8, P_PIP);
@@ -587,8 +716,9 @@ static void draw_friends(void) {
         draw_friend(r->id, r->x, r->y, r->wait > 0 ? 0 : hop_of(r->step));
     }
     for (int k = 0; k < n_follow; k++) {
-        int t = (trail_i - (k + 1) * TRAIL_GAP) & (TRAIL - 1);
-        draw_friend(follow_id[k], trail_x[t], trail_y[t], walk_t > 0 ? hop_of(walk_t + k * 5) : 0);
+        int x, y, hop;
+        follower_pos(k, &x, &y, &hop);
+        draw_friend(follow_id[k], x, y, hop);
     }
 }
 
@@ -614,10 +744,12 @@ static void draw_boxes(void) {
         int bx = spot_x(boxes[touch_box].spot), by = spot_y(boxes[touch_box].spot);
         int bob = isin((int)(frame_count * 2)) * 2 / 256;
         hud_spr(bx - cam_x - 8, by - cam_y - 36 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
-    } else if (at_sign) {
+    } else if (at_sign || at_mail || at_basket) {
         int bob = isin((int)(frame_count * 2)) * 2 / 256;
-        int top = (pip_y >> 8) < A->sign_y ? (pip_y >> 8) : A->sign_y;   /* over Pip's head when he stands above the sign */
-        hud_spr(A->sign_x - cam_x - 8, top - cam_y - 46 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
+        int x = at_sign ? A->sign_x : at_mail ? A->mail_x : A->basket_x;
+        int y = at_sign ? A->sign_y : at_mail ? A->mail_y : A->basket_y + 10;
+        int top = (pip_y >> 8) < y ? (pip_y >> 8) : y;   /* over Pip's head when he stands above the prop */
+        hud_spr(x - cam_x - 8, top - cam_y - 46 + bob, A0_TALL, 2, 0, T_ABTN, P_ABTN);
     }
 }
 
@@ -630,7 +762,7 @@ static int isqrt(int v) {
 /* Guide arrow: floats ARROW_R px from Pip toward the nearest box and blinks
  * (ARROW_BLINK frames on, the same off). 8 directions from 3 drawings and flips. */
 static void draw_arrow(void) {
-    if (arrow_box < 0 || boxes[arrow_box].spot < 0 || touch_box >= 0) return;
+    if (arrow_box < 0 || boxes[arrow_box].spot < 0 || touch_box >= 0 || snack.t >= 0) return;
     int t = arrow_t++;
     if ((t / ARROW_BLINK) & 1) return;
     int pcx = (pip_x >> 8) - cam_x, pcy = (pip_y >> 8) - cam_y - 12;
@@ -826,6 +958,8 @@ static void draw(void) {
     n_world = n_oam = 0;
     draw_gates();
     draw_momo_home();
+    draw_mailbox();
+    draw_snack();
     if (gs.t >= 0) draw_gate_scene();
     draw_counter();
     draw_arrow();
@@ -885,6 +1019,11 @@ static void update_boxes(u16 hit) {
     if (touch_box >= 0 && (hit & (KEY_A | KEY_B))) open_box(touch_box);
 }
 
+/* Pip close enough to a prop to use it (the pen sign's zone: above it too, it blocks at y - 8) */
+static bool near_prop(int x, int y, int px, int py) {
+    return px > x - 20 && px < x + 20 && py > y - 18 && py < y + 22;
+}
+
 /* water highlights glint softly: cycle the shimmer color every 12 frames */
 static void shimmer(void) {
     if ((frame_count % 12) != 0) return;
@@ -904,6 +1043,15 @@ static void update(void) {
         shimmer();
         friends_update(false);
         gate_scene_update();
+        update_camera();
+        draw();
+        return;
+    }
+    if (snack.cool > 0) snack.cool--;
+    if (snack.t >= 0) {                /* snack time: Pip and the friends are busy eating */
+        shimmer();
+        friends_update(false);
+        snack_update();
         update_camera();
         draw();
         return;
@@ -986,6 +1134,24 @@ static void update(void) {
         shelf_pick = true;
         save_pos(true);
         scene_go(&scene_shelf);
+        return;
+    }
+    bool was_mail = at_mail, was_basket = at_basket;   /* the mailbox and the picnic basket (meadow) */
+    at_mail = touch_box < 0 && !at_sign && game_save.mail && A->mail_x && near_prop(A->mail_x, A->mail_y, px, py);
+    at_basket = touch_box < 0 && !at_sign && !at_mail && snack.cool == 0 && A->basket_x &&
+                near_prop(A->basket_x, A->basket_y, px, py);
+    if (at_mail && !was_mail) dbg("at mailbox pip=%d,%d new=%d", px, py, game_save.mail_new);
+    if (at_basket && !was_basket) dbg("at basket pip=%d,%d", px, py);
+    if (at_mail && (hit & KEY_A)) {
+        sfx_chime(3);
+        save_pos(true);
+        scene_go(&scene_letter);
+        return;
+    }
+    if (at_basket && (hit & KEY_A)) {
+        at_basket = false;
+        snack_start();
+        draw();
         return;
     }
     if ((hit & (KEY_A | KEY_B)) && touch_box < 0) sfx_tick();

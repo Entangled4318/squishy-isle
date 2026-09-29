@@ -670,3 +670,223 @@ def capsule64(color='pink', part='all'):
         m = lid[..., 3] > 0
         img[m] = lid[m]
     return img
+
+
+# ------------------------------------------- mailbox and picnic (step 6.7)
+# All in the sparkle / heart palette (ui_small) plus a few food colors, so
+# the meadow needs no extra OBJ palette (its 16 are in use).
+SNACK_LEGEND = {'w': C['white'], 'c': rgb15('#fff6c0'), 'y': rgb15('#ffe07a'), 'Y': rgb15('#f5b54a'),
+                'k': rgb15('#c25a82'), 'p': rgb15('#ff9fbd'), 'P': rgb15('#f07aa0'), 'r': rgb15('#ff6f86'),
+                't': rgb15('#f0c890'), 'b': rgb15('#b8805a'), 'l': rgb15('#9ee09a'), 'g': rgb15('#5fa870'),
+                'd': rgb15('#4a3a5c'), 'f': C['f_yel'], 'F': C['f_yel_dk']}   # f, F: the flag (not the arrow's yellow)
+
+SNACKS = {
+    'strawberry': [
+        '......g..g......',
+        '.....glggl......',
+        '....ggllllgg....',
+        '...krrgllgrrk...',
+        '..krrrrggrrrrk..',
+        '..krcrrrrrrcrk..',
+        '..krrrrcrrrrrk..',
+        '..kwrrrrrrcrrk..',
+        '...krrcrrrrrk...',
+        '...krrrrrcrrk...',
+        '....krrcrrrk....',
+        '.....krrrrk.....',
+        '......kkkk......',
+    ],
+    'cookie': [
+        '.....bbbbbb.....',
+        '...bbttttttbb...',
+        '..bttcttttttbb..',
+        '.bttctttbbtttb..',
+        '.btctbbtbbttttb.',
+        'bttttbbtttttttb.',
+        'btttttttttbbttb.',
+        'bttbbttttttbbttb',
+        'bttbbtttbbtttttb',
+        '.btttttttbbtttb.',
+        '.bbtttbbttttttb.',
+        '..bbttbbtttttb..',
+        '...bbttttttbb...',
+        '.....bbbbbb.....',
+    ],
+    'apple': [
+        '.......b........',
+        '.......bgg......',
+        '......gbllg.....',
+        '..kkkkbkggkkk...',
+        '.krrrrbrrrrrrk..',
+        'krwwrrrrrrrrrrk.',
+        'krwrrrrrrrrrrrk.',
+        'krrrrrrrrrrrrrk.',
+        'krrrrrrrrrrrrPk.',
+        'krrrrrrrrrrrPPk.',
+        '.krrrrrrrrrPPk..',
+        '.krrrrrrrrPPPk..',
+        '..kkrrrkkrrkk...',
+        '....kkk..kk.....',
+    ],
+    'cupcake': [
+        '.......kk.......',
+        '......krrk......',
+        '......krrk......',
+        '....kkpkkppk....',
+        '...kpwpppppPk...',
+        '..kpwppppppPPk..',
+        '..kppppppPPPPk..',
+        '.kpppppppppppPk.',
+        '.kPPPPPPPPPPPPk.',
+        '..bttbttbttbtb..',
+        '..btYbtYbtYbtb..',
+        '...btbttbttbb...',
+        '...bbttbttbtb...',
+        '....bbbbbbbb....',
+    ],
+    'melon': [
+        'gggggggggggggggg',
+        'gllllllllllllllg',
+        '.gwwwwwwwwwwwwg.',
+        '.krrrrrrrrrrrrk.',
+        '..krrdrrrrdrrk..',
+        '..krrrrrrrrrrk..',
+        '...krrrdrrrrk...',
+        '....krrrrrrk....',
+        '....krdrrrrk....',
+        '.....krrrrk.....',
+        '......krrk......',
+        '.......kk.......',
+    ],
+    'donut': [
+        '.....bbbbbb.....',
+        '...bbppppppbb...',
+        '..bppwpyppppPb..',
+        '.bpwppppplpppPb.',
+        '.bpppppbbppcpPb.',
+        'bpppypbttbpppPPb',
+        'bpcppbt..tbppyPb',
+        'bpppPbt..tbPPPPb',
+        'bpplPPbttbPPlPPb',
+        '.btPPPPbbPPPPtb.',
+        '.bttPPyPPPPPttb.',
+        '..bttttttttttb..',
+        '...bbttttttbb...',
+        '.....bbbbbb.....',
+    ],
+    'onigiri': [
+        '.......dd.......',
+        '......dwwd......',
+        '.....dwwwwd.....',
+        '.....dwwwwd.....',
+        '....dwwwwwwd....',
+        '...dwwwwwwwwd...',
+        '...dwwwwwwwwd...',
+        '..dwwwwwwwwwwd..',
+        '..dwwwddddwwwd..',
+        '.dwwwwddddwwwwd.',
+        '.dwwwwddddwwwwd.',
+        '.dccwwddddwwccd.',
+        '..dddddddddddd..',
+    ],
+    'icecream': [
+        '.....kkkkk......',
+        '....kpwppPk.....',
+        '...kpwpppPPk....',
+        '...kpppppPPk....',
+        '..kkPPPPPPPkk...',
+        '.kcwccccccccYk..',
+        '.kcccccccccYYk..',
+        '..kYYYYYYYYYk...',
+        '...bttbttbtb....',
+        '...btbttbttb....',
+        '....bttbttb.....',
+        '....btbttbb.....',
+        '.....bttbb......',
+        '......bbb.......',
+        '.......b........',
+    ],
+}
+SNACK_ORDER = ['strawberry', 'cookie', 'apple', 'cupcake', 'melon', 'donut', 'onigiri', 'icecream']
+
+
+def snack16(kind):
+    art = from_ascii(SNACKS[kind], SNACK_LEGEND)
+    img = new(16, 16)
+    h, w = art.shape[:2]
+    blit(img, art, (16 - w) // 2, 16 - h)          # sits on the bottom row
+    return img
+
+
+def envelope16():
+    """Small letter that bobs over the mailbox while mail waits."""
+    art = from_ascii([
+        'kkkkkkkkkkkkkk',
+        'kwkcccccccckwk',
+        'kwwkccccccckwk'[:14],
+        'kwwwkcccckwwwk',
+        'kwwwwkcckwwwwk',
+        'kwwwwwkkwwwwwk',
+        'kwwwwwpPwwwwwk',
+        'kwwwwpppPwwwwk',
+        'kwwwwwpPwwwwwk',
+        'kwwwwwwwwwwwwk',
+        'kkkkkkkkkkkkkk',
+    ], SNACK_LEGEND)
+    img = new(16, 16)
+    blit(img, art, 1, 3)
+    return img
+
+
+def mail_flag(up=True):
+    """The mailbox's flag (16x16 cell, pole at x 1..2): up = mail waits."""
+    img = new(16, 16)
+    if up:
+        art = from_ascii(['kkkkkkkkk.', 'kbcffffffk', 'kbffffffFk', 'kbfffffFFk', 'kbfffFFFk.', 'kbkkkkkk..',
+                          'kbk.......', 'kbk.......', 'kbk.......', 'kbk.......', 'kbk.......', 'kkk.......'],
+                         SNACK_LEGEND)
+        blit(img, art, 0, 1)
+    else:
+        art = from_ascii(['kkkkkkkkkk', 'kbbbbbbffk', 'kbbbbbbFFk', 'kkkkkkkkkk'], SNACK_LEGEND)
+        blit(img, art, 0, 9)
+    return img
+
+
+def envelope64(opened=False):
+    """Big pink letter for the letter scene (64x64, envelope in rows 16..55):
+    closed with a heart seal, or with its flap folded up."""
+    ink, fill, lt, dk, flap = (rgb15(h) for h in ('#b85c82', '#ffd3df', '#ffe8ef', '#f2a0ba', '#ffc2d3'))
+    img = new(64, 64)
+    x0, x1, y0, y1 = 5, 59, 18, 55
+    for y in range(y0, y1 + 1):
+        for x in range(x0, x1 + 1):
+            edge = x in (x0, x1) or y in (y0, y1)
+            img[y, x, :3] = ink if edge else (lt if y < y0 + 3 else fill)
+            img[y, x, 3] = 255
+    for y in range(y0 + 1, y1):                         # the two side folds meet in the middle
+        for x in range(x0 + 1, x1):
+            d = abs(x - 32)
+            if abs((y1 - y) - (d * (y1 - y0 - 14) // 27)) == 0 and d < 27:
+                img[y, x, :3] = dk
+    if not opened:
+        for y in range(y0, y0 + 24):                    # flap down with a heart seal
+            half = 27 - (y - y0) * 27 // 23
+            for x in range(32 - half, 32 + half + 1):
+                if x0 <= x <= x1:
+                    edge = x in (32 - half, 32 + half) or y == y0
+                    img[y, x, :3] = ink if edge else flap
+        heart = from_ascii(['.kk.kk.', 'kppkppk', 'kpwpppk', 'kppppPk', '.kpppk.', '..kPk..', '...k...'],
+                           {'k': rgb15('#c25a82'), 'p': rgb15('#ff9fbd'), 'P': rgb15('#f07aa0'), 'w': C['white']})
+        blit(img, heart, 29, y0 + 17)
+    else:
+        for y in range(y0 - 16, y0 + 1):                # flap folded up
+            half = 27 - (y0 - y) * 27 // 16
+            for x in range(32 - half, 32 + half + 1):
+                if x0 <= x <= x1:
+                    edge = x in (32 - half, 32 + half) or y == y0
+                    img[y, x, :3] = ink if edge else dk
+                    img[y, x, 3] = 255
+        for y in range(y0 + 1, y0 + 6):                 # the letter inside peeks out
+            for x in range(x0 + 6, x1 - 5):
+                img[y, x, :3] = rgb15('#fffaf0') if y > y0 + 1 else ink
+    return img

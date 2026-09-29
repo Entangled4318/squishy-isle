@@ -108,5 +108,19 @@ int main(void) {
     collection_new_game(7);
     CHECK(game_save.area == 0 && game_save.gates == 0 && follower_get(1, 0) == -1, "new game goes back to the meadow and closes the gates");
     CHECK(sizeof(SaveData) <= 0x100, "SaveData fits a 256-byte slot (%u bytes)", (unsigned)sizeof(SaveData));
+
+    /* mailbox: each new friend sends a letter; a friend found again sends none */
+    reset(5);
+    CHECK(game_save.mail == 0 && !game_save.mail_new, "a new game has no letter yet");
+    collection_add(4);
+    collection_add(27);
+    CHECK(game_save.mail == 28 && game_save.mail_new, "the newest friend (27) wrote the letter, the flag is up");
+    game_save.mail_new = 0;
+    collection_add(27);
+    CHECK(game_save.mail == 28 && !game_save.mail_new, "no letter for a friend found before");
+    collection_new_game(3);
+    CHECK(game_save.mail == 0 && !game_save.mail_new, "new game empties the mailbox");
+    CHECK(offsetof(SaveData, mail) == 123 && offsetof(SaveData, checksum) == 140, "mail sits in the old padding (at %u)",
+          (unsigned)offsetof(SaveData, mail));
     return fails ? 1 : 0;
 }

@@ -39,6 +39,8 @@ class Area:
         self.shimmer = 'w_lt'    # palette color that glints (cycled at run time)
         self.gates = []          # (x, y, w, h, to_area): solid while that area is shut; Momo the
                                  # sleepy panda (32x32, feet at x + w/2, y + h) lies there
+        self.mailbox = None      # (x, y): base centre of the mailbox (A reads the newest friend's letter)
+        self.basket = None       # (x, y): base centre of the picnic basket (A: snack time)
         self.momo = None         # (x, y): Momo's feet on its bed here, once every way is open (Cloud Hill)
 
     def block(self, x0, y0, x1, y1):
@@ -161,9 +163,11 @@ def meadow():
     a.place(world.decor('tulips'), 122, 70)
     a.place(world.decor('tulips'), 138, 72)
     a.place(world.decor('tulips'), 154, 70)
-    a.place(world.mailbox(), 268, 74, block_w=8, tall=6)
+    a.place(world.mailbox(flag=False), 268, 74, block_w=8, tall=6)   # the flag is a sprite
+    a.mailbox = (276, 96)
     a.place(world.signpost(world.mini_acorn()), 414, 164, block_w=8, tall=6)   # the bridge leads to the woods
     a.place(world.basket(), 322, 230, block_w=10, tall=6)
+    a.basket = (329, 243)
     for kind, x, y in (('green', 180, 104), ('blossom', 300, 116), ('blossom', 150, 244),
                        ('green', 330, 140)):
         a.place(bush(kind), x, y, block_w=10, tall=6)

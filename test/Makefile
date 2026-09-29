@@ -77,6 +77,11 @@ run: $(HARNESS) $(UNIT)
 	python3 make_save.py $(OUT)/open_c.sav $$(seq -s, 0 9),$$(seq -s, 20 29),$$(seq -s, 40 49) "" - 3
 	./$(HARNESS) $(ROM) $(OUT)/open_c.sav open_clouds.txt $(OUT) > $(OUT)/open_clouds.log
 	python3 check_open.py $(OUT)
+	python3 make_save.py $(OUT)/mail.sav 0,1,2,3 0,1,2
+	./$(HARNESS) $(ROM) $(OUT)/mail.sav mail.txt $(OUT) > $(OUT)/mail.log
+	python3 make_save.py $(OUT)/mail_solo.sav 0,1,2,3 ""
+	./$(HARNESS) $(ROM) $(OUT)/mail_solo.sav mail_solo.txt $(OUT) > $(OUT)/mail_solo.log
+	python3 check_mail.py $(OUT)
 	python3 check_music.py $(OUT) $(ROM)
 
 .PHONY: run

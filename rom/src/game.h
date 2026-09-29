@@ -12,6 +12,7 @@ extern const Scene scene_title;
 extern const Scene scene_open;
 extern const Scene scene_reveal;
 extern const Scene scene_jukebox;
+extern const Scene scene_letter;          /* the newest friend's letter, from the meadow mailbox */
 
 extern int open_color, open_friend;
 extern bool shelf_pick;                   /* shelf opened from the pen sign: pick followers */

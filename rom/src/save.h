@@ -27,7 +27,9 @@ typedef struct {
     u8 area;                  /* area Pip is in: 0 meadow, 1 woods, 2 shore, 3 cloud hill */
     u8 gates;                 /* bit n set: the way into area n + 1 is built (its scene has played) */
     u8 lines[3][MAX_FOLLOWERS];   /* follower lines of areas 1..3 (the meadow's is `followers`) */
-    u8 pad2[5];
+    u8 mail;                  /* newest friend id + 1: the letter in the mailbox (0 = none yet) */
+    u8 mail_new;              /* 1: not read yet, the mailbox flag is up */
+    u8 pad2[3];
     u32 reserved[3];
     u32 checksum;
 } SaveData;
