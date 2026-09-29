@@ -34,31 +34,25 @@ all: $(BUILD)/$(NAME).gba
 # tells make so: with a plain rule, make -j ran every generator twice at
 # the same time, both writing the same files.
 
-$(BUILD)/hw_assets.c $(BUILD)/hw_assets.h &: $(ART)
-	@mkdir -p $(BUILD)
+$(BUILD)/hw_assets.c $(BUILD)/hw_assets.h &: $(ART) | $(BUILD)
 	cd $(TOOLS) && $(PYTHON) export_hwcheck.py $(abspath $(BUILD))
 
-$(BUILD)/font_data.c $(BUILD)/font_data.h &: $(TOOLS)/font.py $(TOOLS)/export_font.py
-	@mkdir -p $(BUILD)
+$(BUILD)/font_data.c $(BUILD)/font_data.h &: $(TOOLS)/font.py $(TOOLS)/export_font.py | $(BUILD)
 	cd $(TOOLS) && $(PYTHON) export_font.py $(abspath $(BUILD))
 
-$(BUILD)/game_assets.c $(BUILD)/game_assets.h &: $(ART)
-	@mkdir -p $(BUILD)
+$(BUILD)/game_assets.c $(BUILD)/game_assets.h &: $(ART) | $(BUILD)
 	cd $(TOOLS) && $(PYTHON) export_game.py $(abspath $(BUILD))
 
-$(BUILD)/music_data.c $(BUILD)/music_data.h &: $(TOOLS)/music.py
-	@mkdir -p $(BUILD)
+$(BUILD)/music_data.c $(BUILD)/music_data.h &: $(TOOLS)/music.py | $(BUILD)
 	cd $(TOOLS) && $(PYTHON) music.py $(abspath $(BUILD))
 
-$(BUILD)/%.o: src/%.c $(GEN:%=$(BUILD)/%.h) $(wildcard src/*.h)
-	@mkdir -p $(BUILD)
+$(BUILD)/%.o: src/%.c $(GEN:%=$(BUILD)/%.h) $(wildcard src/*.h) | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
 $(GEN:%=$(BUILD)/%.o): $(BUILD)/%.o: $(BUILD)/%.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-$(BUILD)/crt0.o: src/crt0.s
-	@mkdir -p $(BUILD)
+$(BUILD)/crt0.o: src/crt0.s | $(BUILD)
 	$(CC) $(ASFLAGS) -c $< -o $@
 
 $(BUILD)/$(NAME).elf: $(OBJS) gba.ld
@@ -67,6 +61,9 @@ $(BUILD)/$(NAME).elf: $(OBJS) gba.ld
 $(BUILD)/$(NAME).gba: $(BUILD)/$(NAME).elf $(TOOLS)/gbafix.py
 	$(OBJCOPY) -O binary $< $@
 	$(PYTHON) $(TOOLS)/gbafix.py $@
+
+$(BUILD):   # order-only prerequisite of every rule that writes into it
+	mkdir -p $@
 
 test: $(BUILD)/$(NAME).gba
 	$(MAKE) -C ../test run ROM=$(abspath $(BUILD)/$(NAME).gba)
