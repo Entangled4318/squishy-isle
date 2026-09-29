@@ -220,10 +220,10 @@ def woods():
     W_, H_ = 480, 320
     a = Area('woods', W_, H_)
     trail = SmoothUnion(12,
-                        Capsule(0, 200, 150, 196, 14),
-                        Capsule(150, 196, 240, 170, 15),
-                        Capsule(240, 170, 360, 132, 14),
-                        Capsule(360, 132, 480, 120, 14),
+                        Capsule(0, 200, 150, 200, 14),           # straight in from the meadow bridge
+                        Capsule(150, 200, 240, 170, 15),
+                        Capsule(240, 170, 350, 120, 14),
+                        Capsule(350, 120, 480, 120, 14),         # straight out east to the shore
                         Capsule(240, 170, 236, 70, 12))
     clearing = Oval(238, 172, 34, 22, n=2.2)
     lab = shape_labels(W_, H_, 'g', [('p', trail), ('p', clearing)])
@@ -377,8 +377,7 @@ def shore():
     a.block(476, 164, 480, 320)
     a.block(0, 316, 480, 320)
     a.exits.append((0, 186, 6, 28, 1, 456, 120))       # west: the boardwalk back to the woods
-    for i, (x, y) in enumerate(((440, 160), (452, 148), (464, 136), (474, 124))):   # cloud steps up to Cloud Hill
-        a.decor(world.cloud_puff(20, 11, i), x, y)
+    a.decor(world.cloud_puff(72, 16, 2), 420, 142)       # a straight cloud walkway east to Cloud Hill
     a.exits.append((468, 136, 12, 28, 3, 24, 204))     # east: on to Cloud Hill
     a.gates.append((450, 136, 28, 28, 3))              # Momo sleeps here until Cloud Hill opens
     a.spawn = (24, 200)
@@ -424,7 +423,7 @@ def clouds():
     main = CloudBlob(244, 194, 172, 88, bump=9, seed=2)
     garden = CloudBlob(76, 282, 50, 24, bump=7, seed=5)                # small island, south-west
     bed = CloudBlob(416, 86, 52, 32, bump=7, seed=4)                   # Momo's island, north-east
-    puffs = (puff_bridge(-14, 208, 92, 200, 13, 6, 3) +                # cloud steps up from the shore
+    puffs = (puff_bridge(-14, 204, 92, 204, 13, 6, 3) +                # straight cloud path from the shore
              puff_bridge(98, 252, 84, 270, 11, 2, 11) +
              puff_bridge(360, 138, 398, 108, 14, 3, 13))
     lab = shape_labels(W_, H_, 'x', [('c', CloudMask(main, garden, bed, *puffs))])

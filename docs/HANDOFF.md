@@ -706,8 +706,14 @@ Plan, one sub-step at a time, merge after each:
    now checks every spot of every area is on the ground and reachable
    from the area's start (it also flagged (392,146) and (330,272) at
    island edges); the three spots moved to (376,150), (100,274),
-   (344,262). Next: rebuild, run the full suite, check the loop passes,
-   the scoring pass, release ROM, merge.
+   (344,262). Owner request (same turn): every way between maps runs
+   straight (horizontal) at the map edge. The shore's diagonal cloud
+   steps are now one straight cloud walkway (`cloud_puff(72, 16)` at
+   420,142, level with the exit); the woods trail runs straight at
+   y 200 from the west edge and at y 120 to the east edge; Cloud Hill's
+   arrival path is straight at y 204. The bridge to Momo's island stays
+   diagonal (it leads to no other map). Next: rebuild, run the full
+   suite, check the loop passes, the scoring pass, release ROM, merge.
 
 ## What step 3 should do (as promised to the owner)
 
