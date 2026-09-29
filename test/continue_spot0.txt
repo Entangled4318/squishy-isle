@@ -1,0 +1,8 @@
+# step 7.6: Pip last stood still on the woods' first acorn spot (96,168), with
+# no acorn there: Continue must put him back there (the empty box slots
+# read spot 0 at boot and refused it; he started at the meadow's 232,124)
+wait 20
+tap A
+wait 15
+tap A
+wait 40

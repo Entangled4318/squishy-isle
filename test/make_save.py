@@ -1,5 +1,6 @@
 """Writes a version 2 save with chosen friends, for screenshots and tests.
-Usage: make_save.py FILE FOUND_IDS FOLLOWER_IDS [GATES [AREA [PARADES]]]   (comma lists, e.g. 0,3,7 5,2)
+Usage: make_save.py FILE FOUND_IDS FOLLOWER_IDS [GATES [AREA [PARADES [POS]]]]   (comma lists, e.g. 0,3,7 5,2)
+POS: x,y where Pip stood still (Continue puts him there); default none (the area's start).
 PARADES: bit n = area n's full-page parade has played (default: every full area).
 GATES: bit n = the way into area n + 1 is built (its scene played). By
 default (or '-') every way that is open is built, so tests skip the gate
@@ -27,9 +28,12 @@ if len(sys.argv) > 4 and sys.argv[4] != '-':
     gates = int(sys.argv[4])
 area = int(sys.argv[5]) if len(sys.argv) > 5 else 0      # AREA: where Pip starts (at the area's spawn)
 parades = sum(1 << a for a in range(4) if sum(f[a * 20:a * 20 + 20]) == 20)   # full pages: parade already seen
-if len(sys.argv) > 6:
+if len(sys.argv) > 6 and sys.argv[6] != '-':
     parades = int(sys.argv[6])                               # PARADES: bit n = area n's parade played
-body += bytes(fol) + b'\0' + struct.pack('<HHBB', 0, 0, area, gates) + bytes(11) + bytes([parades]) + bytes(14)
+pos = (0, 0)
+if len(sys.argv) > 7:
+    pos = tuple(int(v) for v in sys.argv[7].split(','))      # POS: Pip's saved spot
+body += bytes(fol) + b'\0' + struct.pack('<HHBB', pos[0], pos[1], area, gates) + bytes(11) + bytes([parades]) + bytes(14)
 assert len(body) == 140
 slot = body + struct.pack('<I', checksum(body))
 sram = bytearray(b'\xff' * 0x8000)

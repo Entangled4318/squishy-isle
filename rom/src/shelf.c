@@ -1,6 +1,6 @@
 /* Squishy Shelf: four pages (one per area), 4 species x 5 flavors each.
- * D-pad moves the gold frame, L/R turn pages, A opens the friend big.
- * Pick mode (A at the pen sign): the meadow page with the real collection;
+ * D-pad moves the dark frame, L/R turn pages, A opens the friend big.
+ * Pick mode (A at the pen sign): the current area's page;
  * A adds or removes a follower (up to 3, the oldest drops off), B goes back. */
 #include "collection.h"
 #include "game.h"

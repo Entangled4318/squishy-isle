@@ -93,6 +93,29 @@ for n in ('g01_pan', 'g02_helpers', 'g06_back'):
 for n in ('w03_woods_arrive', 'w04_touch_acorn', 'w06_shelf_woods', 'w07_pen_sign', 'w09_continue_woods'):
     shot(n)
 
+# step 7.6: Continue on a spot where a box once stood (the woods' first acorn spot)
+sp = open(os.path.join(OUT, 'continue_spot0.log')).read()
+check('restore pip=96,168' in sp and 'scene meadow pip=96,168 area=1' in sp,
+      'Continue puts Pip back on the first acorn spot where he stood (96,168), not elsewhere')
+
+
+# step 7.6: the counter pill hops for a new friend of this area, not when Pip walks to another area
+def pill_top(name):
+    from PIL import Image
+    im = Image.open(os.path.join(OUT, name + '.ppm')).convert('RGB')
+    for y in range(0, 24):
+        if sum(1 for x in range(184, 236) if min(im.getpixel((x, y))) > 200) > 20:
+            return y
+    return None
+
+
+hl = open(os.path.join(OUT, 'counter_hop.log')).read()
+hops = [pill_top(f'h{i:02d}') for i in range(0, 42, 2)]
+stays = [pill_top(f'm{i:02d}') for i in range(0, 42, 2)]
+check('open pop friend' in hl and 'exit to area 0' in hl, 'counter: a woods friend found, then west to the meadow')
+check(None not in hops and max(hops) - min(hops) >= 2, f'counter: hops back in the woods after a new friend (top rows {sorted(set(hops))})')
+check(None not in stays and max(stays) == min(stays), f'counter: no hop on the way into the full meadow (top rows {sorted(set(stays))})')
+
 if fails:
     sys.exit(1)
 print('all woods checks passed')

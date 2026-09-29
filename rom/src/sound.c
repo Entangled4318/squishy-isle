@@ -236,6 +236,7 @@ int music_current(void) { return mus.song ? mus.id : -1; }
 
 static void music_silence(void) {
     if (!mus.song) return;
+    mus.lead.level = 4;                        /* the jingle takes the wave channel: after it the lead strikes again */
     REG_SND2CNT = 0;
     REG_SND2FREQ = RESTART;
 }
@@ -271,10 +272,11 @@ static void lead_frame(void) {
             if (release > lv) lv = release;
         }
         if (lv > 3) lv = 3;
-        if (v->age == 0) {
+        if (v->age == 0 || v->level == 4) {
             u16 rate = music_wave_rate[v->note];
-            if (v->level == 4) {
-                REG_SND3CNT = wave_vol[lv];                    /* from silence: restart is safe */
+            if (v->level == 4) {                               /* from silence: restart is safe. Mid-note (after */
+                if (lv < 3) lv = 3;                            /* a jingle) the channel still holds the jingle's */
+                REG_SND3CNT = wave_vol[lv];                    /* pitch, so the note strikes again, softly (7.6) */
                 REG_SND3FREQ = RESTART | rate;
             } else {
                 REG_SND3FREQ = rate;                           /* still sounding: glide on */
@@ -283,6 +285,7 @@ static void lead_frame(void) {
     }
     if (lv != v->level) {
         if (lv > v->level + 1) lv = v->level + 1;           /* down by at most 1 level a frame */
+        if (lv < v->level - 1) lv = v->level - 1;           /* and up by at most 1 */
         REG_SND3CNT = wave_vol[lv];
         v->level = lv;
     }

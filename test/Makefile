@@ -69,6 +69,10 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	python3 make_save.py $(OUT)/w10.sav $$(seq -s, 0 9) 0,1,2
 	./$(HARNESS) $(ROM) $(OUT)/w10.sav woods.txt $(OUT) > $(OUT)/woods.log
 	./$(HARNESS) $(ROM) $(OUT)/w10.sav woods_continue.txt $(OUT) > $(OUT)/woods_continue.log
+	python3 make_save.py $(OUT)/spot0.sav $$(seq -s, 0 9),20,21 "" - 1 - 96,168
+	./$(HARNESS) $(ROM) $(OUT)/spot0.sav continue_spot0.txt $(OUT) > $(OUT)/continue_spot0.log
+	python3 make_save.py $(OUT)/hop.sav $$(seq -s, 0 19),20,21,22 "" - 1
+	./$(HARNESS) $(ROM) $(OUT)/hop.sav counter_hop.txt $(OUT) > $(OUT)/counter_hop.log
 	python3 make_save.py $(OUT)/gate.sav $$(seq -s, 0 9) 0,1,2 0
 	./$(HARNESS) $(ROM) $(OUT)/gate.sav gate.txt $(OUT) > $(OUT)/gate.log
 	./$(HARNESS) $(ROM) $(OUT)/gate.sav gate_again.txt $(OUT) > $(OUT)/gate_again.log

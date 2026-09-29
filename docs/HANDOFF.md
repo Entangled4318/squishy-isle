@@ -36,7 +36,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
-| 7. QA and final ROM with Brick instructions | Done (v1.0); see "Step 7 progress" and `docs/BRICK.md` |
+| 7. QA and final ROM with Brick instructions | Done (v1.1 after the 7.6 fixes); see "Step 7 progress" and `docs/BRICK.md` |
 
 ## Owner notes
 
@@ -115,7 +115,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 7 is done (v1.0). What remains is the owner's Brick test
+- Next: step 7 is done (v1.1, step 7.6 fixed five bugs found in a code
+  review before the Brick test). What remains is the owner's Brick test
   (`docs/BRICK.md` checklist) and any fixes it finds.
   Owner (step 6 session 2): do all of step 6 without stopping (merge
   after each sub-step), then ask before step 7. Owner
@@ -913,6 +914,45 @@ and text pass, 7.5 final release with `docs/BRICK.md`.
    118, shelf 115, house 80 of 228 lines; stack 2,508 bytes deepest (the
    title's 2 KB version strip on the stack; limit in `mash.py` 4 KB).
    Score 8.5. 21 suites pass (`make test`, ~2.5 min).
+6. Pre-Brick review fixes (owner: review the code and dry-run the game
+   before the Brick test, then fix everything found). **Done.** Review of
+   every C file, a new soak (seeds 21..28, 5 saves x 40,000 frames: all
+   passed) and 4 new full 80-friend shuffles found:
+   - A jingle (letter, Momo's scene, parade) paused the song, but after it
+     the paused lead note went on at the jingle's last pitch (the meadow's
+     A5 came back as C6 for ~1.8 s): the wave channel still held the
+     jingle's frequency and the lead only writes its pitch at a note
+     start. `song_play` (via `music_silence`) now marks the lead silent,
+     and `lead_frame` strikes a silent lead again at its own pitch, at 25%
+     first; volume steps up by at most one level a frame too (no change
+     in normal play: all 8 songs keep their notes and volume steps, per
+     frame loudness within 1.8% of v1.0 from code timing). Test:
+     `check_music.py` measures the paused note after the jingle (v1.0:
+     1058 Hz for a 784 Hz note).
+   - Continue refused the saved spot when it overlapped container spot 0
+     (the box slots read spot 0 at boot, before any box is placed) and
+     left Pip at the meadow's start coordinates in any area. `restore_pos`
+     now checks the map and Momo only (`map_blocked`) and falls back to
+     the area's start. Test: `continue_spot0.txt` in `check_woods.py`
+     (`make_save.py` takes POS, 7th argument).
+   - The counter pill hopped when Pip walked into an area with more
+     friends than the one he left (the last count was shared). Now per
+     area (`count_last[]`, `count_seen`). Test: `counter_hop.txt` in
+     `check_woods.py` (hops after a woods friend, not on the way into the
+     full meadow); harness `waitmap N` waits for the map scene.
+   - Momo's helpers were drawn twice (by Momo and in the pen, visible on
+     the shore). `draw_friends` skips friends that are helping. Checked by
+     screenshot `docs/step7_6_momo_helpers.png` (before / after).
+   - Test only: `make_full_loop.py` walked to (470,200), inside the bridge
+     rail; it reached the exit only when walking straight at it worked
+     (one shuffle stuck on the pen rail). Goal (464,200).
+   Docs and comments: DESIGN.md (no chime near boxes, followers and pen,
+   screens, meadow palettes), stale comments in `viewer.c`, `shelf.c`,
+   `game.h`, `export_game.py`. Version "v1.1": "v1.0.1" pushed the title
+   to f3 (the boot trap below). 21 suites, 449 checks pass; second new
+   soak (seeds 31..38) and the 4 shuffles pass on the fixed ROM. Scores:
+   jingle resume 8.5 (was 6), Continue spot 8.5 (was 7), counter 8.5
+   (was 7.5), gate scene 8.5 (was 7.5).
 
 ## What step 3 should do (as promised to the owner)
 
@@ -942,8 +982,8 @@ and text pass, 7.5 final release with `docs/BRICK.md`.
     containers and UI, player sprite, bubble logo, 5x7 font.
   - `mockups.py` mockup screens; also holds shared builders
     (`shelf_background`, `sunburst`, `stage`, `selection_frame`).
-  - `areas.py` full-size maps: ground and overlay layers, 8x8 collision
-    grid, spawn, container spots, doors.
+  - `areas.py` full-size maps: ground and overlay layers, 4x4 px collision
+    grid, spawn, container spots, doors, exits, Momo's gates.
   - `gbaconv.py` image to GBA tiles, maps, palettes (with a strong palette
     packer); `squishy_export.py` squishy tiles with shared area palettes;
     `export_game.py`, `export_hwcheck.py`, `export_font.py` write the C
@@ -953,8 +993,11 @@ and text pass, 7.5 final release with `docs/BRICK.md`.
     `scene.c` scene manager with white fades; `text.c` variable-width text
     strips; `sound.c` PSG effects and a small melody sequencer; `save.c`
     two-slot SRAM save; `squishy.c` sprite helpers.
-  - Scenes: `viewer.c` (meadow walking), `shelf.c`, `closeup.c`,
-    `hwcheck.c` (hold L + R + SELECT at boot).
+  - Scenes: `viewer.c` (every area's map: walking, boxes, pen, Momo,
+    snack, parade), `title.c`, `open.c`, `closeup.c` (close-up and
+    reveal), `shelf.c` (shelf and sign picker), `letter.c`, `house.c`,
+    `jukebox.c` (hold L + R + START at boot), `hwcheck.c` (hold
+    L + R + SELECT at boot).
 - `test/` headless mGBA harness (`harness.c`), scripts and checks.
 
 ## Build and test
@@ -969,7 +1012,8 @@ The container needs these each new session:
 
 `test/harness` runs a ROM with a script (`wait N`, `hold KEYS N`,
 `tap KEYS`, `shot NAME`, `audio NAME` / `audio end`, `dump NAME`,
-`seek N`), prints
+`seek N`, `walkto X Y N`, `goto PLACE N`, `waitmap N`, `mash SEED N`,
+`perf N`, `solo N`; full list at the top of `harness.c`), prints
 the game's `dbg()` log lines, writes PPM screenshots, WAV audio and a
 memory dump. Checks read the log, pixels and audio pitch.
 
@@ -1010,7 +1054,11 @@ memory dump. Checks read the log, pixels and audio pitch.
   past the wrong boxes. Boot time grows with zeroed RAM (`.sbss`, 47 KB):
   the letter's 5 text strips (10 KB) did it; one shared strip fixed it.
   Keep big buffers shared, and check `boot_only.txt` still shows
-  "scene title" at f2.
+  "scene title" at f2. Boot sits right at the edge: two more characters
+  in `GAME_VERSION` ("v1.0.1") made it f3 (step 7.6); keep it 4 characters.
+- `walkto` and `goto` goals must be walkable feet positions. A goal in a
+  wall builds no distance field and the harness walks straight at it,
+  which works only from some starting spots (step 7.6).
 - Pointer offsets into exported `u32` tile arrays count words, not
   bytes: a 16x16 sprite (4 tiles, 128 bytes) is 32 words (the letter
   once showed the wrong gift). `dma3_copy32` sizes are in bytes.

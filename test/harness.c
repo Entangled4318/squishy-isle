@@ -24,6 +24,7 @@
  *                       him to another area (at most N frames).
  *                       Reads positions from game memory; symbol addresses
  *                       come from `arm-none-eabi-nm` on the ROM's .elf.
+ *   waitmap N           run until the map scene shows with no fade (at most N)
  *   goto KIND N         walk to a place in the current area: sign, mail,
  *                       basket, door (then UP into it), exit, momo (at most N)
  *   perf N              run N idle frames and print the worst and average
@@ -649,6 +650,8 @@ int main(int argc, char **argv) {
             gba->audio.forceDisableChA = gba->audio.forceDisableChB = ch != 0;
         } else if (!strcmp(cmd, "seek")) {
             seek(atol(a));
+        } else if (!strcmp(cmd, "waitmap")) {
+            printf("[waitmap] map after %ld frames\n", wait_meadow(0, atol(a)));
         } else if (!strcmp(cmd, "walkto")) {
             long y = 0, m = 0;
             sscanf(line, "%*s %*s %ld %ld", &y, &m);

@@ -1,7 +1,7 @@
 /* The walkable areas (Blossom Meadow first): Pip walks around a full-size
  * map (2x2 screens) described by area_maps[game_save.area].
  * Ground layer under Pip, overlay (tree tops, roof) over Pip, collision
- * from the exported solid grid (4x4 px cells). The cottage door opens the shelf.
+ * from the exported solid grid (4x4 px cells). Each house door opens its room.
  * Gift boxes wait at the map's container spots; touching one shows a
  * bouncing A button and A or B opens it. After a while without finding
  * one, a guide arrow points the way. */
@@ -75,7 +75,8 @@ static int arrow_box = -1;         /* box the arrow points at, -1 = none */
 static int arrow_t;                /* frames since the arrow showed, for the blink */
 static int touch_box = -1;
 EWRAM_BSS static TextStrip st_count, st_npc;   /* rendered into OBJ tiles: the meadow has no free BG palette */
-static int count_last = -1, count_hop;   /* the counter hops when a new friend is counted */
+static u8 count_last[AREA_COUNT], count_seen;   /* per area: the count last shown, and a bit once shown */
+static int count_hop;               /* the counter hops when a new friend is counted in this area */
 static bool at_sign;               /* Pip stands by the pen sign: A opens the picker */
 static bool at_mail, at_basket;    /* by the mailbox (A reads the letter) or the picnic basket (A: snack time) */
 static bool pos_restored;          /* the saved position is used once, on the first visit after boot */
@@ -334,17 +335,23 @@ static bool solid_at(int x, int y) {
     return A->solid[(y >> A->cell_shift) * (A->w >> A->cell_shift) + (x >> A->cell_shift)];
 }
 
-static bool blocked(int fx, int fy) {
+/* the map and Momo only (no boxes) */
+static bool map_blocked(int fx, int fy) {
     if (solid_at(fx - FEET_W, fy - FEET_H) || solid_at(fx + FEET_W, fy - FEET_H) ||
         solid_at(fx - FEET_W, fy) || solid_at(fx + FEET_W, fy))
         return true;
-    for (int i = 0; i < MAX_BOXES; i++)
-        if (box_hit(i, fx - FEET_W, fy - FEET_H, fx + FEET_W, fy)) return true;
     for (int i = 0; i < A->ngates; i++) {
         const u16 *g = &A->gates[i * 5];
         if (gate_there(g[4]) && fx + FEET_W >= g[0] && fx - FEET_W < g[0] + g[2] && fy >= g[1] && fy - FEET_H < g[1] + g[3])
             return true;
     }
+    return false;
+}
+
+static bool blocked(int fx, int fy) {
+    if (map_blocked(fx, fy)) return true;
+    for (int i = 0; i < MAX_BOXES; i++)
+        if (box_hit(i, fx - FEET_W, fy - FEET_H, fx + FEET_W, fy)) return true;
     return false;
 }
 
@@ -403,20 +410,22 @@ static void update_camera(void) {
 
 static bool blocked(int fx, int fy);
 
-/* Continue: put Pip back where the save says, once per boot, if it is walkable. */
+/* Continue: put Pip back where the save says, once per boot, if it is
+ * walkable, else at the area's start. The boxes are not placed yet at
+ * this point (the slots still read spot 0), so only the map counts: a
+ * spot saved where a box once stood was refused before step 7.6, and Pip
+ * started at the meadow's start coordinates in any area. */
 static void restore_pos(void) {
     if (pos_restored) return;
     pos_restored = true;
     int x = game_save.pip_x, y = game_save.pip_y;
-    if (!x && !y) {                            /* no spot saved: the area's start */
+    if ((!x && !y) || x >= A->w || y >= A->h || map_blocked(x, y)) {   /* no spot saved, or not walkable */
         x = A->spawn_x;
         y = A->spawn_y;
     }
-    if (x < A->w && y < A->h && !blocked(x, y)) {
-        pip_x = x << 8;
-        pip_y = y << 8;
-        dbg("restore pip=%d,%d", x, y);
-    }
+    pip_x = x << 8;
+    pip_y = y << 8;
+    dbg("restore pip=%d,%d", x, y);
 }
 
 /* Keeps the save's position up to date without writing SRAM on every step. */
@@ -468,8 +477,9 @@ static void enter(void) {
 
     char buf[8];             /* found counter, top right: area icon and "7/20" */
     int n = found_in_area(A->area), k = 0;
-    if (count_last >= 0 && n > count_last) count_hop = 40;
-    count_last = n;
+    if ((count_seen & (1 << A->area)) && n > count_last[A->area]) count_hop = 40;   /* not when the area changes (7.6) */
+    count_last[A->area] = (u8)n;
+    count_seen |= (u8)(1 << A->area);
     if (n >= 10) buf[k++] = (char)('0' + n / 10);
     buf[k++] = (char)('0' + n % 10);
     buf[k++] = '/'; buf[k++] = '2'; buf[k++] = '0'; buf[k] = 0;
@@ -732,16 +742,23 @@ static int hop_of(int step) {             /* little hops while walking */
 
 static int parade_t;
 
+static bool helping(int id) {        /* in the gate scene by Momo: not drawn in the pen or the line too */
+    if (gs.t < 0) return false;
+    for (int k = 0; k < gs.n; k++)
+        if (gs.ids[k] == id) return true;
+    return false;
+}
+
 static void draw_friends(void) {
     if (parade_t >= 0) return;          /* they are all in the parade */
     for (int i = 0; i < n_pen; i++) {
         Roamer *r = &pen[i];
-        draw_friend(r->id, r->x, r->y, r->wait > 0 ? 0 : hop_of(r->step));
+        if (!helping(r->id)) draw_friend(r->id, r->x, r->y, r->wait > 0 ? 0 : hop_of(r->step));
     }
     for (int k = 0; k < n_follow; k++) {
         int x, y, hop;
         follower_pos(k, &x, &y, &hop);
-        draw_friend(follow_id[k], x, y, hop);
+        if (!helping(follow_id[k])) draw_friend(follow_id[k], x, y, hop);
     }
 }
 
