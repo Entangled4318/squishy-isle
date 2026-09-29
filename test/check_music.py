@@ -248,6 +248,27 @@ jingle = ac[t + 66:t + 66 + 80]        # the jingle (hello) plays from about her
 after = ac[t + 66 + 110:t + 66 + 170]  # the song again
 check(jingle.max() > 0 and (after > 0.2 * ac.max()).mean() > 0.6,
       f'jingle: the song goes on after it (sounding {100 * (after > 0.2 * ac.max()).mean():.0f}% of frames after)')
+# step 7.6: the note a jingle paused plays on at its own pitch after it
+# (it went on at the jingle's last pitch, C6, for up to 2 s). A long meadow
+# lead note is cut 20 frames in; its rest is measured after the jingle.
+ms = SONGS['meadow']
+f0 = 0
+for m, ln in ms['lead']:
+    if m and ln * ms['tick'] >= 80 and abs(m - 84) > 1:
+        break
+    f0 += ln * ms['tick']
+want = 440 * 2 ** ((m - 69) / 12)
+lines = ['hold L+R+START 5', 'wait 30'] + ['tap RIGHT'] * ms['index'] + [
+    'solo 3', 'audio mus_resume', 'wait 10', 'tap A', f'wait {f0 + 20}', 'tap SELECT', 'wait 140', 'audio end']
+run('mus_resume', lines)
+a, sr = load('mus_resume')
+spf = sr / FPS
+sel = 11 + f0 + 20
+seg = a[int((sel + 80) * spf):int((sel + 110) * spf)]
+got = yin(seg, sr) if seg.std() > 300 else 0
+cents = 1200 * np.log2(got / want) if got > 0 else 9999
+check(abs(cents) < 50, f'jingle: the paused note goes on at its own pitch after it ({got:.0f} Hz, want {want:.0f} Hz)')
+
 a, sr = load('mus_fx_bass')
 dc, ac = frames(a, sr)
 before, after = ac[:100].max(), ac[100 + 30:].max()     # the boing plays at frame ~100 for 16 frames

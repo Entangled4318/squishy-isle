@@ -464,7 +464,7 @@ def main():
                 '    uint16_t pen_x0, pen_y0, pen_x1, pen_y1, sign_x, sign_y;\n'
                 '    const uint16_t *shimmer; uint8_t nshimmer;\n'
                 '    const uint16_t *shimmer_cycle;       /* 4 colors the glint steps through */\n'
-                '    const uint16_t *doors; uint8_t ndoors;   /* x, y, w, h: up here opens the shelf */\n'
+                '    const uint16_t *doors; uint8_t ndoors;   /* x, y, w, h: up here opens the house room */\n'
                 '    const uint16_t *exits; uint8_t nexits;   /* x, y, w, h, to area, arrive x, arrive y */\n'
                 '    const uint16_t *gates; uint8_t ngates;   /* x, y, w, h, to area: Momo lies there while it is shut */\n'
                 '    uint16_t momo_x, momo_y;             /* Momo sleeps on its bed here once every way is open (0 = none) */\n'

@@ -1,6 +1,6 @@
 # Squishy Isle on the Trimui Brick
 
-Version 1.0. File: `release/squishy-isle.gba` (617 KB). The version shows
+Version 1.1. File: `release/squishy-isle.gba` (617 KB). The version shows
 small at the bottom right of the title screen, so you can see which build
 is on the Brick.
 

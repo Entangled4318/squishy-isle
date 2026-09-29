@@ -29,7 +29,8 @@ Squishy Shelf.
 
 ## Core loop (30 to 60 seconds)
 
-1. **Explore.** Walk Pip around the area. Containers sparkle and chime.
+1. **Explore.** Walk Pip around the area. Containers hop and twinkle; after
+   a few seconds without a find, a blinking arrow points to the nearest one.
 2. **Open.** Touch a container. The view zooms in. Each press of A (or B)
    makes it wobble and jump higher, with a rising note. On the third
    press it pops. If the child does not press, it opens by itself after a
@@ -37,9 +38,10 @@ Squishy Shelf.
 3. **Meet.** A squishy bounces out with confetti and a star burst. Every
    press squishes it (squash, squeak, hearts). After three
    squishes or a short wait, it hops into Pip's bag.
-4. **Play.** Back in the world, the new friend follows Pip. Friends you
-   already found wander the area, so the island fills with life as the
-   collection grows.
+4. **Play.** Back in the world, the first three friends of an area follow
+   Pip (the heart sign by the pen picks who follows). The others waddle in
+   the area's friend pen, so the island fills with life as the collection
+   grows.
 
 ## Session loop (5 to 15 minutes)
 
@@ -109,8 +111,8 @@ possible from the title, behind the guarded confirm screen.
 
 ## Screens
 
-Title, world (4 areas), open, reveal, squish, shelf, bridge building,
-parade. Mockups of the first eight are in `mockups/`.
+Title, world (4 areas), open, reveal, squish, shelf, Momo's wake-up scene,
+parade, letter, house rooms. Mockups of the first eight are in `mockups/`.
 
 ## Mockup scorecard
 
@@ -126,13 +128,14 @@ set, and whether the GBA can really show it. First pass and final pass.
 | Open (wobble) | 6.5 | 8.5 | Box sits on a cushion, lavender backdrop for contrast, dithered glow, big A prompt, heart progress |
 | Reveal | 7.0 | 8.7 | Friend lands on the cushion instead of on the box, bigger confetti |
 | Squish | 6.5 | 8.6 | Native squash art instead of affine smear, clear > < face, hearts, puffs |
-| Shelf | 7.5 | 8.6 | Pastel rows per species, tinted silhouettes, gold frame, locked tabs dimmed |
+| Shelf | 7.5 | 8.6 | Pastel rows per species, tinted silhouettes, gold frame (dark in the ROM since 3.10), locked tabs dimmed |
 | Seashell Shore | 7.0 | 8.5 | Striped umbrella, sandcastle contrast, palm trunks, boardwalk, sailboat |
 | Cloud Hill | 7.0 | 8.5 | Puffy scalloped clouds, cotton-candy trees, rainbow, capsule machine |
 
 Every screen passes the checks in `tools/scene.py`: at most 4 BG layers,
 16 BG palettes and 16 OBJ palettes, 15 colors per sprite and per 8x8 tile.
-The meadow is the tightest at 14 of 16 BG palettes.
+The mockup meadow used 14 of 16 BG palettes; the final ROM meadow uses 15
+(HANDOFF.md, step 6.7).
 
 ## Known limits of the mockups
 
