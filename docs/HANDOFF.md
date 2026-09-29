@@ -697,7 +697,17 @@ Plan, one sub-step at a time, merge after each:
    7: the card's bottom showed at the top while the envelope dropped; the
    flag was 4 px), snack time 8.5 (first 7.5: the right seat stood on
    Pip and the basket; the arrow drew over the treat).
-8. Full 80-friend loop, scores, release.
+8. Full 80-friend loop, scores, release. **In progress** (not committed
+   yet if this line is still here). Done so far: `make_full_loop.py`
+   writes the 80-container script (new game, 20 per area in play order,
+   the way on after each area, the shelf pages, Momo's bed), `full_b.txt`
+   (Continue with 80), `check_full.py`, Makefile entry. The first run
+   found 79/80: Cloud Hill spot (138,280) was in the sky. `check_map.py`
+   now checks every spot of every area is on the ground and reachable
+   from the area's start (it also flagged (392,146) and (330,272) at
+   island edges); the three spots moved to (376,150), (100,274),
+   (344,262). Next: rebuild, run the full suite, check the loop passes,
+   the scoring pass, release ROM, merge.
 
 ## What step 3 should do (as promised to the owner)
 

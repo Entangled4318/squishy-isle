@@ -1,5 +1,6 @@
 """Checks the meadow collision grid with the game's own feet test (viewer.c
-blocked(): a 11x6 px feet box). Usage: check_map.py OUTDIR"""
+blocked(): a 11x6 px feet box), and that every container spot of every area
+can be reached. Usage: check_map.py OUTDIR"""
 import os
 import sys
 
@@ -55,6 +56,53 @@ for kind, x, y in (('blossom', 300, 116), ('green', 330, 140)):
     left_ok = not blocked(x - FEET_W - 3, base)
     right_ok = not blocked(x + w + FEET_W + 2, base)
     check(left_ok and right_ok, f'bush at {x},{y}: Pip fits right beside it on both sides')
+
+
+
+def reachable_spots(area):
+    """Every container spot in every area: Pip, walking from the area's start
+    (all gates open), can stand where the game counts a touch (viewer.c
+    box_hit with TOUCH 6, as the harness seek uses), and each spot's box
+    footprint lies on walkable ground, not in the sky or the sea."""
+    from collections import deque
+    W, H = area.w, area.h
+
+    def sol(x, y):
+        return x < 0 or y < 0 or x >= W or y >= H or area.solid[y // C, x // C]
+
+    def walk(x, y, box=None):
+        if sol(x - FEET_W, y - FEET_H) or sol(x + FEET_W, y - FEET_H) or sol(x - FEET_W, y) or sol(x + FEET_W, y):
+            return False
+        if box and x + FEET_W >= box[0] - 7 and x - FEET_W <= box[0] + 7 and y >= box[1] - 6 and y - FEET_H <= box[1]:
+            return False
+        return True
+
+    seen = np.zeros((H, W), bool)
+    sx, sy = area.spawn
+    q = deque([(sx, sy)])
+    seen[sy, sx] = True
+    while q:
+        x, y = q.popleft()
+        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < W and 0 <= ny < H and not seen[ny, nx] and walk(nx, ny):
+                seen[ny, nx] = True
+                q.append((nx, ny))
+    bad = []
+    for (bx, by) in area.spots:
+        on_ground = all(not sol(x, y) for x in (bx - 6, bx, bx + 6) for y in (by - 5, by))
+        touch = any(seen[y, x] and walk(x, y, (bx, by))
+                    for y in range(max(0, by - 14), min(H, by + 10)) for x in range(max(0, bx - 16), min(W, bx + 17))
+                    if x + FEET_W + 4 >= bx - 7 and x - FEET_W - 4 <= bx + 7 and y + 4 >= by - 6 and y - FEET_H - 4 <= by)
+        if not (on_ground and touch):
+            bad.append((bx, by))
+    return bad
+
+
+for build in (areas.meadow, areas.woods, areas.shore, areas.clouds):
+    ar = build()
+    bad = reachable_spots(ar)
+    check(not bad, f'{ar.name}: Pip can reach all {len(ar.spots)} container spots, none off the ground {bad or ""}')
 
 img = areas.collision_preview(a)
 Image.fromarray(img[..., :3]).resize((a.w * 2, a.h * 2), Image.NEAREST).save(os.path.join(OUT, 'map_collision.png'))

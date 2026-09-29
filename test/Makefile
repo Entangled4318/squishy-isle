@@ -82,6 +82,10 @@ run: $(HARNESS) $(UNIT)
 	python3 make_save.py $(OUT)/mail_solo.sav 0,1,2,3 ""
 	./$(HARNESS) $(ROM) $(OUT)/mail_solo.sav mail_solo.txt $(OUT) > $(OUT)/mail_solo.log
 	python3 check_mail.py $(OUT)
+	python3 make_full_loop.py > $(OUT)/full.txt
+	./$(HARNESS) $(ROM) $(OUT)/full.sav $(OUT)/full.txt $(OUT) > $(OUT)/full.log
+	./$(HARNESS) $(ROM) $(OUT)/full.sav full_b.txt $(OUT) > $(OUT)/full_b.log
+	python3 check_full.py $(OUT)
 	python3 check_music.py $(OUT) $(ROM)
 
 .PHONY: run
