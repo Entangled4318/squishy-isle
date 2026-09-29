@@ -908,8 +908,11 @@ and text pass, 7.5 final release with `docs/BRICK.md`.
    up, save states, grown-up screens, how to play, and one Brick test
    checklist that replaces the per-step queue. DESIGN.md: Momo instead of
    the old log / boardwalk wording, the parade, letters and gifts.
-   Release ROM `release/squishy-isle.gba` (v1.0). Final soak on this ROM:
-   see below. Score 8.5.
+   Release ROM `release/squishy-isle.gba` (v1.0). Final soak on this ROM
+   (6 seeds x 5 saves x 60,000 frames): all passed; worst frame work map
+   118, shelf 115, house 80 of 228 lines; stack 2,508 bytes deepest (the
+   title's 2 KB version strip on the stack; limit in `mash.py` 4 KB).
+   Score 8.5. 21 suites pass (`make test`, ~2.5 min).
 
 ## What step 3 should do (as promised to the owner)
 
