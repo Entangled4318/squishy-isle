@@ -35,7 +35,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
-| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | In progress (6.1 to 6.8 done, 6.9 houses and gifts next); see "Step 6 progress" |
+| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued; see "Step 6 progress" |
 | 7. QA and final ROM with Brick instructions | To do |
 
 ## Owner notes
@@ -44,6 +44,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  6.9 (walk up into each house door: the room opens; the gifts read at
+  4x in every flavor, the silhouettes read as "not yet"; the arrow and
+  hop feel good; the letter's gift matches the friend), step
   6.8 (the woods trail, shore walkway and cloud bridges read as straight
   paths; the shore fences make the walkway the only way east, so it is
   clear Momo blocks it; a long play session feels good), step
@@ -106,8 +109,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 6.9 (houses and gifts), see "Step 6 progress". Then ask
-  the owner before step 7.
+- Next: step 7 (QA and the final ROM). Step 6 is done; ask the owner
+  before starting step 7.
   Owner (step 6 session 2): do all of step 6 without stopping (merge
   after each sub-step), then ask before step 7. Owner
   answers for 6.7: mailbox = a letter with a happy message from the
@@ -730,10 +733,44 @@ Plan, one sub-step at a time, merge after each:
    Cloud Hill 683 / 14. 17 suites pass. Screenshot
    `docs/step6_8_full_loop.png`. Scores: full loop 8.5 (first run 7:
    an unreachable container), straight paths 8.5, shore fences 8.5.
-9. Houses and gifts (owner request after 6.8, before step 7): each
-   friend's letter brings a gift; each area gets a house whose door
-   opens a room with that area's 20 gifts (not the shelf; START still
-   opens the shelf). To do.
+9. Houses and gifts (owner request after 6.8, before step 7). **Done.**
+   Gifts: `tools/gifts.py`, one 16x16 keepsake per species (tulip, yarn,
+   honey pot, bell; crown, leaf, egg, mushroom lamp; sailboat, locket,
+   beach ball, bucket; umbrella, star wand, rocket, gem), drawn in the
+   friends' palette slots (1-5 ramp, 6 outline, 7 blush, 8 ink, 9
+   white), so each shows in its friend's flavor with no new palette
+   (`gift_tiles`, 16 species x 4 tiles). Gift = friend found (no new
+   save data). The letter shows the friend's gift at twice size, bottom
+   right of the card (affine matrix 1). Houses (`world.mushroom_house`,
+   `beach_hut`, `cloud_cottage`; the meadow keeps its cottage), each
+   with a door in `Area.doors`: woods at the north end of the straight
+   path (the big old tree and one autumn tree gone), shore up the beach,
+   Cloud Hill on the big island's west side (a candy tree moved).
+   Walking up into a door opens `scene_house` (`house.c`, owner: not
+   the shelf; START still opens the shelf). Room per area
+   (`tools/rooms.py`, `room_art[4]`): themed wallpaper (hearts, leaves,
+   waves, stars), wood floor, window, a plant and a floor cushion, a
+   rug with Pip seen from behind, the name pill at the top, and four
+   wall shelves: species 0 top left, 1 top right, 2 bottom left, 3
+   bottom right, 5 flavors each (`ROOM_*` positions). Gifts not found
+   are silhouettes in the shelf's tint (`sq_sil_pal`). A bouncing arrow
+   (the guide arrow flipped) starts on the newest friend's gift if it
+   lives here, else the first found; LEFT / RIGHT run along both shelves
+   of a row, UP / DOWN switch rows; the pill says "From Matcha Bunny" or
+   "Find me!". A: the gift hops with its friend's squeak and hearts; a
+   missing one wiggles with a blip. B or START: back out of the door.
+   Tiles and palettes: woods 656 / 13, shore 588 / 11, Cloud Hill 734 /
+   13; rooms 136..173 tiles, 2 palettes each. Tests: `house_meadow/
+   woods/shore/clouds.txt`, `check_house.py` (each door opens its room,
+   the gift count, the arrow on a found gift, hop and wiggle, back out,
+   vanilla colors on a found gift, the pill text, a silhouette),
+   `check_map.py` (every house door reachable), `check_step2.py` (the
+   cottage door opens its room). 18 suites. Screenshots
+   `docs/step6_9_rooms.png`, `docs/step6_9_houses.png` (a full meadow
+   room and the three new houses). Scores: gifts 8.5 (first 7.5: the
+   honey pot label read as an eye, the locket chain as a dotted line),
+   houses 8.5, rooms 8.5 (first 8: the letter showed a Cloud Hill gift,
+   a byte offset used on a u32 array).
 
 ## What step 3 should do (as promised to the owner)
 
@@ -832,6 +869,14 @@ memory dump. Checks read the log, pixels and audio pitch.
   the letter's 5 text strips (10 KB) did it; one shared strip fixed it.
   Keep big buffers shared, and check `boot_only.txt` still shows
   "scene title" at f2.
+- Pointer offsets into exported `u32` tile arrays count words, not
+  bytes: a 16x16 sprite (4 tiles, 128 bytes) is 32 words (the letter
+  once showed the wrong gift). `dma3_copy32` sizes are in bytes.
+- The harness keeps walks out of a house door's zone (the door, and up
+  to 12 px below it for the game, 16 for the harness), so a `walkto`
+  goal inside it counts as unreachable and Pip is nudged straight at
+  the goal, which can walk him into a door. Aim below the zone and
+  `hold UP` to enter.
 - An exit at the map edge must be at least 12 px wide: Pip's feet box
   stops 5 px from the edge, so a 6 px exit leaves one reachable column.
 - A small prop that puts sky, cloud edge and its own colors in one 8x8

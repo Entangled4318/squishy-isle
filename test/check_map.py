@@ -89,6 +89,9 @@ def reachable_spots(area):
                 seen[ny, nx] = True
                 q.append((nx, ny))
     bad = []
+    for (dx0, dy0, dw, dh, _) in area.doors:        # the door zone (viewer.c: up to 12 px below the door)
+        if not any(seen[y, x] for y in range(dy0, min(H, dy0 + dh + 12)) for x in range(dx0, dx0 + dw)):
+            bad.append(('door', dx0, dy0))
     for (bx, by) in area.spots:
         on_ground = all(not sol(x, y) for x in (bx - 6, bx, bx + 6) for y in (by - 5, by))
         touch = any(seen[y, x] and walk(x, y, (bx, by))
@@ -102,7 +105,8 @@ def reachable_spots(area):
 for build in (areas.meadow, areas.woods, areas.shore, areas.clouds):
     ar = build()
     bad = reachable_spots(ar)
-    check(not bad, f'{ar.name}: Pip can reach all {len(ar.spots)} container spots, none off the ground {bad or ""}')
+    check(not bad, f'{ar.name}: Pip can reach all {len(ar.spots)} container spots (none off the ground) and '
+                   f'{len(ar.doors)} house door {bad or ""}')
 
 img = areas.collision_preview(a)
 Image.fromarray(img[..., :3]).resize((a.w * 2, a.h * 2), Image.NEAREST).save(os.path.join(OUT, 'map_collision.png'))

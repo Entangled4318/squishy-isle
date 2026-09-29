@@ -82,6 +82,15 @@ run: $(HARNESS) $(UNIT)
 	python3 make_save.py $(OUT)/mail_solo.sav 0,1,2,3 ""
 	./$(HARNESS) $(ROM) $(OUT)/mail_solo.sav mail_solo.txt $(OUT) > $(OUT)/mail_solo.log
 	python3 check_mail.py $(OUT)
+	python3 make_save.py $(OUT)/house_m.sav 0,1,6,7,12,15,19 0
+	./$(HARNESS) $(ROM) $(OUT)/house_m.sav house_meadow.txt $(OUT) > $(OUT)/house_meadow.log
+	python3 make_save.py $(OUT)/house_w.sav $$(seq -s, 0 9),20,21,25,33,39 "" - 1
+	./$(HARNESS) $(ROM) $(OUT)/house_w.sav house_woods.txt $(OUT) > $(OUT)/house_woods.log
+	python3 make_save.py $(OUT)/house_s.sav $$(seq -s, 0 9),$$(seq -s, 20 29),40,41,47,50,58 "" - 2
+	./$(HARNESS) $(ROM) $(OUT)/house_s.sav house_shore.txt $(OUT) > $(OUT)/house_shore.log
+	python3 make_save.py $(OUT)/house_c.sav $$(seq -s, 0 9),$$(seq -s, 20 29),$$(seq -s, 40 49),60,61,66,72,79 "" - 3
+	./$(HARNESS) $(ROM) $(OUT)/house_c.sav house_clouds.txt $(OUT) > $(OUT)/house_clouds.log
+	python3 check_house.py $(OUT)
 	python3 make_full_loop.py > $(OUT)/full.txt
 	./$(HARNESS) $(ROM) $(OUT)/full.sav $(OUT)/full.txt $(OUT) > $(OUT)/full.log
 	./$(HARNESS) $(ROM) $(OUT)/full.sav full_b.txt $(OUT) > $(OUT)/full_b.log

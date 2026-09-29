@@ -17,6 +17,8 @@ import props
 import areas
 import world
 import npc
+import rooms
+import gifts
 from pip import frames as pip_frames
 
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'build'
@@ -329,6 +331,20 @@ def main():
                 ', '.join(f'"{k}"' for k in props.SNACK_ORDER) + '};\n')
     cw.h.append(f'extern const char *const snack_names[{len(props.SNACK_ORDER)}];\n')
     save_scaled(np.concatenate(extras, axis=1), os.path.join(OUT, 'meadow_extras.png'), 6)
+
+    # ---------------- house rooms (one per area) and the friends' gifts
+    cw.h.append('\ntypedef struct {\n    const uint32_t *tiles; uint32_t tiles_bytes;\n'
+                '    const uint16_t *pal; uint16_t pal_bytes;\n    const uint16_t *map;\n} RoomArt;\n')
+    arts = []
+    for i, a in enumerate(AREAS):
+        export_multi_bg(cw, f'room{i}', [rooms.room_background(a[0])])
+        arts.append(f'{{room{i}_tiles, sizeof room{i}_tiles, room{i}_pal, sizeof room{i}_pal, room{i}_map0}}')
+    cw.c.append('const RoomArt room_art[4] = {\n    ' + ',\n    '.join(arts) + '\n};\n')
+    cw.h.append('extern const RoomArt room_art[4];\n')
+    for k, v in rooms.ROOM.items():
+        cw.define(f'ROOM_{k.upper()}', v)
+    # 16x16 per species in play order, drawn in the friends' palette slots
+    cw.u32_bytes('gift_tiles', b''.join(gifts.gift_tiles(sp) for a in AREAS for sp in a[3]))
 
     # ---------------- letter: static background (map0), the card that slides up (map1), envelope
     export_multi_bg(cw, 'letter', list(letter_parts()))
