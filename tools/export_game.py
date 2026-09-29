@@ -24,6 +24,8 @@ from pip import frames as pip_frames
 OUT = sys.argv[1] if len(sys.argv) > 1 else 'build'
 PILL_W = 104          # name pill on the shelf (top right)
 COUNT_PILL_W = 52     # found counter pill (top right of the world)
+METER_W, METER_H = 57, 28     # Momo's heart meter bubble (8.4): 2 rows of 5 hearts (9 px), 10 and 11 px apart
+METER_HX, METER_HY, METER_DX, METER_DY = 4, 4, 10, 11
 
 
 def palette_and_lookup(images):
@@ -370,21 +372,51 @@ def main():
     # found counter pill, top right, as in the mockups: the area's container
     # icon at the left end, the count ("7/20") printed over it at run time in
     # color 1 (ui_ink). Two 32x16 sprites and one palette per area.
+    # Momo's heart meter (step 8.4, owner pick "A"): while Pip stands by a
+    # sleeping Momo, a bubble shows 10 hearts, one filled per friend found in
+    # the area (10 wake Momo). Same palette as the pill: body 64x32 (the
+    # bubble with 10 empty hearts), a tail tile under it toward Momo, and a
+    # 16x16 filled heart drawn over each empty one.
+    meter = new(64, 32)
+    blit(meter, props.pill(METER_W, METER_H, C['ui_bg'], C['ui_pk'], C['ui_ink'], C['white'], r=5), 0, 0)
+    heart_k = rgb15('#c25a82')
+    empty = props.HEART_BIG.copy()
+    for yy in range(empty.shape[0]):
+        for xx in range(empty.shape[1]):
+            if empty[yy, xx, 3]:
+                empty[yy, xx, :3] = rgb15('#d98fb0') if tuple(empty[yy, xx, :3]) == heart_k else C['ui_bg']
+    for n in range(10):
+        blit(meter, empty, METER_HX + (n % 5) * METER_DX, METER_HY + (n // 5) * METER_DY)
+    tail = new(8, 8)
+    for k, row in enumerate(('kbbbbbk', '.kbbbk.', '..kbk..', '...k...')):
+        for xx, ch in enumerate(row):
+            if ch != '.':
+                tail[k, xx, :3] = C['ui_ink'] if ch == 'k' else C['ui_bg']
+                tail[k, xx, 3] = 255
+    full = new(16, 16)
+    blit(full, props.HEART_BIG, 0, 0)
     icons = [props.icon12(a[2]) for a in AREAS]     # one pill per area, in play order
-    pills, pals = [], []
+    pills, pals, meters = [], [], []
     for ic in icons:
         img = new(64, 16)
         blit(img, props.pill(COUNT_PILL_W, 15, C['ui_bg'], C['ui_pk'], C['ui_ink'], C['white']), 0, 1)
         blit(img, ic, 4, 2)             # inside the pill, clear of its left end
-        lk, _ = palette_and_lookup([img])
+        lk, _ = palette_and_lookup([img, meter, tail, full])
         cs = [C['ui_ink']] + sorted(c for c in lk if c != C['ui_ink'])
         if len(cs) > 15:
             raise ValueError(f'count pill: {len(cs)} colors')
         lk = {c: i + 1 for i, c in enumerate(cs)}
         pills.append(obj(img[:, :32], lk) + obj(img[:, 32:], lk))   # two 32x16 halves
         pals += [0] + [bgr555(c) for c in cs] + [0] * (15 - len(cs))
+        meters.append(obj(meter, lk) + obj(tail, lk) + obj(full, lk))
     cw.u32_bytes('count_pill_tiles', b''.join(pills))
     cw.u16('count_pill_pal', pals)
+    cw.u32_bytes('momo_meter_tiles', b''.join(meters))      # per area: 32 body, 1 tail, 4 heart
+    for k, v in (('METER_TILES', 37), ('METER_TAIL', 32), ('METER_HEART', 33), ('METER_W', METER_W), ('METER_H', METER_H),
+                 ('METER_HX', METER_HX), ('METER_HY', METER_HY), ('METER_DX', METER_DX), ('METER_DY', METER_DY)):
+        cw.define(k, v)
+    save_scaled(np.concatenate([meter, np.pad(tail, ((0, 24), (0, 0), (0, 0))), np.pad(full, ((0, 16), (0, 0), (0, 0)))], axis=1),
+                os.path.join(OUT, 'momo_meter.png'), 6)
     cw.define('COUNT_PILL_W', COUNT_PILL_W)
     cw.define('COUNT_TEXT_X', 18)       # the 32 px text strip starts here inside the pill
 

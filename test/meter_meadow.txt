@@ -1,0 +1,10 @@
+# step 8.4: Pip beside sleeping Momo (meadow): the heart meter shows
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+walkto 428 200 1500
+wait 40
+shot meter_meadow
+dump meter_meadow

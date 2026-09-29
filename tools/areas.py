@@ -35,6 +35,7 @@ class Area:
         self.pen = None          # (x0, y0, x1, y1) where found friends roam (their feet)
         self.sign = None         # (x, y) of the pen sign's base centre
         self.doors = []          # (x, y, w, h, target)
+        self.signs = []          # signposts' ink boxes (x0, y0, x1, y1), see place(sign=True)
         self.exits = []          # (x, y, w, h, to_area, arrive_x, arrive_y): feet in the box walk to that area
         self.shimmer = 'w_lt'    # palette color that glints (cycled at run time)
         self.gates = []          # (x, y, w, h, to_area): solid while that area is shut; Momo the
@@ -49,11 +50,16 @@ class Area:
         c1, r1 = min(self.w // CELL, -(-int(x1) // CELL)), min(self.h // CELL, -(-int(y1) // CELL))
         self.solid[r0:r1, c0:c1] = True
 
-    def place(self, img, x, y, block_w=None, block_inset=0, tall=None):
+    def place(self, img, x, y, block_w=None, block_inset=0, tall=None, sign=False):
         """Put an object with its top-left at (x, y). Pixels higher than
         PIP_H above the base go to the overlay. block_w: width of the solid
-        footprint (centred), block height = min(PIP_H, object height)."""
+        footprint (centred), block height = min(PIP_H, object height).
+        sign: a signpost; its ink box goes in self.signs (check_map.py keeps
+        them clear of Momo's heart meter)."""
         h, w = img.shape[:2]
+        if sign:
+            cols, rws = img[..., 3].any(axis=0).nonzero()[0], img[..., 3].any(axis=1).nonzero()[0]
+            self.signs.append((x + cols[0], y + rws[0], x + cols[-1] + 1, y + rws[-1] + 1))
         rows = np.nonzero(img[..., 3].any(axis=1))[0]
         if not len(rows):
             return
@@ -165,7 +171,8 @@ def meadow():
     a.place(world.decor('tulips'), 154, 70)
     a.place(world.mailbox(flag=False), 268, 74, block_w=8, tall=6)   # the flag is a sprite
     a.mailbox = (276, 96)
-    a.place(world.signpost(world.mini_acorn()), 414, 164, block_w=8, tall=6)   # the bridge leads to the woods
+    a.place(world.signpost(world.mini_acorn()), 398, 164, block_w=8, tall=6, sign=True)   # the bridge leads to the woods;
+    # 16 px west of 414 (8.4): Momo's heart meter bubble covered it (one tile west still hid 3 px)
     a.place(world.basket(), 322, 230, block_w=10, tall=6)
     a.basket = (329, 243)
     for kind, x, y in (('green', 180, 104), ('blossom', 300, 116), ('blossom', 150, 244),
@@ -189,7 +196,7 @@ def meadow():
     a.place(side, px1 - 4, py0, block_w=7, tall=side.shape[0])
     a.pen = (px0 + 8, py0 + 20, px1 - 8, py1 - 14)     # feet area; keeps heads off the rails
     sign_img = world.signpost(world.mini_heart())
-    a.place(sign_img, px1 + 2, py1 - 22, block_w=8, tall=6)
+    a.place(sign_img, px1 + 2, py1 - 22, block_w=8, tall=6, sign=True)
     a.sign = (px1 + 2 + sign_img.shape[1] // 2, py1 + 1)
     for name, x, y in (('patch_mix', 60, 200), ('patch_yellow', 350, 196), ('patch_pink', 124, 170),
                        ('tuft', 220, 250), ('patch_mix', 420, 226), ('tuft', 100, 132)):
@@ -295,7 +302,7 @@ def woods():
     a.place(side, px1 - 4, py0, block_w=7, tall=side.shape[0])
     a.pen = (px0 + 8, py0 + 20, px1 - 8, py1 - 14)
     sign_img = world.signpost(world.mini_heart())
-    a.place(sign_img, px0 - 26, py0 - 4, block_w=8, tall=6)
+    a.place(sign_img, px0 - 26, py0 - 4, block_w=8, tall=6, sign=True)
     a.sign = (px0 - 26 + sign_img.shape[1] // 2, py0 + 19)
 
     a.block(0, 0, 4, 186)                              # map edges beside the trail ends
@@ -374,7 +381,7 @@ def shore():
     a.place(side, px1 - 4, py0, block_w=7, tall=side.shape[0])
     a.pen = (px0 + 8, py0 + 20, px1 - 8, py1 - 14)
     sign_img = world.signpost(world.mini_heart())
-    a.place(sign_img, px0 - 26, py0 - 4, block_w=8, tall=6)
+    a.place(sign_img, px0 - 26, py0 - 4, block_w=8, tall=6, sign=True)
     a.sign = (px0 - 26 + sign_img.shape[1] // 2, py0 + 19)
 
     a.block(0, 0, 4, 190)                              # map edges beside the ways in and out
@@ -488,7 +495,7 @@ def clouds():
     a.place(side, px1 - 4, py0, block_w=7, tall=side.shape[0])
     a.pen = (px0 + 8, py0 + 20, px1 - 8, py1 - 14)
     sign_img = world.signpost(world.mini_heart())
-    a.place(sign_img, px0 - 26, py0 - 4, block_w=8, tall=6)
+    a.place(sign_img, px0 - 26, py0 - 4, block_w=8, tall=6, sign=True)
     a.sign = (px0 - 26 + sign_img.shape[1] // 2, py0 + 19)
 
     a.block(0, 0, 4, 190)                              # map edge beside the way down

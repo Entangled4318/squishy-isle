@@ -100,14 +100,16 @@ L and R turn the pages, and A shows a friend big for more squishes.
 ## Momo and the way on
 
 Momo, a sleepy pastel panda in a nightcap, lies across the way to the next
-area. When Pip comes close, Momo opens an eye and a bubble shows how many
-friends are found, out of the 10 that wake it. With the 10th friend, the
+area. When Pip comes close, Momo opens an eye and a bubble of 10 hearts
+floats over it: one filled heart for each friend found in that area, so a
+child who cannot count yet sees how many are still missing. The newest
+heart hops. With the 10th friend, the
 area's friends hop over and tickle Momo until it wakes up, hops for joy
 and waddles off to sleep across the next way. At the end, Momo sleeps
 tucked in on a cloud bed on Cloud Hill, and hops with hearts when Pip
 visits.
 
-![Momo asleep with the 9/10 bubble, the tickle, Momo waddles off, Momo's cloud bed](docs/readme/momo.png)
+![Momo's heart meter at 7 of 10, the tickle, Momo waddles off, Momo's cloud bed](docs/readme/momo.png)
 
 ## Mailbox, snack time and houses
 

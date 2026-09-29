@@ -142,6 +142,45 @@ for build in (areas.meadow, areas.woods, areas.shore, areas.clouds):
 bad = arrivals_ok(maps)
 check(not bad, f'every exit lands on walkable ground in the next area, outside its exits {bad or ""}')
 
+
+# step 8.4: Momo's heart meter (viewer.c draw_meter) for every spot where Pip
+# wakes a sleeping Momo (feet within 34 px of Momo's middle, walkable): the
+# bubble clears every signpost and stays on screen. (It can reach the
+# counter pill when Pip stands below Momo: the pill hides while it shows.)
+MW, MH, TAIL, BOB = 57, 28, 4, 2
+
+
+def walkable(area, x, y):
+    def sol(x, y):
+        return x < 0 or y < 0 or x >= area.w or y >= area.h or area.solid[y // C, x // C]
+    return not (sol(x - FEET_W, y - FEET_H) or sol(x + FEET_W, y - FEET_H) or sol(x - FEET_W, y) or sol(x + FEET_W, y))
+
+
+def hit(a, b):
+    return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
+
+
+for ar in maps:
+    for gxy in ar.gates:
+        gx, gy = gxy[0] + gxy[2] // 2, gxy[1] + gxy[3]
+        signs, offscreen, spots = set(), 0, 0
+        for py in range(gy - 8 - 34, gy - 8 + 35):
+            for px in range(gx - 34, gx + 35):
+                if (px - gx) ** 2 + (py - gy + 8) ** 2 >= 34 * 34 or not walkable(ar, px, py):
+                    continue
+                spots += 1
+                cx = min(max(px - 120, 0), ar.w - 240)
+                cy = min(max(py - 12 - 80, 0), ar.h - 160)
+                sx = min(max(gx - MW // 2 - cx, 2), 240 - 2 - MW)
+                sy = gy - 32 - 4 - MH - cy
+                screen = (sx, sy - BOB, sx + MW, sy + MH + TAIL + BOB)
+                box = (screen[0] + cx, screen[1] + cy, screen[2] + cx, screen[3] + cy)
+                signs |= {sg for sg in ar.signs if hit(box, sg)}
+                offscreen += screen[1] < 0 or screen[3] > 160
+        check(spots and not signs and not offscreen,
+              f'{ar.name}: Momo at {gx},{gy}: the heart meter clears every sign ({sorted(signs) or "none hidden"}) '
+              f'and stays on screen ({spots} spots Pip wakes Momo from; off screen {offscreen})')
+
 img = areas.collision_preview(a)
 Image.fromarray(img[..., :3]).resize((a.w * 2, a.h * 2), Image.NEAREST).save(os.path.join(OUT, 'map_collision.png'))
 if fails:

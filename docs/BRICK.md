@@ -1,6 +1,6 @@
 # Squishy Isle on the Trimui Brick
 
-Version 1.2. File: `release/squishy-isle.gba` (617 KB). The version shows
+Version 1.3. File: `release/squishy-isle.gba` (617 KB). The version shows
 small at the bottom right of the title screen, so you can see which build
 is on the Brick.
 
@@ -123,6 +123,10 @@ Mailbox, snack, houses
 
 Areas and Momo
 
+- [ ] Walk up to a sleeping Momo with fewer than 10 friends in that area:
+      a bubble of 10 hearts shows one filled heart per friend, the newest
+      hops; the counter pill hides meanwhile; the acorn sign by the meadow
+      bridge stays in view. (v1.3)
 - [ ] With 10 friends Momo wakes (the tickle scene), and the way on opens:
       meadow to woods, woods to shore, shore to Cloud Hill.
 - [ ] The west exits of the woods and the shore always take Pip back.
