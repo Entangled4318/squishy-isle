@@ -1,0 +1,11 @@
+# Step 7.4: the widest name ("From Strawberry Shroom", 121 px) fits the room's pill
+wait 20
+tap A
+wait 15
+tap A
+wait 25
+goto door 1500
+wait 40
+shot h_long_name
+tap B
+wait 30

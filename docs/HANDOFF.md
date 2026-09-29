@@ -36,14 +36,14 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
-| 7. QA and final ROM with Brick instructions | In progress; see "Step 7 progress" |
+| 7. QA and final ROM with Brick instructions | Done (v1.0); see "Step 7 progress" and `docs/BRICK.md` |
 
 ## Owner notes
 
 - Brick test queue: the owner cannot test ROMs on the Brick for now.
-  Keep working in the emulator with headless tests, and add every item
-  that needs a Brick check (feel, sound, music) to this list. Ask the
-  owner to run the list when they can test again. Pending now: step
+  The checklist in `docs/BRICK.md` (v1.0) covers everything below in one
+  list; give the owner that one. Add new Brick items there. The per-step
+  detail, for reference: step
   7.3 (B on the map: Pip's hop and its "hup" feel light and happy, not
   noisy when mashed; the followers hop after him; fill a page: the
   parade reads at 4x, the pace feels festive, not long; the squeaks and
@@ -115,8 +115,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 7 (QA and the final ROM) is in progress; see "Step 7
-  progress" for the sub-step to pick up.
+- Next: step 7 is done (v1.0). What remains is the owner's Brick test
+  (`docs/BRICK.md` checklist) and any fixes it finds.
   Owner (step 6 session 2): do all of step 6 without stopping (merge
   after each sub-step), then ask before step 7. Owner
   answers for 6.7: mailbox = a letter with a happy message from the
@@ -877,8 +877,39 @@ and text pass, 7.5 final release with `docs/BRICK.md`.
    counter pill sits over the top rail when the whole pen is on screen
    (a HUD over the map; moving it would cover the map elsewhere).
    Screenshots `docs/step7_3_parade_hop.png`, `docs/step7_3_picker_badge.png`.
-4. Visual and text pass. To do.
-5. Final release and `docs/BRICK.md`. To do.
+4. Visual and text pass. **Done.** Reviewed 48 key screens (title,
+   confirm, every area, Momo, gate scene, open per container, reveal,
+   shelf pages, picker, letter, snack, rooms, parade, hardware check) as
+   labelled 2x contact sheets. Found and fixed:
+   - The house room's name pill cut six gift names at both ends ("From
+     Strawberry Shroom" is 121 px, the strip held 112). The pill is 144 px
+     (`rooms.py`), the strip 16 tiles, the text centred in the pill
+     (y 6, was 4: it sat 1 px under the top edge). `house_long.txt` +
+     `check_house.py` measure the widest name's ink inside the pill.
+   - New `check_text.py` (no emulator): every string the game prints
+     (80 names, "From ...", 12 letters, title menu and confirm, counters)
+     against its strip width, using the ROM's font widths.
+   - The full loop's four "full shelf" shots showed the Cloud Hill parade
+     (START rests while it runs), and the silhouette check passed on the
+     map. `make_full_loop.py` waits out each parade; `check_full.py` now
+     needs the shelf scene and every page turn in the log after it.
+   Checked and kept: text over the title's baked sparkles by "New game";
+   Momo's "n/10" bubble under the counter pill (same style, near Momo);
+   the envelope over the mailbox clipped at the screen top when the map
+   scrolls there. Score 8.5 (first pass 7.5: the clipped names).
+   Screenshot `docs/step7_4_pill_shelf.png`.
+5. Final release. **Done.** `GAME_VERSION` "v1.0" (`game.h`) shows small
+   at the title's bottom right (a 3-tile strip at col 27, right of "New
+   game"; the strip lives on the stack in `enter()`: a static one would
+   add 2 KB to clear at boot, the f2 trap). `check_title.py` finds it.
+   `docs/BRICK.md`: install and update by FTP (keep the file name so the
+   save carries over), emulator settings (the core used before, mGBA if
+   offered, integer 4x, no filter), how saving works and how to back it
+   up, save states, grown-up screens, how to play, and one Brick test
+   checklist that replaces the per-step queue. DESIGN.md: Momo instead of
+   the old log / boardwalk wording, the parade, letters and gifts.
+   Release ROM `release/squishy-isle.gba` (v1.0). Final soak on this ROM:
+   see below. Score 8.5.
 
 ## What step 3 should do (as promised to the owner)
 

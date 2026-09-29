@@ -23,7 +23,7 @@ for area in range(4):
             out += ['wait 360']
         else:
             out += ['tap A', 'wait 20', 'tap B', 'wait 20', 'tap A', 'wait 110']
-    out += ['wait 30', f'shot full_a{area}_done']
+    out += ['wait 30', f'shot full_a{area}_done', 'wait 420']      # the full page's parade (step 7.3) plays out
     if area in EXITS:
         x, y = EXITS[area]
         out += [f'walkto {x} {y} 3000', 'wait 40']

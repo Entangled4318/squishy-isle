@@ -27,6 +27,7 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	./$(HARNESS) $(ROM) $(OUT)/test.sav hwcheck_boot2.txt $(OUT) | tee $(OUT)/boot2.log
 	python3 check_hwcheck.py $(OUT)
 	python3 check_map.py $(OUT)
+	python3 check_text.py $(dir $(ROM))
 	python3 make_save.py $(OUT)/step2.sav $$(seq -s, 20 39)
 	./$(HARNESS) $(ROM) $(OUT)/step2.sav step2.txt $(OUT) | tee $(OUT)/step2.log
 	python3 check_step2.py $(OUT)
@@ -99,6 +100,8 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	./$(HARNESS) $(ROM) $(OUT)/house_s.sav house_shore.txt $(OUT) > $(OUT)/house_shore.log
 	python3 make_save.py $(OUT)/house_c.sav $$(seq -s, 0 9),$$(seq -s, 20 29),$$(seq -s, 40 49),60,61,66,72,79 "" - 3
 	./$(HARNESS) $(ROM) $(OUT)/house_c.sav house_clouds.txt $(OUT) > $(OUT)/house_clouds.log
+	python3 make_save.py $(OUT)/house_long.sav $$(seq -s, 0 9),36 "" - 1
+	./$(HARNESS) $(ROM) $(OUT)/house_long.sav house_long.txt $(OUT) > $(OUT)/house_long.log
 	python3 check_house.py $(OUT)
 	python3 make_save.py $(OUT)/parade.sav $$(seq -s, 0 19) 0,1,2 - 0 0
 	./$(HARNESS) $(ROM) $(OUT)/parade.sav parade.txt $(OUT) > $(OUT)/parade.log

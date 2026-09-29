@@ -117,7 +117,7 @@ def room_background(key):
                    (ROOM['left_x'], ROOM['bottom_y']), (ROOM['right_x'], ROOM['bottom_y'])):
         _shelf(img, sx, sy)
     # empty name pill at the top (the ROM prints "From Vanilla Bunny" into it)
-    blit(img, props.pill(128, 15, C['ui_bg'], C['ui_pk'], C['ui_ink'], C['white']), 56, 3)
+    blit(img, props.pill(144, 15, C['ui_bg'], C['ui_pk'], C['ui_ink'], C['white']), 48, 3)   # 144: "From Strawberry Shroom" is 121 px
     return img
 
 

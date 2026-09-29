@@ -78,6 +78,9 @@ def img(name):
     return im
 
 
+shelf_at = log.find('scene shelf page=3', log.find('parade 3 done'))
+turns = [log.find(f'shelf page={p}', shelf_at) for p in (2, 1, 0)]
+check(shelf_at > 0 and all(t > shelf_at for t in turns), 'after the last parade START opens the shelf and L turns every page')
 for p in range(4):                            # a full shelf page: no silhouettes ("Find me!") left
     im = img(f'full_shelf{p}')
     grey = sum(1 for px in im.crop((8, 22, 232, 160)).getdata()

@@ -48,7 +48,7 @@ static void show_name(void) {
         const char *s = "Find me!";
         for (int i = 0; (buf[i] = s[i]); i++) {}
     }
-    strip_print(&st_pill, buf, 1, 4, 1, 0);
+    strip_print(&st_pill, buf, 1, 6, 1, 0);
 }
 
 static void enter(void) {
@@ -63,7 +63,7 @@ static void enter(void) {
     REG_BGCNT(1) = BG_PRIO(2) | BG_CBB(0) | BG_SBB(30);
     REG_BGCNT(0) = BG_PRIO(1) | BG_CBB(2) | BG_SBB(31);
     for (int i = 0; i < 2; i++) bg_scroll_x[i] = bg_scroll_y[i] = 0;
-    strip_init(&st_pill, 2, 1, 31, 8, 0, 14, 2, P_TEXT);         /* inside the pill at the top */
+    strip_init(&st_pill, 2, 1, 31, 7, 0, 16, 2, P_TEXT);         /* inside the pill at the top (128 px: the longest name is 121) */
 
     dma3_copy32(OBJ_TILES + T_GIFT * 16, gift_tiles + area * 4 * 32, 4 * 4 * 32);   /* 4 species x 32 words */
     dma3_copy16(PAL_OBJ + P_FLAVOR * 16, sq_area_pals[area], 5 * 32);
