@@ -9,13 +9,20 @@ $(UNIT): test_collection.c ../rom/src/collection.c ../rom/src/collection.h ../ro
 	@mkdir -p build
 	$(CC) -O2 -Wall -Wextra -Wno-unused-parameter -Wno-pointer-to-int-cast -o $@ $<
 
+SAVETEST := build/test_save
+
+$(SAVETEST): test_save.c ../rom/src/save.c ../rom/src/save.h ../rom/src/gba.h
+	@mkdir -p build
+	$(CC) -O2 -Wall -Wextra -Wno-unused-parameter -o $@ $<
+
 $(HARNESS): harness.c
 	@mkdir -p build
 	$(CC) -O2 -Wall -o $@ $< -lmgba
 
-run: $(HARNESS) $(UNIT)
+run: $(HARNESS) $(UNIT) $(SAVETEST)
 	@rm -rf $(OUT) && mkdir -p $(OUT)
 	./$(UNIT)
+	./$(SAVETEST)
 	./$(HARNESS) $(ROM) $(OUT)/test.sav hwcheck_boot1.txt $(OUT) | tee $(OUT)/boot1.log
 	./$(HARNESS) $(ROM) $(OUT)/test.sav hwcheck_boot2.txt $(OUT) | tee $(OUT)/boot2.log
 	python3 check_hwcheck.py $(OUT)
@@ -44,6 +51,8 @@ run: $(HARNESS) $(UNIT)
 	./$(HARNESS) $(ROM) $(OUT)/pick.sav pick.txt $(OUT) > $(OUT)/pick.log
 	python3 make_save.py $(OUT)/top.sav 0,1,3,6,8,11,12,15,17,19 17,6,12
 	./$(HARNESS) $(ROM) $(OUT)/top.sav sign_top.txt $(OUT) > $(OUT)/sign_top.log
+	python3 make_save.py $(OUT)/pick_shore.sav $$(seq -s, 0 9),$$(seq -s, 20 29),40,46,52 "" - 2
+	./$(HARNESS) $(ROM) $(OUT)/pick_shore.sav pick_shore.txt $(OUT) > $(OUT)/pick_shore.log
 	python3 check_pick.py $(OUT)
 	python3 make_save.py $(OUT)/pen20.sav $$(seq -s, 0 19) 17,6,12
 	./$(HARNESS) $(ROM) $(OUT)/pen20.sav pen20.txt $(OUT) > $(OUT)/pen20.log
@@ -91,10 +100,18 @@ run: $(HARNESS) $(UNIT)
 	python3 make_save.py $(OUT)/house_c.sav $$(seq -s, 0 9),$$(seq -s, 20 29),$$(seq -s, 40 49),60,61,66,72,79 "" - 3
 	./$(HARNESS) $(ROM) $(OUT)/house_c.sav house_clouds.txt $(OUT) > $(OUT)/house_clouds.log
 	python3 check_house.py $(OUT)
+	python3 make_save.py $(OUT)/parade.sav $$(seq -s, 0 19) 0,1,2 - 0 0
+	./$(HARNESS) $(ROM) $(OUT)/parade.sav parade.txt $(OUT) > $(OUT)/parade.log
 	python3 make_full_loop.py > $(OUT)/full.txt
 	./$(HARNESS) $(ROM) $(OUT)/full.sav $(OUT)/full.txt $(OUT) > $(OUT)/full.log
 	./$(HARNESS) $(ROM) $(OUT)/full.sav full_b.txt $(OUT) > $(OUT)/full_b.log
 	python3 check_full.py $(OUT)
 	python3 check_music.py $(OUT) $(ROM)
+	python3 mash.py $(OUT) $(ROM)
 
-.PHONY: run
+# long stress test: 6 seeds x 5 saves x 60,000 frames of button mashing (~10 min)
+soak: $(HARNESS)
+	@mkdir -p build/soak
+	python3 mash.py build/soak $(ROM) soak
+
+.PHONY: run soak

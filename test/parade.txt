@@ -1,0 +1,18 @@
+# Step 7.3: a full meadow page whose parade has not played yet (Continue)
+wait 20
+tap A
+wait 15
+tap A
+wait 70
+shot parade_1
+wait 60
+shot parade_2
+wait 90
+shot parade_3
+wait 260
+shot parade_after
+tap B
+wait 5
+shot hop_1
+wait 5
+shot hop_2

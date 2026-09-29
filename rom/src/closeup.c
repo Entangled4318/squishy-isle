@@ -276,7 +276,7 @@ static void update_reveal(void) {
             dbg("reveal landed");
         }
     } else if (leave_t >= 0) {
-        if (++leave_t == 30) scene_go(&scene_meadow_view);
+        if (++leave_t >= 30) scene_go(&scene_meadow_view);
     } else {
         landed_t++;
         calm_t++;

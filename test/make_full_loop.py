@@ -30,5 +30,5 @@ for area in range(4):
 out += ['hold START 1', 'wait 40', 'shot full_shelf3', 'tap L', 'wait 20', 'shot full_shelf2', 'tap L', 'wait 20',
         'shot full_shelf1', 'tap L', 'wait 20', 'shot full_shelf0', 'tap B', 'wait 40',
         'walkto 416 110 3000', 'wait 40', 'shot full_momo_home', 'walkto 330 150 2000', 'wait 60', 'shot full_pen_clouds',
-        'wait 90']
+        'tap B', 'wait 5', 'shot full_hop', 'wait 90']
 print('\n'.join(out))

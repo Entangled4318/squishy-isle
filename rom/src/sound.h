@@ -14,6 +14,7 @@ void sound_tick(void);            /* call once per frame */
 
 void sfx_squeak(int pitch);       /* squish: rising chirp, pitch 0..4 */
 void sfx_boing(void);             /* hop: up then down slide */
+void sfx_hop(void);               /* Pip's hop (B on the map): a soft quick rise on channel 1 */
 void sfx_chime(int step);         /* soft bell, step selects the note */
 void sfx_tick(void);              /* tiny click */
 void sfx_blip(void);              /* low soft blip */

@@ -228,7 +228,7 @@ static void update(void) {
         lid_y += lid_vy;
         lid_vy += 40;
         lid_spin += lid_vx > 0 ? 900 : -900;
-        if (pop_t == POP_TIME) {
+        if (pop_t >= POP_TIME) {          /* >=: goes on asking until the fade starts */
             if (open_friend >= 0) {
                 sel_species = friend_species(open_friend);
                 sel_flavor = friend_flavor(open_friend);

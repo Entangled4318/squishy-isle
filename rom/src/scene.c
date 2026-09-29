@@ -13,6 +13,12 @@ static u32 sound_vbl;         /* last VBlank the sound was ticked for */
 
 s16 bg_scroll_x[4], bg_scroll_y[4];
 u32 frame_count;
+/* Scanlines the last frame's work took, from the VBlank to the end of
+ * update() (228 = one whole frame: more means a missed frame), and the
+ * same for the last scene load. Only the test harness reads these. */
+u16 perf_lines, perf_enter_lines;
+
+static u16 lines_since(u32 v0) { return (u16)((vbl_count - v0) * 228 + (REG_VCOUNT + 228 - 160) % 228); }
 
 void scene_blend(u16 bldcnt, u16 bldalpha) {
     want_bldcnt = bldcnt;
@@ -55,6 +61,7 @@ void scene_run(const Scene *first) {
     sound_vbl = vbl_count;
     for (;;) {
         vblank_wait();
+        u32 v0 = vbl_count;
         oam_commit();
         for (int i = 0; i < 4; i++) {
             REG_BGHOFS(i) = (u16)bg_scroll_x[i];
@@ -80,6 +87,7 @@ void scene_run(const Scene *first) {
                 for (int i = 0; i < 4; i++) bg_scroll_x[i] = bg_scroll_y[i] = 0;
                 current = pending;
                 current->enter();
+                perf_enter_lines = lines_since(v0);
                 fade_dir = -1;
             }
             continue;
@@ -91,6 +99,8 @@ void scene_run(const Scene *first) {
                 fade_dir = 0;
             }
         }
+        input_block(fade_dir != 0);   /* a press while the screen is still white would act unseen */
         current->update();
+        perf_lines = lines_since(v0);
     }
 }

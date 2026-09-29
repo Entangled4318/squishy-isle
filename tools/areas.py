@@ -302,7 +302,7 @@ def woods():
     a.block(0, 214, 4, 320)
     a.block(476, 0, 480, 106)
     a.block(476, 134, 480, 320)
-    a.exits.append((0, 186, 6, 28, 0, 450, 200))       # west: back over the bridge to the meadow
+    a.exits.append((0, 186, 12, 28, 0, 450, 200))      # west: back over the bridge (12 px: Pip's feet stop at x 5)
     a.exits.append((468, 106, 12, 28, 2, 20, 200))     # east: to the shore
     a.gates.append((450, 106, 28, 28, 2))              # Momo sleeps here until the shore opens
     a.spawn = (24, 200)
@@ -381,7 +381,7 @@ def shore():
     a.block(476, 0, 480, 136)
     a.block(476, 164, 480, 320)
     a.block(0, 316, 480, 320)
-    a.exits.append((0, 186, 6, 28, 1, 456, 120))       # west: the boardwalk back to the woods
+    a.exits.append((0, 186, 12, 28, 1, 456, 120))      # west: the boardwalk back to the woods (12 px, as above)
     a.decor(world.cloud_puff(72, 16, 2), 420, 142)       # a straight cloud walkway east to Cloud Hill
     # low fences along the east and west edges: the boardwalk and the cloud
     # walkway (where Momo sleeps until 10 shore friends) are the only ways off

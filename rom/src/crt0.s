@@ -35,6 +35,15 @@ reset:
     ldr     r0, =__sbss_start
     ldr     r1, =__sbss_end
     bl      clear_words
+    ldr     r0, =__stack_paint          @ mark 8 KB below the stack: the tests
+    ldr     r1, =__stack_paint_end      @ read how deep the stack reached.
+    ldr     r2, =0xA5A5A5A5             @ 16 bytes a store: word by word it made
+    mov     r3, r2                      @ boot a frame slower (the f2 title trap)
+    mov     r4, r2
+    mov     r5, r2
+1:  cmp     r0, r1
+    stmloia r0!, {r2-r5}
+    blo     1b
 
     ldr     r0, =main
     mov     lr, pc

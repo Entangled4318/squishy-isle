@@ -6,6 +6,7 @@ wait 15
 tap A
 wait 25
 wait 200
+wait 240			# the full page's parade plays first (step 7.3)
 shot f04_reboot_full
 # Continue starts where Pip opened the last box (varies with the rolls); walk a bit
 hold LEFT 150

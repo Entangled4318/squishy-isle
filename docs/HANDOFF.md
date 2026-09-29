@@ -36,7 +36,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
-| 7. QA and final ROM with Brick instructions | To do |
+| 7. QA and final ROM with Brick instructions | In progress; see "Step 7 progress" |
 
 ## Owner notes
 
@@ -44,6 +44,12 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  7.3 (B on the map: Pip's hop and its "hup" feel light and happy, not
+  noisy when mashed; the followers hop after him; fill a page: the
+  parade reads at 4x, the pace feels festive, not long; the squeaks and
+  jingles are not too much), step 7.1 (the woods and shore west exits
+  now always take Pip back; mash buttons in every scene: nothing sticks),
+  step
   6.9 (walk up into each house door: the room opens; the gifts read at
   4x in every flavor, the silhouettes read as "not yet"; the arrow and
   hop feel good; the letter's gift matches the friend), step
@@ -109,8 +115,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 7 (QA and the final ROM). Step 6 is done; ask the owner
-  before starting step 7.
+- Next: step 7 (QA and the final ROM) is in progress; see "Step 7
+  progress" for the sub-step to pick up.
   Owner (step 6 session 2): do all of step 6 without stopping (merge
   after each sub-step), then ask before step 7. Owner
   answers for 6.7: mailbox = a letter with a happy message from the
@@ -772,6 +778,108 @@ Plan, one sub-step at a time, merge after each:
    houses 8.5, rooms 8.5 (first 8: the letter showed a Cloud Hill gift,
    a byte offset used on a u32 array).
 
+## Step 7 progress
+
+Owner: do all five sub-steps without stopping (merge as they finish), ask
+nothing on the way; queue Brick checks. Plan: 7.1 stress test, 7.2
+technical audit, 7.3 design gaps (B hop, parade, small flaws), 7.4 visual
+and text pass, 7.5 final release with `docs/BRICK.md`.
+
+1. Stress test. **Done** (soak result below). Harness: `mash SEED N` (a
+   toddler model: taps, whole-hand chords, held and slanted walks, A
+   mashing, long idle, leaning on a button, and now and then a grown-up
+   walk to a box or a place) and `goto sign|mail|basket|door|exit|momo N`
+   (reads `area_maps` from ROM; `AM_*` offsets are checked against known
+   values at first use). From the first `mash` every frame is watched: the
+   game's `frame_count` must move, `current` must be a known scene, the
+   CPU must run from BIOS, ROM or IWRAM. `mash.py` runs 5 saves (blank, a
+   gate scene due, the Cloud Hill scene due, 19 in every area, all 80) and
+   checks the log and the save: no fault or hang, open and reveal end by
+   themselves (each press restarts their wait: limits 820 and 1060
+   frames), every box that opens reaches the open screen, friends count
+   up one at a time with no repeats, no new game over friends, the save
+   valid and consistent (lines, gates, area, mail). `make test` runs one
+   seed x 15,000 frames per save (~20 s); `make -C test soak` 6 seeds x
+   60,000. `test_save.c` (host, fake SRAM): a power cut at every byte of a
+   write (4 x 145 cuts) always leaves the old or the new save; the counter
+   wraps; a flipped bit; both slots broken; old layout versions.
+   Found and fixed:
+   - Presses during a scene's fade-in acted unseen (a B in the picker's
+     fade-in dropped pick mode but stayed on the shelf). `scene_run` now
+     blocks `key_hit()` while any fade runs (`input_block`); keys still
+     track, so a button held through a fade is not a new press after it.
+   - START (or a door or an exit) and A in the same frame beside a box
+     used the box up without opening it (the open screen's `scene_go` was
+     ignored). The map now stops the frame when a fade has just started.
+   - The woods and shore west exits were 6 px wide: Pip's feet stop at
+     x 5, so leaving west worked only from some sub-pixel positions. Both
+     are 12 px; `check_map.py` now checks every exit has at least 4
+     reachable feet columns and every arrival is walkable and outside the
+     next area's exits.
+   - The save checksum (rotate by 5, add) lets two bit flips 32 bytes
+     apart cancel. New saves use CRC-32 (nibble table; bit by bit it
+     pushed the title to f3 at boot, the test timing trap); the old sum is
+     still accepted, so older saves load. `make_save.py` writes the CRC.
+   - `open.c` and the reveal moved on only on the exact frame
+     (`== POP_TIME`, `== 30`); `>=` now, so a refused `scene_go` cannot
+     leave them stuck.
+   - Harness `walkto` re-plans when a box appears on its way.
+   - The soak found (garbage text in the log): the pen sign's picker
+     outside the meadow put the frame on the friend's global species row
+     (8..15) instead of the page row (0..3), so A picked a friend id past
+     the table and, back on the plain shelf, A opened a close-up of a
+     species that does not exist. `shelf.c` uses `friend_species(id) -
+     page * 4` and never keeps a frame off the grid. Test `pick_shore.txt`
+     in `check_pick.py`; `mash.py` fails on any non-ASCII game log line.
+   Soak (6 seeds x 5 saves x 60,000 frames, 1.8 million frames, ~8 h of
+   play): all passed. Score 8.5 (first pass 6: the five bugs above).
+2. Technical audit. **Done.** Measured on the mGBA core, reported by the
+   harness per scene: `perf_lines` / `perf_enter_lines` (`scene.c`: the
+   scanlines from the VBlank to the end of `update()` or of a scene load;
+   228 = a whole frame) and the stack's deepest point (crt0 marks 8 KB
+   below `__sp_usr` with 0xA5A5A5A5 using 16-byte stores; `gba.ld` asserts
+   .bss stays below the mark). Harness `perf N` prints the worst and mean
+   over N idle frames. `mash.py` fails a run over 180 lines or a 4 KB
+   stack. Found: a full Cloud Hill (17 friends in the pen) hit 211 of 228
+   lines (189 idle): all roamers moved on even frames, a new target cost
+   10 tries x 34 distances with a software division per random number,
+   and many retargeted at once. Now each roamer moves on its own alternate
+   frame, `pen_rand` multiplies instead of dividing, and at most 3 new
+   targets are searched a frame (`PEN_RETARGETS`; the others wait a
+   frame). Worst frames now: map 110 (idle max 75, mean 30), shelf page
+   turn 111, house 72, reveal 54, open 30; scene loads up to 489 lines
+   (2 frames, while the screen is white). Stack: 580 bytes deepest (28 KB
+   of IWRAM free). EWRAM: 41 KB of 256 KB. OBJ tiles: at most 519 of 1024
+   (title), 448 on the map. ROM 617 KB; header: fixed byte, complement,
+   logo, `SRAM_V113` the only save tag. Score 8.5 (first pass 7: the pen
+   spike).
+3. Design gaps. **Done.** B on the map makes Pip hop (`hop_t`,
+   `HOP_LEN` 16 frames, up to 6 px, the shadow stays down) with a soft
+   "hup" (`sfx_hop`, channel 1, so the bass keeps playing), followers hop
+   after him 5 frames apart; B by a box still opens it. Parade: the first
+   time an area has 20 friends, all 20 march right to left across the
+   bottom of the screen at 32 px (`T_PARADE` 320, 128 tiles loaded only
+   when due), 28 px apart, species in turn and flavor by flavor (color
+   bands), hopping, every other one squeaks at the middle, twinkles and
+   hearts drift down, hello jingle at the start and the ta-da at the end;
+   Pip hops along, the pen and followers join (hidden meanwhile), buttons
+   rest; ~7 s (`PA_END` 436 frames). Save: `parades` (bit per area) in
+   the old padding at offset 125 (still v2, 144 bytes); cleared by new
+   game; set when a parade ends, so a power cut mid-parade replays it.
+   `make_save.py` takes PARADES (6th argument; default: every full area
+   has had it). Tests: `parade.txt` + `check_full.py` (starts as the map
+   shows, ends in 5 to 10 s, once per area in the full loop, not again
+   after Continue, B hop after), `check_loop.py` (loop_c waits out the
+   parade). Scores: parade 8.5 (first 8: 22 px apart, ears and tails
+   overlapped), hop 8.5. Picker badge: the follower mark is the open
+   screen's 16 px heart (`T_BADGE`, palette 11) on the cell's top-left
+   corner, was an 8 px heart (8.5, first 8). Kept as is: the found
+   counter pill sits over the top rail when the whole pen is on screen
+   (a HUD over the map; moving it would cover the map elsewhere).
+   Screenshots `docs/step7_3_parade_hop.png`, `docs/step7_3_picker_badge.png`.
+4. Visual and text pass. To do.
+5. Final release and `docs/BRICK.md`. To do.
+
 ## What step 3 should do (as promised to the owner)
 
 - Gift boxes appear at the map's container spots (`meadow_spots`).
@@ -887,6 +995,14 @@ memory dump. Checks read the log, pixels and audio pitch.
 - Map objects split at Pip's height (26 px): upper part on the overlay BG
   (over Pip), lower part on the ground BG, and tall objects block 26 px
   above their base. This keeps Pip correctly in front of or behind trees.
+- `key_hit()` reports nothing while a fade runs (step 7.1). A test that
+  taps during a fade-in (about 6 frames after a scene change) is ignored.
+- A save with a full area whose `parades` bit is clear plays the parade
+  (~7 s, buttons resting) as the map shows. `make_save.py` sets the bit
+  for full areas by default; scripts that fill a page for real must wait
+  it out (see `loop_c.txt`).
+- `make_save.py` puts FOLLOWER_IDS in the meadow's line whatever their
+  area; use meadow ids (0..19) unless the test never visits the meadow.
 - Squishies share one palette slot layout per area (`ROM_MODE` render:
   two-shade accents, tongue uses the blush color), so 5 palettes cover a
   whole shelf page. The Sparkle flavor's glints are separate twinkle

@@ -1,0 +1,22 @@
+# Step 7.1 (found by mash): the pen sign's picker outside the meadow starts on
+# a real friend of that page, adds that area's friend, and the plain shelf after it
+# opens the right close-up.
+wait 20
+tap A
+wait 15
+tap A
+wait 25
+goto sign 900
+wait 10
+tap A
+wait 40
+shot k10_pick_shore
+tap A
+wait 20
+tap B
+wait 40
+hold START 1
+wait 40
+tap A
+wait 40
+shot k11_closeup_shore

@@ -32,6 +32,7 @@
 #define T_NPC     160      /* Momo: asleep, awake (32x32 each), two z's; palette P_SHADOW */
 #define T_NPC_TXT 232      /* "7/10" in Momo's bubble, 32x16 (after Momo's 66 tiles) */
 #define T_EXTRA   240      /* snacks, envelope, flag up / down (16x16 each), palette P_SPARK */
+#define T_PARADE  320      /* parade: the area's 4 species x (idle, open) at 32 px, 16 tiles each */
 #define P_SQ      10       /* 10..14: the area's 5 flavor palettes */
 #define P_COUNT   15
 
@@ -82,6 +83,14 @@ static int still_t;                /* frames Pip stood still since the last step
 static bool pos_dirty;             /* Pip moved since the position was last saved */
 #define POS_SAVE_WAIT 60           /* save the position after Pip stands still this long */
 
+static int pip_hop;                /* px Pip is lifted (B hop, snack, parade) */
+/* B on the map: Pip hops, and the followers hop after him one by one */
+#define HOP_LEN   16               /* frames of one hop */
+#define HOP_LAG   5                /* each follower hops this much later */
+static int hop_t = -1;             /* frames since B, -1 = none */
+static int hop_h(int t) { return t >= 0 && t < HOP_LEN ? t * (HOP_LEN - t) / 10 : 0; }   /* up to 6 px */
+static bool parade_due(void);
+
 void meadow_reset(void) {
     A = &area_maps[0];
     pip_x = A->spawn_x << 8;
@@ -107,7 +116,7 @@ static u32 pen_seed = 12345;
 
 static int pen_rand(int n) {          /* local: the pen must not use up the saved random numbers */
     pen_seed = pen_seed * 1103515245u + 12345u;
-    return (int)((pen_seed >> 16) % (u32)n);
+    return (int)(((pen_seed >> 16) * (u32)n) >> 16);   /* 0..n-1 by a multiply: no slow division */
 }
 
 /* Picks the roomiest of a few random spots: the one farthest from where the
@@ -206,7 +215,10 @@ static bool pen_crowded(const Roamer *r, int nx, int ny) {
     return false;
 }
 
+#define PEN_RETARGETS 3             /* new-target searches a frame at most (step 7.2: 17 at once cost most of a frame) */
+
 static void friends_update(bool pip_moved) {
+    int retargets = 0;
     if (pip_moved) {
         trail_i = (trail_i + 1) & (TRAIL - 1);
         trail_x[trail_i] = (s16)(pip_x >> 8);
@@ -218,13 +230,14 @@ static void friends_update(bool pip_moved) {
             r->wait--;
             continue;
         }
-        if ((frame_count & 1) == 0) {            /* half a pixel per frame: a calm waddle */
+        if (((frame_count + i) & 1) == 0) {      /* half a pixel per frame, half the pen each frame: a calm waddle */
             int nx = r->x + (r->tx > r->x) - (r->tx < r->x);
             int ny = r->y + (r->ty > r->y) - (r->ty < r->y);
             if (pen_crowded(r, nx, ny) && nx != r->x && !pen_crowded(r, nx, r->y)) ny = r->y;   /* sidestep */
             else if (pen_crowded(r, nx, ny) && ny != r->y && !pen_crowded(r, r->x, ny)) nx = r->x;
             if (pen_crowded(r, nx, ny)) {        /* give way; find another spot if stuck */
-                if (++r->stuck > 30) {
+                if (++r->stuck > 30 && retargets < PEN_RETARGETS) {
+                    retargets++;
                     r->stuck = 0;
                     pen_target(r);
                 }
@@ -235,7 +248,8 @@ static void friends_update(bool pip_moved) {
                 r->stuck = 0;
             }
         }
-        if (r->x == r->tx && r->y == r->ty) {
+        if (r->x == r->tx && r->y == r->ty && retargets < PEN_RETARGETS) {   /* else it waits a frame more */
+            retargets++;
             r->wait = (s16)(60 + pen_rand(180));
             r->step = 0;
             pen_target(r);
@@ -480,6 +494,10 @@ static void enter(void) {
     }
     boxes_fill();
     friends_setup();
+    if (parade_due())                          /* the page just filled: its friends at 32 px for the parade */
+        for (int sp = 0; sp < 4; sp++) sq_load_frames(A->area * 4 + sp, 32, 0, 2, T_PARADE + sp * 32);
+    hop_t = -1;
+    pip_hop = 0;
     if (pos_dirty) save_pos(true);             /* arrived from another area: remember it */
     scene_blend(BLD_BG2 << 8, 5 | (11 << 8));
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG1 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;
@@ -560,7 +578,6 @@ static struct {
     int kind, cool;
 } snack = {-1, 0, 0};
 static int snack_next = -1;         /* the next treat: a different one each time */
-static int pip_hop;                 /* px Pip is lifted (hops for joy, no followers) */
 
 static void snack_spot(int *x, int *y) {   /* where the treat sits: on the blanket, left of the basket */
     *x = A->basket_x - 22;
@@ -581,6 +598,7 @@ static void snack_start(void) {
     snack.kind = snack_next;
     snack_next = (snack_next + 1) % SNACK_KINDS;
     snack.t = 0;
+    hop_t = -1;
     sfx_boing();
     sfx_chime(4);
     dbg("snack %s followers=%d", snack_names[snack.kind], n_follow);
@@ -616,6 +634,8 @@ static void follower_pos(int k, int *x, int *y, int *hop) {
     *x = trail_x[t];
     *y = trail_y[t];
     *hop = walk_t > 0 ? hop_of(walk_t + k * 5) : 0;
+    int jump = hop_t >= 0 ? hop_h(hop_t - (k + 1) * HOP_LAG) : 0;   /* hops after Pip */
+    if (jump > *hop) *hop = jump;
     int st = snack.t, f = 0;
     if (st < 0 || !n_follow) return;
     if (st >= 10 && st < SN_THERE) f = (st - 10) * 256 / (SN_THERE - 10);
@@ -710,7 +730,10 @@ static int hop_of(int step) {             /* little hops while walking */
     return ph == 1 ? 2 : ph == 2 ? 3 : 0;
 }
 
+static int parade_t;
+
 static void draw_friends(void) {
+    if (parade_t >= 0) return;          /* they are all in the parade */
     for (int i = 0; i < n_pen; i++) {
         Roamer *r = &pen[i];
         draw_friend(r->id, r->x, r->y, r->wait > 0 ? 0 : hop_of(r->step));
@@ -954,6 +977,59 @@ static void gate_scene_update(void) {
     }
 }
 
+/* ---- parade: the first time an area's page is full, all 20 of its friends
+ * march across the screen, hopping, while twinkles and hearts drift down
+ * (DESIGN.md: a full shelf page starts a squishy parade). Buttons rest. ---- */
+#define PA_STEP   2        /* px a frame */
+#define PA_GAP    28        /* px between friends in the line: each reads on its own */
+#define PA_FEET   138       /* screen row they walk on, below Pip */
+#define PA_LEN    ((SCREEN_W + 40 + 19 * PA_GAP) / PA_STEP)   /* the last one has walked off */
+#define PA_END    (PA_LEN + 30)
+static int parade_t = -1;           /* frames since the start, -1 = none */
+
+static bool parade_due(void) {
+    return found_in_area(A->area) == 20 && !(game_save.parades & (1 << A->area));
+}
+static int parade_x(int k, int t) { return SCREEN_W + 20 + k * PA_GAP - t * PA_STEP; }
+static int parade_id(int k) { return A->area * 20 + (k % 4) * 5 + k / 4; }   /* the 4 species in turn, flavor by flavor */
+
+static void parade_update(void) {
+    int t = parade_t;
+    if (t == 0) {
+        song_play(tune_hello, tune_hello_len);
+        count_hop = 60;
+    }
+    for (int k = 0; k < 20; k += 2)                         /* every other friend squeaks as it passes the middle */
+        if (parade_x(k, t) > SCREEN_W / 2 && parade_x(k, t + 1) <= SCREEN_W / 2) sfx_squeak(friend_flavor(parade_id(k)));
+    if (t == PA_LEN - 20) song_play(tune_pop, tune_pop_len);
+    pip_hop = t < PA_LEN ? hop_h(t % 24) : 0;               /* Pip hops along */
+    if (++parade_t >= PA_END) {
+        parade_t = -1;
+        pip_hop = 0;
+        game_save.parades |= (u8)(1 << A->area);
+        collection_save();
+        dbg("parade %d done", A->area);
+    }
+}
+
+static void draw_parade(void) {
+    int t = parade_t;
+    for (int k = 0; k < 12 && t < PA_LEN; k++) {            /* twinkles and hearts drift down */
+        int y = (t + k * 31) % 190 - 20, x = (k * 61 + 13) % 224 + 8 + isin(t * 2 + k * 11) * 5 / 256;
+        int tile = k % 3 == 2 ? T_SPARK + 3 : T_SPARK + (t / 6 + k) % 3;
+        hud_spr(x - 4, y - 4, A0_SQUARE, 0, 0, tile, P_SPARK);
+    }
+    for (int k = 0; k < 20; k++) {
+        int x = parade_x(k, t);
+        if (x < -16 || x > SCREEN_W + 16) continue;
+        int id = parade_id(k), ph = (t * 4 + k * 12) & 63;  /* a half-sine hop every 16 frames */
+        int h = ph < 32 ? isin(ph) * 7 / 256 : 0;
+        int sp = friend_species(id) - A->area * 4;
+        hud_spr(x - 16, PA_FEET - 30 - h, A0_SQUARE, 2, 0, T_PARADE + sp * 32 + (h > 2 ? 16 : 0), P_SQ + friend_flavor(id));
+        hud_spr(x - 8, PA_FEET - 4, A0_WIDE | A0_BLEND, 0, 0, T_SHADOW, P_SHADOW);
+    }
+}
+
 static void draw(void) {
     n_world = n_oam = 0;
     draw_gates();
@@ -962,6 +1038,7 @@ static void draw(void) {
     draw_snack();
     if (gs.t >= 0) draw_gate_scene();
     draw_counter();
+    if (parade_t >= 0) draw_parade();
     draw_arrow();
     draw_boxes();
     draw_friends();
@@ -1047,6 +1124,19 @@ static void update(void) {
         draw();
         return;
     }
+    if (parade_t < 0 && !fading && parade_due()) {
+        parade_t = 0;
+        hop_t = -1;
+        dir = DIR_DOWN;
+        dbg("parade %d start", A->area);
+    }
+    if (parade_t >= 0) {               /* the whole page marches past: Pip watches and hops */
+        shimmer();
+        parade_update();
+        update_camera();
+        draw();
+        return;
+    }
     if (snack.cool > 0) snack.cool--;
     if (snack.t >= 0) {                /* snack time: Pip and the friends are busy eating */
         shimmer();
@@ -1055,6 +1145,10 @@ static void update(void) {
         update_camera();
         draw();
         return;
+    }
+    if (hop_t >= 0) {                  /* B: Pip's hop, then each follower's */
+        pip_hop = hop_h(hop_t);
+        if (++hop_t > HOP_LEN + MAX_FOLLOWERS * HOP_LAG) hop_t = -1;
     }
     u16 held = fading ? 0 : key_held();
     shimmer();
@@ -1117,6 +1211,10 @@ static void update(void) {
         save_pos(true);
         scene_go(&scene_shelf);
     }
+    if (!fading && scene_fading()) {   /* a door, an exit or START won this frame: an A press now would */
+        draw();                        /* open a box whose open screen never comes */
+        return;
+    }
     u16 hit = fading ? 0 : key_hit();
     update_npc();
     update_boxes(hit);
@@ -1154,7 +1252,12 @@ static void update(void) {
         draw();
         return;
     }
-    if ((hit & (KEY_A | KEY_B)) && touch_box < 0) sfx_tick();
+    if ((hit & KEY_A) && touch_box < 0) sfx_tick();
+    if ((hit & KEY_B) && touch_box < 0 && hop_t < 0) {   /* B: a happy hop (DESIGN.md controls) */
+        hop_t = 0;
+        sfx_hop();
+        dbg("pip hop");
+    }
     draw();
 }
 

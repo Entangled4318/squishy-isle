@@ -18,6 +18,7 @@ void system_init(void) {
 
 /* ---------------------------------------------------------------- input */
 static u16 keys_now, keys_before;
+static bool blocked;
 
 void input_poll(void) {
     keys_before = keys_now;
@@ -25,7 +26,10 @@ void input_poll(void) {
 }
 
 u16 key_held(void) { return keys_now; }
-u16 key_hit(void) { return keys_now & ~keys_before; }
+/* While blocked (a scene fades) presses count for nothing; keys still track,
+ * so a button held through the fade is not a new press after it. */
+u16 key_hit(void) { return blocked ? 0 : keys_now & ~keys_before; }
+void input_block(bool on) { blocked = on; }
 
 /* -------------------------------------------------------------- sprites */
 ObjAttr oam[128];
