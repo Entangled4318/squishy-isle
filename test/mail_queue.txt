@@ -1,0 +1,32 @@
+# step 8.2: two new friends, then the mailbox: their letters come one after
+# the other, oldest first; the flag stays up until the last one is read;
+# then A re-reads the last letter
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+seek 3000
+tap A
+waitmap 2000
+seek 3000
+tap A
+waitmap 2000
+goto mail 900
+wait 10
+tap A
+wait 100
+tap B
+waitmap 200
+wait 20
+shot mq_flag_up
+tap A
+wait 100
+tap B
+waitmap 200
+wait 20
+shot mq_flag_down
+tap A
+wait 100
+tap B
+waitmap 200

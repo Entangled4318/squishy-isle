@@ -801,22 +801,31 @@ def shore_ground(lab):
     return img
 
 
+PALM_PAD, PALM_TOP = 12, 5   # the crown was wider and taller than the old 40x56 image: fronds were cut (Brick test, 8.1)
+
+
 def palm(flip=False):
-    w, h = 40, 56
+    """A leaning palm, 64x61 px. Before 8.1 it was 40x56 and cut its fronds;
+    callers place it PALM_PAD left and PALM_TOP up of the old spot, so the
+    trunk (and its solid base, centred) stays where it was."""
+    o, t = PALM_PAD, PALM_TOP
+    w, h = 40 + 2 * o, 56 + t
     img = new(w, h)
-    palm_trunk(img, 18, 54, 42, 7)
-    for x in range(14, 25):
-        img[55, x, :3] = C['tr_ink']
-        img[55, x, 3] = 255
+    palm_trunk(img, 18 + o, 54 + t, 42, 7)
+    for x in range(14 + o, 25 + o):
+        img[55 + t, x, :3] = C['tr_ink']
+        img[55 + t, x, 3] = 255
     leaf = ramp('t_hi', 't_lt', 't_base', 't_dk', 't_dk2')
-    fronds = [Ellipse(14, 12, 13, 4.2, rot=-25), Ellipse(36, 12, 12, 4.0, rot=28), Ellipse(22, 6, 10, 3.8, rot=-70),
-              Ellipse(32, 6, 10, 3.6, rot=65), Ellipse(12, 19, 11, 3.6, rot=-50), Ellipse(35, 19, 10, 3.4, rot=55)]
+    fronds = [Ellipse(14 + o, 12 + t, 13, 4.2, rot=-25), Ellipse(36 + o, 12 + t, 12, 4.0, rot=28),
+              Ellipse(22 + o, 6 + t, 10, 3.8, rot=-70), Ellipse(32 + o, 6 + t, 10, 3.6, rot=65),
+              Ellipse(12 + o, 19 + t, 11, 3.6, rot=-50), Ellipse(35 + o, 19 + t, 10, 3.4, rot=55)]
     parts = [P(f, leaf, z=i % 3, line=C['t_dk2'], k=3.0, levels=(0.97, 0.78, 0.40, 0.12)) for i, f in enumerate(fronds)]
-    parts.append(P(Union(Ellipse(22, 14, 2.6), Ellipse(27.5, 14.5, 2.6), Ellipse(25, 17.5, 2.6)),
+    parts.append(P(Union(Ellipse(22 + o, 14 + t, 2.6), Ellipse(27.5 + o, 14.5 + t, 2.6), Ellipse(25 + o, 17.5 + t, 2.6)),
                    ramp('wd_lt', 'wd_lt', 'wd_base', 'wd_dk', 'wd_dk2'), z=5, line=C['wd_ink'], k=2.0))
-    crown = shade_parts(w, 26, parts, outline=C['t_ink'])
+    ch = 34 + t                                      # the low fronds reach row ~30 (26 cut them)
+    crown = shade_parts(w, ch, parts, outline=C['t_ink'])
     m = crown[..., 3] > 0
-    img[:26][m] = crown[m]
+    img[:ch][m] = crown[m]
     if flip:
         img = img[:, ::-1].copy()
     return img

@@ -85,7 +85,7 @@ def load_save(path):
             best = {'seq': seq, 'found': list(b[16:96]), 'opens': struct.unpack_from('<I', b, 96)[0],
                     'followers': list(b[104:107]), 'pip': struct.unpack_from('<HH', b, 108),
                     'area': b[112], 'gates': b[113], 'lines': [list(b[114 + k * 3:117 + k * 3]) for k in range(3)],
-                    'mail': b[123], 'mail_new': b[124]}
+                    'mail': b[123], 'mail_new': b[124], 'letters': list(b[128:138]), 'letter_read': b[138]}
     return best
 
 
@@ -106,6 +106,11 @@ def save_problems(s):
             if not (a * 20 <= i < a * 20 + 20) or not f[i]: p.append(f'line {a} holds friend {i} (not found here)')
     if s['mail'] and not f[s['mail'] - 1]: p.append(f"mail from friend {s['mail'] - 1}, not found")
     if s['mail_new'] not in (0, 1) or (s['mail_new'] and not s['mail']): p.append('mail flag without a letter')
+    q = [v - 1 for v in s['letters'] if v]                  # step 8.2: the letter queue
+    if s['letters'] != [v + 1 for v in q] + [0] * (10 - len(q)): p.append(f"letter queue has a gap {s['letters']}")
+    if len(set(q)) != len(q) or any(not f[i] for i in q): p.append(f'letter queue {q}: a repeat or a friend not found')
+    if s['mail_new'] != (1 if q else 0): p.append(f"mail flag {s['mail_new']} with {len(q)} letters waiting")
+    if s['letter_read'] and not f[s['letter_read'] - 1]: p.append('last letter read from a friend not found')
     x, y = s['pip']
     if x >= 480 or y >= 320: p.append(f'Pip saved at {x},{y}, off the map')
     return p

@@ -1,5 +1,5 @@
 /* Letter scene (from the meadow mailbox): a pink envelope drops in and
- * opens, the letter slides up out of it, and the newest friend waves from
+ * opens, the letter slides up out of it, and its friend waves from
  * its round frame: "Dear Pip, <a happy message> Love, <name>". A squishes
  * the friend (3 squishes go back, like the close-up), B or START go back.
  * Any press while the envelope opens skips to the letter. */
@@ -44,13 +44,10 @@ static int t, writer, squish_t, squishes, calm_t, bounce_t;
 static struct { int t, x, y; } hearts[3];
 
 static void enter(void) {
-    writer = game_save.mail ? game_save.mail - 1 : 0;
+    bool was_new = game_save.letters[0] != 0;
+    writer = letter_open();                    /* the oldest waiting letter; the flag goes down with the last one */
+    if (writer < 0) writer = 0;
     int sp = friend_species(writer), fl = friend_flavor(writer);
-    bool was_new = game_save.mail_new;
-    if (game_save.mail_new) {                  /* read: the flag goes down */
-        game_save.mail_new = 0;
-        collection_save();
-    }
 
     dma3_copy32(CHARBLOCK(0), letter_tiles, sizeof letter_tiles);
     for (int i = 0; i < 32 * 32; i++) SCREENBLOCK(29)[i] = SCREENBLOCK(30)[i] = SCREENBLOCK(31)[i] = 0;
@@ -86,7 +83,7 @@ static void enter(void) {
     squish_t = bounce_t = -1;
     squishes = calm_t = 0;
     for (int i = 0; i < 3; i++) hearts[i].t = -1000;
-    dbg("scene letter friend %d new %d msg %d", writer, was_new, m);
+    dbg("scene letter friend %d new %d msg %d waiting %d", writer, was_new, m, game_save.mail_new);
     scene_blend(0, 0);
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;   /* the card shows when the flap opens */
 }

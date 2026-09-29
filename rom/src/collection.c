@@ -61,7 +61,14 @@ bool collection_add(int id) {
     if (id < 0 || id >= NUM_FRIENDS || friend_found(id)) return false;
     game_save.found[id] = 1;
     game_save.opens++;
-    game_save.mail = (u8)(id + 1);           /* a letter from the new friend: the mailbox flag goes up */
+    game_save.mail = (u8)(id + 1);           /* the newest friend (the house starts on its gift) */
+    int n = 0;                               /* its letter joins the queue; the mailbox flag goes up */
+    while (n < MAX_LETTERS && game_save.letters[n]) n++;
+    if (n == MAX_LETTERS) {                  /* full: the oldest letter makes room */
+        for (int i = 1; i < MAX_LETTERS; i++) game_save.letters[i - 1] = game_save.letters[i];
+        n--;
+    }
+    game_save.letters[n] = (u8)(id + 1);
     game_save.mail_new = 1;
     follower_join(id);
     collection_save();
@@ -77,9 +84,25 @@ void collection_new_game(u32 seed) {
     game_save.area = 0;
     game_save.gates = 0;
     game_save.mail = game_save.mail_new = 0;
+    memset(game_save.letters, 0, sizeof game_save.letters);
+    game_save.letter_read = 0;
     game_save.parades = 0;
     game_save.rng = seed | 1;
     collection_save();
+}
+
+int letter_open(void) {
+    int id = game_save.letters[0] - 1;
+    if (id >= 0) {                           /* the oldest waiting letter: take it off the queue */
+        for (int i = 1; i < MAX_LETTERS; i++) game_save.letters[i - 1] = game_save.letters[i];
+        game_save.letters[MAX_LETTERS - 1] = 0;
+        game_save.letter_read = (u8)(id + 1);
+        game_save.mail_new = game_save.letters[0] != 0;
+        collection_save();
+        return id;
+    }
+    if (game_save.letter_read) return game_save.letter_read - 1;
+    return game_save.mail - 1;               /* a save from before 8.2: its one letter */
 }
 
 /* Each area has its own line of up to 3 followers (friend sprites use the
@@ -133,6 +156,8 @@ void follower_remove(int id) {
 void collection_init(void) {
     SaveStatus st = save_load(&game_save);
     game_save.boots++;
+    if (game_save.mail_new && !game_save.letters[0] && game_save.mail)   /* before 8.2: one unread letter */
+        game_save.letters[0] = game_save.mail;
     dbg("save: %s v%d boots=%u found=%d opens=%u", st == SAVE_LOADED ? "loaded" : st == SAVE_NEW ? "new" : "reset",
         SAVE_VERSION, game_save.boots, found_total(), (unsigned)game_save.opens);
     collection_save();

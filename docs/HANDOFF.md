@@ -37,6 +37,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
 | 7. QA and final ROM with Brick instructions | Done (v1.1 after the 7.6 fixes); see "Step 7 progress" and `docs/BRICK.md` |
+| 8. Brick test feedback | In progress (v1.2): 8.1 art fixes and 8.2 letter queue done; see "Step 8 progress" |
 
 ## Owner notes
 
@@ -960,6 +961,46 @@ and text pass, 7.5 final release with `docs/BRICK.md`.
    suite's `test/build/out` shots plus pen views made with `goto sign`
    on an all-80 save and the sound test); rebuild them the same way after
    visual changes.
+
+## Step 8 progress
+
+First Brick test (owner, v1.1): Quit / Continue works. Feedback, and the plan:
+
+1. Art cut off. **Done.** (a) The squish frame widens the friend (squash
+   sx 1.17) and 12 of 16 species went past the 64 px frame (and 6 past
+   16 px), losing their sides at the bottom of each squish: reveal,
+   close-up, letter, map. `squishy_export.role_render` now narrows sx until
+   a 1 px margin is left (chick, whale, crab, planet ~1.01; bunny, kitty,
+   octo, uni keep 1.17). (b) The seashell's top shell (lid) was 67 px wide
+   in a 64 px frame; fan radius 27.6 + 2.9, dish 28 (x 1..62). (c) The
+   palm crown was cut by its 40x56 image on one side and the top: now
+   64x61 (`world.PALM_PAD`, `PALM_TOP`; places move up-left by those, so
+   trunks and their solid base stay); the bottom-right shore palm moved
+   8 px west, off the east fence. (d) The woods blue berry bush at 110,188
+   sat on the trail from the meadow: now 70,166, beside it. (e) Container
+   twinkles on the map were pale yellow 8 px sprites that vanished on sand
+   and cloud: 16x16 gold ones with a tan outline (`props.MAP_TWINKLES`,
+   `EXTRA_TWINKLE` in `ui_extra_tiles`, colors the full sparkle palette
+   already had). Shore 606 tiles / 11 palettes, woods 654 / 12.
+2. Mailbox letter queue. **Done.** Owner: the mailbox showed only the last
+   friend's letter. Every new friend's letter now waits its turn, oldest
+   first (`letters[10]` and `letter_read` in the old reserved bytes, still
+   version 2, 144 bytes; a full queue drops its oldest). A reads the next
+   one (`letter_open()`); the flag and envelope stay up while any wait;
+   with none, A re-reads the last one read. An older save's one unread
+   letter joins the queue at boot. `mail` stays the newest friend (the
+   house starts on its gift). Tests: `test_collection.c` (order, flag, re-read,
+   full queue, new game), `mail_queue.txt` in `check_mail.py`, `mash.py`
+   checks the queue in every save.
+3. Followers keep following into other areas (owner request). Needs 3
+   free OBJ palettes on the map for friends from other areas: box
+   palettes per box slot (3 in use at most, frees 2) and the A bubble and
+   arrow in one palette (frees 1). Waiting on the owner's answer for the
+   line rules.
+4. Cloud Hill: Momo on its bed and the capsule machine are the ending and
+   scenery; owner asked what they do. Ideas to ask about after 3.
+
+Version "v1.2" (still 4 characters, title at f2). 458 checks pass.
 
 ## What step 3 should do (as promised to the owner)
 
