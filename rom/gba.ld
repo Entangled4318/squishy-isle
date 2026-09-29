@@ -14,6 +14,8 @@ MEMORY {
 __iwram_top = ORIGIN(iwram) + LENGTH(iwram);
 __sp_irq = __iwram_top - 0x60;       /* 0x03007FA0, BIOS convention */
 __sp_usr = __sp_irq - 0xA0;          /* 0x03007F00 */
+__stack_paint = __sp_usr - 0x2100;   /* crt0 fills 8 KB below the stack with a mark; tests read how deep it went */
+__stack_paint_end = __sp_usr - 0x100;
 
 SECTIONS {
     .crt0 : { KEEP(*(.crt0)) } >rom
@@ -75,3 +77,5 @@ SECTIONS {
 
     /DISCARD/ : { *(.note.*) *(.comment) }
 }
+
+ASSERT(__bss_end <= __stack_paint, "IWRAM: .data and .bss reach the stack; the stack mark would overwrite them")

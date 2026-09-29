@@ -14,9 +14,11 @@
 #define T_SQ      0      /* row r: idle at r*32, open at r*32+16 */
 #define T_FRAME   128
 #define T_SMALL   160
+#define T_BADGE   164    /* pick mode: the open screen's 16 px heart marks a follower */
 #define P_SIL     5      /* 5..8 silhouettes, one per row */
 #define P_FRAME   9
 #define P_SMALL   10
+#define P_BADGE   11
 #define P_TEXT    15
 
 static int page, cur_r, cur_c = 0;
@@ -60,6 +62,9 @@ static void enter(void) {
     dma3_copy16(PAL_OBJ + P_SIL * 16, sq_sil_pal, sizeof sq_sil_pal);
     dma3_copy16(PAL_OBJ + P_FRAME * 16, ui_frame_pal, sizeof ui_frame_pal);
     dma3_copy16(PAL_OBJ + P_SMALL * 16, ui_small_pal, sizeof ui_small_pal);
+    dma3_copy32(OBJ_TILES + T_BADGE * 16, openui_tiles + OPENUI_HEART_ON * 8, 4 * 32);
+    dma3_copy16(PAL_OBJ + P_BADGE * 16, openui_pal, sizeof openui_pal);
+    if (cur_r < 0 || cur_r > 3 || cur_c < 0 || cur_c > 4) cur_r = cur_c = 0;   /* never a frame off the grid */
     static int page_area = -1;        /* after a walk to another area, start on its page */
     if (shelf_pick || game_save.area != page_area) {
         page = game_save.area;
@@ -69,7 +74,7 @@ static void enter(void) {
         int id = follower_get(page, 0);
         for (int i = page * 20; id < 0 && i < page * 20 + 20; i++)
             if (friend_found(i)) id = i;
-        if (id >= 0) { cur_r = friend_species(id); cur_c = friend_flavor(id); }
+        if (id >= 0) { cur_r = friend_species(id) - page * 4; cur_c = friend_flavor(id); }   /* the row on this page */
         pop_id = -1;
     } else if (!collected(cur_r, cur_c)) {   /* start on a friend: A then opens it straight away */
         for (int i = 0; i < 20 && !collected(cur_r, cur_c); i++) {
@@ -114,16 +119,16 @@ static void draw(void) {
             }
         }
     }
-    for (int i = 0; i < MAX_FOLLOWERS; i++) {      /* a heart on each friend that follows Pip */
+    for (int i = 0; i < MAX_FOLLOWERS; i++) {      /* a heart badge on the corner of each friend that follows Pip */
         ObjAttr *h = &oam[25 + i];
         int id = shelf_pick ? follower_get(page, i) : -1;
         if (id < 0) { h->attr0 = A0_HIDE; continue; }
-        int hx = SHELF_X0 + friend_flavor(id) * SHELF_CW + 3;
-        int hy = SHELF_Y0 + friend_species(id) * SHELF_CH + 3;
+        int hx = SHELF_X0 + friend_flavor(id) * SHELF_CW - 2;
+        int hy = SHELF_Y0 + (friend_species(id) - page * 4) * SHELF_CH - 3;   /* the row on this page */
         if (id == pop_id && pop_t > 0) hy -= (pop_t * (12 - pop_t)) / 6;   /* small hop when chosen */
         h->attr0 = A0_Y(hy) | A0_SQUARE;
-        h->attr1 = A1_X(hx) | A1_SIZE(0);
-        h->attr2 = A2_TILE(T_SMALL + 3) | A2_PRIO(0) | A2_PAL(P_SMALL);
+        h->attr1 = A1_X(hx) | A1_SIZE(1);
+        h->attr2 = A2_TILE(T_BADGE) | A2_PRIO(0) | A2_PAL(P_BADGE);
     }
     if (pop_t > 0) pop_t--;
     int fx = SHELF_X0 + cur_c * SHELF_CW - 1;

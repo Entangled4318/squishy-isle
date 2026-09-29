@@ -10,13 +10,16 @@ boxes and places. The harness watches every frame (the game's frame
 counter goes on, the scene is a known one, the CPU runs from BIOS, ROM or
 IWRAM). This script then checks the log and the save:
 
-- no fault, no hang, no save write error
+- no fault, no hang, no save write error, no garbage text in the log
 - the open screen and the reveal always end by themselves in time
   (each press restarts their wait, so the limit allows three waits)
 - every box that opens reaches the open screen (none lost on the way)
 - friends count up one at a time, never twice the same friend
 - a new game (which wipes friends) happens only from a save with none
 - the save on disk is valid and consistent (areas, gates, lines, mail)
+- step 7.2: no frame's work in any scene takes more than LINES_MAX of the
+  228 scanlines of a frame (a margin under a missed frame), and the stack
+  stays under STACK_MAX bytes (crt0 marks 8 KB below it)
 
 `make test` runs the short set; `make -C test soak` runs many seeds, long.
 """
@@ -30,10 +33,13 @@ import zlib
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT, ROM = sys.argv[1], sys.argv[2]
 SOAK = len(sys.argv) > 3 and sys.argv[3] == 'soak'
-HARNESS = os.path.join(HERE, 'build', 'harness')
+HARNESS = os.environ.get('MASH_HARNESS', os.path.join(HERE, 'build', 'harness'))
 
 OPEN_MAX = 3 * 240 + 70 + 30             # each press restarts AUTO_WAIT (3 presses), POP_TIME, a fade (open.c)
 REVEAL_MAX = 60 + 3 * 300 + 40 + 30 + 30  # drop, each squish restarts REVEAL_WAIT, calm after the 3rd, hop away, fade (closeup.c)
+
+LINES_MAX = 180                           # of 228 scanlines a frame: ~20% spare
+STACK_MAX = 4096                          # bytes; 28 KB of IWRAM are free below the stack
 
 A_ALL = ','.join(str(i) for i in range(80))
 SAVES = [   # name, make_save.py args (FOUND, FOLLOWERS[, GATES[, AREA]]); None = blank
@@ -139,13 +145,18 @@ def run(name, args, seed):
     script = os.path.join(OUT, tag + '.txt')
     # boot, and for a save with friends pick Continue (a toddler can still reach New game while mashing)
     open(script, 'w').write(f'wait 20\ntap A\nwait 15\ntap A\nwait 25\nmash {seed} {FRAMES}\nshot {tag}\n')
-    log = subprocess.run([HARNESS, ROM, sav, script, OUT], capture_output=True, text=True, check=True).stdout
+    raw = subprocess.run([HARNESS, ROM, sav, script, OUT], capture_output=True, check=True).stdout
+    log = raw.decode('utf-8', 'replace')              # a bad string from the game must fail a check, not the script
     open(os.path.join(OUT, tag + '.log'), 'w').write(log)
-    summary = {m.group(1): (int(m.group(2)), int(m.group(3)))
-               for m in re.finditer(r'\[mash\] scene (\w+) visits (\d+) stay_max (\d+)', log)}
+    summary = {m.group(1): (int(m.group(2)), int(m.group(3)), int(m.group(4)), int(m.group(5)))
+               for m in re.finditer(r'\[mash\] scene (\w+) visits (\d+) stay_max (\d+) lines_max (\d+) enter_lines (\d+)', log)}
+    st = re.search(r'stack deepest (\d+) bytes', log)
+    stack = int(st.group(1)) if st else -1
     m = re.search(r'faults (\d+) hang_max (\d+)', log)
     faults, hang = (int(m.group(1)), int(m.group(2))) if m else (-1, -1)
     lp, total = log_problems(log, start)
+    bad_text = [ln for ln in log.splitlines() if ln.startswith('[game') and any(not 32 <= ord(c) < 127 for c in ln)]
+    if bad_text: lp.append(f'garbage text in the log: {bad_text[0]!r}')
     s = load_save(sav)
     sp = save_problems(s) if s else ['no valid save slot']
     visits = ' '.join(f'{k}:{v[0]}' for k, v in summary.items() if v[0])
@@ -157,18 +168,25 @@ def run(name, args, seed):
     check(not lp, f'{tag}: log consistent, friends {start} -> {total}' + (': ' + '; '.join(lp[:3]) if lp else ''))
     check(not sp, f'{tag}: save valid and consistent' + (': ' + '; '.join(sp[:3]) if sp else ''))
     check(wipes == 0, f'{tag}: no new game over a save with friends ({wipes})')
+    worst = max(summary.items(), key=lambda kv: kv[1][2]) if summary else ('-', (0, 0, 0, 0))
+    check(worst[1][2] <= LINES_MAX and 0 <= stack <= STACK_MAX,
+          f'{tag}: frame work at most {worst[1][2]}/228 lines ({worst[0]}), stack {stack} bytes')
     print(f'     {tag}: {visits}')
     return summary
 
 
 if __name__ == '__main__':
-    totals = {}
+    totals, worst_lines, worst_enter = {}, {}, {}
     for seed in SEEDS:
         for name, args in SAVES:
             for k, v in run(name, args, seed).items():
                 totals[k] = totals.get(k, 0) + v[0]
+                worst_lines[k] = max(worst_lines.get(k, 0), v[2])
+                worst_enter[k] = max(worst_enter.get(k, 0), v[3])
     reached = [k for k in ('meadow_view', 'open', 'reveal', 'shelf', 'closeup', 'letter', 'house') if totals.get(k)]
     check(len(reached) == 7, f"every play scene was mashed: {' '.join(f'{k}:{totals.get(k, 0)}' for k in totals)}")
+    print('     worst frame work per scene, scanlines of 228 (update / scene load): ' +
+          ', '.join(f'{k} {worst_lines[k]}/{worst_enter[k]}' for k in worst_lines if totals.get(k)))
     if fails:
         print(f'{len(fails)} mash check(s) FAILED')
         sys.exit(1)

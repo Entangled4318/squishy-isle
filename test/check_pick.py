@@ -38,6 +38,16 @@ for n in ('k05_sign_from_top', 'k06_picker_from_top'):
     im = Image.open(os.path.join(OUT, n + '.ppm')).convert('RGB')
     im.resize((im.width * 4, im.height * 4), Image.NEAREST).save(os.path.join(OUT, n + '.png'))
 
+sh = open(os.path.join(OUT, 'pick_shore.log')).read()   # step 7.1: the picker outside the meadow
+check('scene shelf page=2 pick=1' in sh, 'the shore pen sign opens the picker on the shore page')
+check('pick add 40' in sh and 'pick done 40 -1 -1' in sh,
+      'it starts on the first shore friend found and A adds that friend (was a friend id past the table)')
+check('scene closeup Vanilla Whale' in sh, 'START then A after the picker opens the close-up of that friend')
+check(all(32 <= ord(c) < 127 or c == '\n' for c in sh), 'no garbage text in the log (a bad name once printed)')
+for n in ('k10_pick_shore', 'k11_closeup_shore'):
+    im = Image.open(os.path.join(OUT, n + '.ppm')).convert('RGB')
+    im.resize((im.width * 4, im.height * 4), Image.NEAREST).save(os.path.join(OUT, n + '.png'))
+
 if fails:
     sys.exit(1)
 print('all pick checks passed')

@@ -824,8 +824,36 @@ and text pass, 7.5 final release with `docs/BRICK.md`.
      (`== POP_TIME`, `== 30`); `>=` now, so a refused `scene_go` cannot
      leave them stuck.
    - Harness `walkto` re-plans when a box appears on its way.
-2. Technical audit. To do.
-3. Design gaps. Done so far: B on the map makes Pip hop (`hop_t`,
+   - The soak found (garbage text in the log): the pen sign's picker
+     outside the meadow put the frame on the friend's global species row
+     (8..15) instead of the page row (0..3), so A picked a friend id past
+     the table and, back on the plain shelf, A opened a close-up of a
+     species that does not exist. `shelf.c` uses `friend_species(id) -
+     page * 4` and never keeps a frame off the grid. Test `pick_shore.txt`
+     in `check_pick.py`; `mash.py` fails on any non-ASCII game log line.
+   Soak (6 seeds x 5 saves x 60,000 frames, 1.8 million frames, ~8 h of
+   play): all passed. Score 8.5 (first pass 6: the five bugs above).
+2. Technical audit. **Done.** Measured on the mGBA core, reported by the
+   harness per scene: `perf_lines` / `perf_enter_lines` (`scene.c`: the
+   scanlines from the VBlank to the end of `update()` or of a scene load;
+   228 = a whole frame) and the stack's deepest point (crt0 marks 8 KB
+   below `__sp_usr` with 0xA5A5A5A5 using 16-byte stores; `gba.ld` asserts
+   .bss stays below the mark). Harness `perf N` prints the worst and mean
+   over N idle frames. `mash.py` fails a run over 180 lines or a 4 KB
+   stack. Found: a full Cloud Hill (17 friends in the pen) hit 211 of 228
+   lines (189 idle): all roamers moved on even frames, a new target cost
+   10 tries x 34 distances with a software division per random number,
+   and many retargeted at once. Now each roamer moves on its own alternate
+   frame, `pen_rand` multiplies instead of dividing, and at most 3 new
+   targets are searched a frame (`PEN_RETARGETS`; the others wait a
+   frame). Worst frames now: map 110 (idle max 75, mean 30), shelf page
+   turn 111, house 72, reveal 54, open 30; scene loads up to 489 lines
+   (2 frames, while the screen is white). Stack: 580 bytes deepest (28 KB
+   of IWRAM free). EWRAM: 41 KB of 256 KB. OBJ tiles: at most 519 of 1024
+   (title), 448 on the map. ROM 617 KB; header: fixed byte, complement,
+   logo, `SRAM_V113` the only save tag. Score 8.5 (first pass 7: the pen
+   spike).
+3. Design gaps. **Done.** B on the map makes Pip hop (`hop_t`,
    `HOP_LEN` 16 frames, up to 6 px, the shadow stays down) with a soft
    "hup" (`sfx_hop`, channel 1, so the bass keeps playing), followers hop
    after him 5 frames apart; B by a box still opens it. Parade: the first
@@ -843,7 +871,14 @@ and text pass, 7.5 final release with `docs/BRICK.md`.
    shows, ends in 5 to 10 s, once per area in the full loop, not again
    after Continue, B hop after), `check_loop.py` (loop_c waits out the
    parade). Scores: parade 8.5 (first 8: 22 px apart, ears and tails
-   overlapped), hop 8.5.
+   overlapped), hop 8.5. Picker badge: the follower mark is the open
+   screen's 16 px heart (`T_BADGE`, palette 11) on the cell's top-left
+   corner, was an 8 px heart (8.5, first 8). Kept as is: the found
+   counter pill sits over the top rail when the whole pen is on screen
+   (a HUD over the map; moving it would cover the map elsewhere).
+   Screenshots `docs/step7_3_parade_hop.png`, `docs/step7_3_picker_badge.png`.
+4. Visual and text pass. To do.
+5. Final release and `docs/BRICK.md`. To do.
 
 ## What step 3 should do (as promised to the owner)
 

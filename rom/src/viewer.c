@@ -116,7 +116,7 @@ static u32 pen_seed = 12345;
 
 static int pen_rand(int n) {          /* local: the pen must not use up the saved random numbers */
     pen_seed = pen_seed * 1103515245u + 12345u;
-    return (int)((pen_seed >> 16) % (u32)n);
+    return (int)(((pen_seed >> 16) * (u32)n) >> 16);   /* 0..n-1 by a multiply: no slow division */
 }
 
 /* Picks the roomiest of a few random spots: the one farthest from where the
@@ -215,7 +215,10 @@ static bool pen_crowded(const Roamer *r, int nx, int ny) {
     return false;
 }
 
+#define PEN_RETARGETS 3             /* new-target searches a frame at most (step 7.2: 17 at once cost most of a frame) */
+
 static void friends_update(bool pip_moved) {
+    int retargets = 0;
     if (pip_moved) {
         trail_i = (trail_i + 1) & (TRAIL - 1);
         trail_x[trail_i] = (s16)(pip_x >> 8);
@@ -227,13 +230,14 @@ static void friends_update(bool pip_moved) {
             r->wait--;
             continue;
         }
-        if ((frame_count & 1) == 0) {            /* half a pixel per frame: a calm waddle */
+        if (((frame_count + i) & 1) == 0) {      /* half a pixel per frame, half the pen each frame: a calm waddle */
             int nx = r->x + (r->tx > r->x) - (r->tx < r->x);
             int ny = r->y + (r->ty > r->y) - (r->ty < r->y);
             if (pen_crowded(r, nx, ny) && nx != r->x && !pen_crowded(r, nx, r->y)) ny = r->y;   /* sidestep */
             else if (pen_crowded(r, nx, ny) && ny != r->y && !pen_crowded(r, r->x, ny)) nx = r->x;
             if (pen_crowded(r, nx, ny)) {        /* give way; find another spot if stuck */
-                if (++r->stuck > 30) {
+                if (++r->stuck > 30 && retargets < PEN_RETARGETS) {
+                    retargets++;
                     r->stuck = 0;
                     pen_target(r);
                 }
@@ -244,7 +248,8 @@ static void friends_update(bool pip_moved) {
                 r->stuck = 0;
             }
         }
-        if (r->x == r->tx && r->y == r->ty) {
+        if (r->x == r->tx && r->y == r->ty && retargets < PEN_RETARGETS) {   /* else it waits a frame more */
+            retargets++;
             r->wait = (s16)(60 + pen_rand(180));
             r->step = 0;
             pen_target(r);

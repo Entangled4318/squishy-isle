@@ -26,6 +26,8 @@
  *                       come from `arm-none-eabi-nm` on the ROM's .elf.
  *   goto KIND N         walk to a place in the current area: sign, mail,
  *                       basket, door (then UP into it), exit, momo (at most N)
+ *   perf N              run N idle frames and print the worst and average
+ *                       frame work in scanlines (228 = a whole frame)
  *   mash SEED N         a toddler plays for N frames: random taps, chords,
  *                       held directions, A mashing, long idle spells, and
  *                       now and then a walk to a box or a place. From then
@@ -176,6 +178,12 @@ static struct { const char *name; uint32_t addr; long visits, stay_max; } scenes
     {"scene_title"}, {"scene_meadow_view"}, {"scene_open"}, {"scene_reveal"}, {"scene_shelf"},
     {"scene_closeup"}, {"scene_letter"}, {"scene_house"}, {"scene_jukebox"}};
 #define N_SCENES (int)(sizeof scenes / sizeof scenes[0])
+static long scene_lines[N_SCENES], scene_enter_lines[N_SCENES];   /* worst frame work per scene, in scanlines */
+
+/* optional symbols (older ROMs lack them): frame work and the stack mark */
+static struct { const char *name; uint32_t addr; } opt[] = {
+    {"perf_lines"}, {"perf_enter_lines"}, {"__stack_paint"}, {"__stack_paint_end"}, {"__sp_usr"}};
+enum { O_PERF, O_PERF_ENTER, O_PAINT, O_PAINT_END, O_SP, O_N };
 static struct { uint32_t solid, solid_size, spots, doors, gates, gates_size; } area_syms[4];
 static int syms_loaded;
 static const char *rom_path;
@@ -191,12 +199,19 @@ static void load_syms(void) {
     if (!p) { perror("nm"); exit(1); }
     while (fgets(line, sizeof line, p)) {
         unsigned addr, size;
-        char type, name[128];
-        if (sscanf(line, "%x %x %c %127s", &addr, &size, &type, name) != 4) continue;
+        char name[128];
+        char t[4][128];                         /* "addr size type name", or "addr type name" (linker symbols) */
+        int nt = sscanf(line, "%127s %127s %127s %127s", t[0], t[1], t[2], t[3]);
+        if (nt < 3) continue;
+        addr = (unsigned)strtoul(t[0], NULL, 16);
+        size = nt == 4 ? (unsigned)strtoul(t[1], NULL, 16) : 0;
+        snprintf(name, sizeof name, "%s", t[nt - 1]);
         for (int i = 0; i < S_N; i++)
             if (!strcmp(name, syms[i].name)) { syms[i].addr = addr; syms[i].size = size; }
         for (int i = 0; i < N_SCENES; i++)
             if (!strcmp(name, scenes[i].name)) scenes[i].addr = addr;
+        for (int i = 0; i < O_N; i++)
+            if (!strcmp(name, opt[i].name)) opt[i].addr = addr;
         for (int a = 0; a < 4; a++) {
             size_t n = strlen(area_names[a]);
             if (strncmp(name, area_names[a], n) || name[n] != '_') continue;
@@ -508,6 +523,11 @@ static void monitor(void) {
     } else if (++stay > scenes[k].stay_max) {
         scenes[k].stay_max = stay;
     }
+    if (k >= 0 && opt[O_PERF].addr) {
+        long l = core->busRead16(core, opt[O_PERF].addr), e = core->busRead16(core, opt[O_PERF_ENTER].addr);
+        if (stay > 1 && l > scene_lines[k]) scene_lines[k] = l;     /* the first frame of a scene may still be the load */
+        if (e > scene_enter_lines[k]) scene_enter_lines[k] = e;
+    }
     uint32_t pc = (uint32_t)((struct ARMCore *)core->cpu)->gprs[ARM_PC];
     if (!(pc < 0x4000 || (pc >= 0x08000000 && pc < 0x0A000000) || (pc >= 0x03000000 && pc < 0x03008000))) {
         if (!pc_bad++) fault("CPU runs outside BIOS, ROM and IWRAM");
@@ -557,7 +577,14 @@ static void mash(uint32_t seed, long n) {
     }
     printf("[mash] seed %u frames %ld faults %ld hang_max %ld\n", seed, n, faults, fc_still_max);
     for (int i = 0; i < N_SCENES; i++)
-        printf("[mash] scene %s visits %ld stay_max %ld\n", scenes[i].name + 6, scenes[i].visits, scenes[i].stay_max);
+        printf("[mash] scene %s visits %ld stay_max %ld lines_max %ld enter_lines %ld\n", scenes[i].name + 6,
+               scenes[i].visits, scenes[i].stay_max, scene_lines[i], scene_enter_lines[i]);
+    if (opt[O_PAINT].addr && opt[O_SP].addr) {           /* the deepest the stack went: the lowest word not still marked */
+        uint32_t a = opt[O_PAINT].addr;
+        while (a < opt[O_PAINT_END].addr && rd32(a) == 0xA5A5A5A5u) a += 4;
+        printf("[mash] stack deepest %u bytes of %u marked%s\n", opt[O_SP].addr - a, opt[O_SP].addr - opt[O_PAINT].addr,
+               a == opt[O_PAINT].addr ? " (OVER the mark)" : "");
+    }
 }
 
 int main(int argc, char **argv) {
@@ -632,6 +659,17 @@ int main(int argc, char **argv) {
                 if (!strcmp(a, place_names[i])) kind = i;
             if (kind < 0) { fprintf(stderr, "goto: unknown place %s\n", a); return 1; }
             goto_place(kind, 0, n);
+        } else if (!strcmp(cmd, "perf")) {             /* perf N: N idle frames; the frame work, in scanlines */
+            load_syms();
+            long nf = atol(a), mx = 0, sum = 0, over = 0;
+            for (long i = 0; i < nf; i++) {
+                run(0, 1);
+                long l = opt[O_PERF].addr ? core->busRead16(core, opt[O_PERF].addr) : 0;
+                if (l > mx) mx = l;
+                sum += l;
+                over += l > 180;
+            }
+            printf("[perf] %ld frames: max %ld avg %ld lines, %ld over 180\n", nf, mx, nf ? sum / nf : 0, over);
         } else if (!strcmp(cmd, "mash")) {
             mash((uint32_t)strtoul(a, NULL, 0), n);
         } else if (!strcmp(cmd, "audio")) {
