@@ -214,17 +214,16 @@ def meadow():
 
 def woods():
     """Berry Woods: a mossy clearing ringed by green and autumn trees. The
-    trail comes in from the meadow bridge (west), crosses the clearing and
-    leaves east toward the shore; a path north ends at a big old tree.
+    trail comes in from the meadow bridge (west) to the clearing, a path
+    runs north through it to a big old tree and turns east to the shore
+    (every path straight: owner request).
     Friend pen (the meadow's size) in the south-east with its sign."""
     W_, H_ = 480, 320
     a = Area('woods', W_, H_)
     trail = SmoothUnion(12,
-                        Capsule(0, 200, 150, 200, 14),           # straight in from the meadow bridge
-                        Capsule(150, 200, 240, 170, 15),
-                        Capsule(240, 170, 350, 120, 14),
-                        Capsule(350, 120, 480, 120, 14),         # straight out east to the shore
-                        Capsule(240, 170, 236, 70, 12))
+                        Capsule(0, 200, 240, 200, 14),           # straight paths only (owner): in from the meadow,
+                        Capsule(240, 200, 240, 70, 13),          # north through the clearing to the big old tree,
+                        Capsule(240, 120, 480, 120, 14))         # and out east to the shore
     clearing = Oval(238, 172, 34, 22, n=2.2)
     lab = shape_labels(W_, H_, 'g', [('p', trail), ('p', clearing)])
     ground, lab = render_terrain(None, world.WOODS_KINDS, lab=lab)
@@ -275,9 +274,9 @@ def woods():
 
     # ---- props: berry bushes, stumps, fallen logs
     for kind, x, y in (('red', 88, 116), ('blue', 176, 100), ('red', 262, 214), ('blue', 110, 188),
-                       ('red', 402, 108), ('blue', 36, 252), ('red', 136, 250)):
+                       ('red', 402, 90), ('blue', 36, 252), ('red', 136, 250)):
         a.place(world.berry_bush(kind), x, y, block_w=10, tall=6)
-    for x, y in ((276, 104), (380, 90)):
+    for x, y in ((282, 84), (380, 90)):
         a.place(world.stump(), x, y, block_w=12, tall=6)
     a.place(world.log(30), 150, 128, block_w=26, tall=6)
     a.place(world.log(24), 18, 92, block_w=20, tall=6)
@@ -378,6 +377,12 @@ def shore():
     a.block(0, 316, 480, 320)
     a.exits.append((0, 186, 6, 28, 1, 456, 120))       # west: the boardwalk back to the woods
     a.decor(world.cloud_puff(72, 16, 2), 420, 142)       # a straight cloud walkway east to Cloud Hill
+    # low fences along the east and west edges: the boardwalk and the cloud
+    # walkway (where Momo sleeps until 10 shore friends) are the only ways off
+    for x, runs in ((472, ((72, 132), (168, 316))), (1, ((72, 186), (214, 316)))):
+        for y0, y1 in runs:
+            side = world.fence_side(y1 - y0)
+            a.place(side, x, y0, block_w=7, tall=side.shape[0])
     a.exits.append((468, 136, 12, 28, 3, 24, 204))     # east: on to Cloud Hill
     a.gates.append((450, 136, 28, 28, 3))              # Momo sleeps here until Cloud Hill opens
     a.spawn = (24, 200)
@@ -424,8 +429,8 @@ def clouds():
     garden = CloudBlob(76, 282, 50, 24, bump=7, seed=5)                # small island, south-west
     bed = CloudBlob(416, 86, 52, 32, bump=7, seed=4)                   # Momo's island, north-east
     puffs = (puff_bridge(-14, 204, 92, 204, 13, 6, 3) +                # straight cloud path from the shore
-             puff_bridge(98, 252, 84, 270, 11, 2, 11) +
-             puff_bridge(360, 138, 398, 108, 14, 3, 13))
+             puff_bridge(92, 246, 92, 272, 12, 2, 11) +            # straight bridges (owner): down to the garden,
+             puff_bridge(394, 150, 394, 104, 14, 3, 13))           # up to Momo's island
     lab = shape_labels(W_, H_, 'x', [('c', CloudMask(main, garden, bed, *puffs))])
     a.ground = world.cloud_ground(lab, sky)
     walk = lab == 'c'

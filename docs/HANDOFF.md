@@ -35,7 +35,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 3. Game loop in the meadow | Done. Brick feedback fixed (3.9, 3.10); Brick re-test queued; see "Step 3 progress" |
 | 4. Open / reveal / squish polish, shelf with real collection | Done inside step 3 (3.3, 3.4, 3.7) |
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
-| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | In progress (6.1 to 6.7 done); see "Step 6 progress" |
+| 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | In progress (6.1 to 6.8 done, 6.9 houses and gifts next); see "Step 6 progress" |
 | 7. QA and final ROM with Brick instructions | To do |
 
 ## Owner notes
@@ -44,6 +44,9 @@ shelf. No battles, no fail states, no reading needed. Full design:
   Keep working in the emulator with headless tests, and add every item
   that needs a Brick check (feel, sound, music) to this list. Ask the
   owner to run the list when they can test again. Pending now: step
+  6.8 (the woods trail, shore walkway and cloud bridges read as straight
+  paths; the shore fences make the walkway the only way east, so it is
+  clear Momo blocks it; a long play session feels good), step
   6.7 (after a new friend the mailbox flag waves and an envelope bobs;
   A by the mailbox: the envelope drops, the letter slides up, the
   friend squeaks; the flag goes down after; snack time at the basket:
@@ -103,7 +106,8 @@ shelf. No battles, no fail states, no reading needed. Full design:
   a friend after a catch (cursor starts on a found friend; centred,
   3 squishes close it), power off and
   Continue (Pip starts where he stood).
-- Next: step 6.8 (full 80-friend loop, scores, release), see "Step 6 progress".
+- Next: step 6.9 (houses and gifts), see "Step 6 progress". Then ask
+  the owner before step 7.
   Owner (step 6 session 2): do all of step 6 without stopping (merge
   after each sub-step), then ask before step 7. Owner
   answers for 6.7: mailbox = a letter with a happy message from the
@@ -697,23 +701,39 @@ Plan, one sub-step at a time, merge after each:
    7: the card's bottom showed at the top while the envelope dropped; the
    flag was 4 px), snack time 8.5 (first 7.5: the right seat stood on
    Pip and the basket; the arrow drew over the treat).
-8. Full 80-friend loop, scores, release. **In progress** (not committed
-   yet if this line is still here). Done so far: `make_full_loop.py`
-   writes the 80-container script (new game, 20 per area in play order,
-   the way on after each area, the shelf pages, Momo's bed), `full_b.txt`
-   (Continue with 80), `check_full.py`, Makefile entry. The first run
-   found 79/80: Cloud Hill spot (138,280) was in the sky. `check_map.py`
-   now checks every spot of every area is on the ground and reachable
-   from the area's start (it also flagged (392,146) and (330,272) at
-   island edges); the three spots moved to (376,150), (100,274),
-   (344,262). Owner request (same turn): every way between maps runs
-   straight (horizontal) at the map edge. The shore's diagonal cloud
-   steps are now one straight cloud walkway (`cloud_puff(72, 16)` at
-   420,142, level with the exit); the woods trail runs straight at
-   y 200 from the west edge and at y 120 to the east edge; Cloud Hill's
-   arrival path is straight at y 204. The bridge to Momo's island stays
-   diagonal (it leads to no other map). Next: rebuild, run the full
-   suite, check the loop passes, the scoring pass, release ROM, merge.
+8. Full 80-friend loop, straight paths, scores, release. **Done.**
+   `make_full_loop.py` writes the script (the Makefile runs it): a new
+   game, 20 containers per area in play order (every fourth opens by
+   itself, every fourth friend leaves on its own), the way on after each
+   area, the four shelf pages, Momo's bed; `full_b.txt` reboots with 80.
+   `check_full.py`: 80 opens counting 1..80, no repeats, areas fill in
+   order, each friend from the area it was opened in, each gate scene
+   once after that area's 10th friend and the walk on, no containers
+   once an area is full, containers and friends that act by themselves,
+   each area's song, Momo home, Continue on Cloud Hill with 80 and no
+   containers, every shelf page full. ~55,000 frames, ~17 s. The first
+   run found 79/80: Cloud Hill spot (138,280) was in the sky.
+   `check_map.py` now checks every container spot of every area is on
+   the ground and reachable from the area's start (it also flagged
+   (392,146) and (330,272)); they moved to (376,150), (100,274),
+   (344,262). Owner requests: every path is straight (horizontal or
+   vertical), inside maps too. Woods trail: in at y 200 to the
+   clearing, north along x 240 to the big old tree, east at y 120 to
+   the shore (a stump and a berry bush moved off it). Shore: the
+   diagonal cloud steps are one straight cloud walkway east
+   (`cloud_puff(72, 16)`, level with the exit); low white fences along
+   the east and west edges, so the boardwalk and the walkway (Momo
+   sleeps across it) are the only ways off: Momo could already not be
+   walked around (the edge was an invisible wall), now it reads that
+   way. Cloud Hill: the arrival path, the garden bridge and Momo's
+   bridge are straight. Woods 615 tiles / 11 palettes, shore 539 / 9,
+   Cloud Hill 683 / 14. 17 suites pass. Screenshot
+   `docs/step6_8_full_loop.png`. Scores: full loop 8.5 (first run 7:
+   an unreachable container), straight paths 8.5, shore fences 8.5.
+9. Houses and gifts (owner request after 6.8, before step 7): each
+   friend's letter brings a gift; each area gets a house whose door
+   opens a room with that area's 20 gifts (not the shelf; START still
+   opens the shelf). To do.
 
 ## What step 3 should do (as promised to the owner)
 
