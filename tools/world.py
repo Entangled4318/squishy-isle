@@ -1368,9 +1368,10 @@ def cloud_puff(w, h, seed=0):
     import random
     rnd = random.Random(seed)
     blobs = [Mochi(w / 2, h * 0.62, w / 2 - 1.5, h * 0.34, nt=2.0, nb=5.0)]
-    for i in range(3):
-        cx = 4 + (w - 8) * (i + 0.5) / 3
-        r = h * rnd.uniform(0.28, 0.36) * (1.2 if i == 1 else 1.0)
+    n = max(3, int(w / 12))                                   # one bump every ~12 px
+    for i in range(n):
+        cx = 4 + (w - 8) * (i + 0.5) / n
+        r = h * rnd.uniform(0.28, 0.36) * (1.2 if i % 2 == 1 else 1.0)
         blobs.append(Ellipse(cx, h * 0.52 - r * 0.4, r, r * 0.9))
     rp = [C['cl_hi'], C['cl_hi'], C['cl_base'], C['cl_dk'], C['cl_dk2']]
     return shade_parts(w, h, [P(Union(*blobs), rp, k=5.0, levels=(0.9, 0.62, 0.30, 0.12))], outline=C['cl_ink'])

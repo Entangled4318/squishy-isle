@@ -1,0 +1,9 @@
+# after the full loop: power off and Continue, all 80 still there
+wait 20
+tap A
+wait 15
+tap A
+wait 60
+shot full_continue
+wait 400
+shot full_no_boxes
