@@ -75,6 +75,13 @@ static void enter(void) {
     strip_init(&st_opt[0], 2, 1, 31, n_opts == 1 ? 9 : 3, 17, 12, 2, P_TEXT);   /* after: "Play" overlaps it */
     strip_init(&st_line1, 2, 49, 31, 7, 3, 16, 2, P_TEXT);
     strip_init(&st_line2, 2, 81, 31, 3, 6, 24, 2, P_TEXT);
+    {   /* the version, small at the bottom right, so a grown-up can tell which ROM this is.
+         * A strip on the stack: its tiles stay in VRAM, and a static one would add 2 KB
+         * of RAM to clear at boot (the title-at-f2 trap in HANDOFF.md) */
+        TextStrip ver;
+        strip_init(&ver, 2, 129, 31, 27, 18, 3, 2, P_TEXT);   /* right of "New game" (cols 15..26) */
+        strip_print(&ver, GAME_VERSION, 0, 4, 1, 0);
+    }
 
     dma3_copy32(OBJ_TILES + T_LOGO * 16, logo_tiles, sizeof logo_tiles);
     dma3_copy16(PAL_OBJ + P_LOGO * 16, logo_pal, sizeof logo_pal);

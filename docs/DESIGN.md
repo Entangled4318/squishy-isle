@@ -46,16 +46,22 @@ Squishy Shelf.
 Each area has its own container and four species, so 20 friends and
 exactly 20 containers. The areas open in a line: Blossom Meadow, Berry
 Woods, Seashell Shore, Cloud Hill. When the child finds 10 friends in an
-area, the squishies build the way to the next one (clear the log over the
-meadow bridge, lay the boardwalk, build the stairs); until then the way
-is visibly blocked. Only the next area opens, never two at once. Opened
+area, the squishies tickle Momo, a sleepy panda who lies across the way
+to the next one, until Momo wakes and waddles on; until then Momo
+visibly blocks the way. At the end Momo sleeps in a cloud bed on Cloud
+Hill. Only the next area opens, never two at once. Opened
 areas keep their boxes until all 20 friends are found. The shelf (Start)
 shows every friend found.
 
 ## Long loop
 
 Every species comes in five flavors: Vanilla, Strawberry, Matcha, Taro and a
-rare, shimmering Sparkle. A full shelf page starts a squishy parade.
+rare, shimmering Sparkle. A full shelf page starts a squishy parade: the
+first time an area has all 20 friends, they march across its map,
+hopping, while hearts drift down (once per area).
+
+Each friend also sends a letter (the mailbox) with a gift, and each
+area's house keeps its 20 gifts on the wall shelves.
 
 Every container holds a friend the child does not have yet: no duplicates,
 ever. Each new game shuffles the order, with a lean that makes the Sparkles
@@ -93,6 +99,9 @@ Areas are listed in play order (owner decision, step 6).
 | Start | Shelf |
 | L / R | Shelf pages |
 | Select | Nothing (safe) |
+
+Parents: `docs/BRICK.md` has the install steps, settings and hidden
+screens (hardware check, sound test).
 
 Toddler proofing: soft reset combo is off, there is no delete option in play,
 the game saves by itself after each new friend. Starting over is only

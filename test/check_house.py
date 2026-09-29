@@ -51,6 +51,14 @@ for name, (area, n) in FOUND.items():
 meadow = Image.open(os.path.join(OUT, 'h_meadow_room.ppm')).convert('RGB')
 check(count(meadow, ('#f7d3de',), (47, 42, 65, 60)) > 20 and count(meadow, VANILLA, (47, 42, 65, 60)) == 0,
       'a gift not found yet is a silhouette in its shelf\'s tint')
+long = Image.open(os.path.join(OUT, 'h_long_name.ppm')).convert('RGB')   # step 7.4: the widest name
+long.resize((960, 640), Image.NEAREST).save(os.path.join(OUT, 'h_long_name.png'))
+ink = [x for y in range(8, 13) for x in range(50, 190)
+       if all(abs(a - b) <= 4 for a, b in zip(long.getpixel((x, y)), (0x8a, 0x5a, 0x7a)))]
+check('scene house area 1 gifts 1 sel 36' in open(os.path.join(OUT, 'house_long.log')).read() and ink and
+      min(ink) >= 53 and max(ink) <= 186,
+      f'"From Strawberry Shroom" fits inside the pill with room at both ends (text x {ink and min(ink)}..{ink and max(ink)}, '
+      f'pill 48..191)')
 if fails:
     sys.exit(1)
 print('all house checks passed')

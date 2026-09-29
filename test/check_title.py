@@ -70,6 +70,9 @@ shot('t09_new_game_meadow')
 reboot = open(os.path.join(OUT, 'reset_reboot.log')).read()
 check('found=0' in reboot and 'options=1' in reboot, 'after starting over, the save is empty on the next boot')
 
+ver = sum(1 for y in range(146, 158) for x in range(216, 240)            # step 7.5: "v1.0" at the bottom right
+          if all(abs(c - d) <= 4 for c, d in zip(t4.getpixel((x, y))[:3], (0x8a, 0x5a, 0x7a))))
+check(20 <= ver <= 80, f'the version shows small at the bottom right of the title ({ver} ink pixels)')
 if fails:
     sys.exit(1)
 print('all title checks passed')

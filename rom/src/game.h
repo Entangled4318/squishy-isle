@@ -3,6 +3,8 @@
 #define GAME_H
 #include "scene.h"
 
+#define GAME_VERSION "v1.0"               /* shown small on the title; BRICK.md and the release notes match it */
+
 extern int sel_species, sel_flavor;       /* friend shown in the close-up */
 
 extern const Scene scene_shelf;
