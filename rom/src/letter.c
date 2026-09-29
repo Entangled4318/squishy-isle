@@ -14,6 +14,7 @@
 #define T_SQ      0       /* 4 frames x 64 tiles */
 #define T_ENV     256     /* closed, open: 64 tiles each */
 #define T_SMALL   384     /* twinkles, heart */
+#define T_GIFT    388     /* the friend's gift, 16x16, shown twice as big */
 #define P_SQ      0
 #define P_ENV     1
 #define P_SMALL   2
@@ -24,6 +25,8 @@
 #define RISE      76      /* the letter has slid up; the friend pops in */
 #define SQUISHES  3
 #define CARD_LOW  96      /* px below its place where the card starts to rise */
+#define GIFT_X    194     /* the gift's centre on the card (right of the signature) */
+#define GIFT_Y    130
 #define PX        60      /* the portrait's centre on the card */
 #define PY        80
 
@@ -76,6 +79,7 @@ static void enter(void) {
     dma3_copy32(OBJ_TILES + T_ENV * 16, envelope64_tiles, sizeof envelope64_tiles);
     dma3_copy16(PAL_OBJ + P_ENV * 16, envelope64_pal, sizeof envelope64_pal);
     dma3_copy32(OBJ_TILES + T_SMALL * 16, ui_small_tiles, sizeof ui_small_tiles);
+    dma3_copy32(OBJ_TILES + T_GIFT * 16, gift_tiles + sp * 32, 4 * 32);   /* 4 tiles: 32 words a species */
     dma3_copy16(PAL_OBJ + P_SMALL * 16, ui_small_pal, sizeof ui_small_pal);
 
     t = 0;
@@ -146,6 +150,13 @@ static void draw(void) {
         oam[n].attr0 = A0_Y(cy - 64) | A0_AFFINE | A0_DOUBLE | A0_SQUARE;
         oam[n].attr1 = A1_X(PX - 64) | A1_AFF(0) | A1_SIZE(3);
         oam[n].attr2 = A2_TILE(T_SQ + frame * 64) | A2_PRIO(1) | A2_PAL(P_SQ);
+        n++;
+        /* the gift that came with the letter, bottom right of the card, in the friend's colors */
+        int gt = t - RISE, gy = GIFT_Y - (gt < 12 ? (12 - gt) * 2 : 0) + (((frame_count / 30) & 1) ? 1 : 0);
+        affine_scale(1, 512, 512);
+        oam[n].attr0 = A0_Y(gy - 16) | A0_AFFINE | A0_DOUBLE | A0_SQUARE;
+        oam[n].attr1 = A1_X(GIFT_X - 16) | A1_AFF(1) | A1_SIZE(1);
+        oam[n].attr2 = A2_TILE(T_GIFT) | A2_PRIO(1) | A2_PAL(P_SQ);
         n++;
         for (int i = 0; i < 3; i++) {
             if (hearts[i].t == -1000) continue;

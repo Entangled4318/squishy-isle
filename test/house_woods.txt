@@ -1,0 +1,20 @@
+# walk up into the woods house (step 6.9): its room shows the woods gifts
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+walkto 240 90 1500
+hold UP 30
+wait 40
+shot h_woods_room
+tap RIGHT
+tap A
+wait 8
+shot h_woods_hop
+tap DOWN
+tap A
+wait 10
+tap B
+wait 40
+shot h_woods_back

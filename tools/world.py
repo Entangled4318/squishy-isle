@@ -1395,3 +1395,112 @@ def lollipop(kind='pink'):
         '..kkk..',
     ]
     return from_ascii(rows, {'k': C['rf_ink'], 'a': rgb15(a), 'b': rgb15(b), 'w': C['white'], 's': C['wl_dk']})
+
+
+# ------------------------------------------- area houses (step 6.9)
+def _door(img, cx, top, bottom, ramp_, ink):
+    """Arched door with planks and a knob, bottom centre at cx."""
+    parts = [P(Union(Poly([(cx - 5, top + 5), (cx + 5, top + 5), (cx + 5, bottom), (cx - 5, bottom)], 0.3),
+                     Ellipse(cx, top + 5, 5.3, 5.3)), ramp_, z=1, line=ink, bevel=True)]
+    d = shade_parts(img.shape[1], img.shape[0], parts, outline=ink)
+    m = d[..., 3] > 0
+    img[m] = d[m]
+    for y in range(top + 3, bottom):
+        if img[y, cx, 3]:
+            img[y, cx, :3] = ramp_[3]
+    img[top + 9, cx + 3, :3] = C['f_yel_dk']
+    img[top + 8, cx + 3, :3] = C['f_yel']
+
+
+def mushroom_house():
+    """Berry Woods house: a big pink-capped mushroom with white spots, a
+    cream stem wall, a round window and an arched mint door (58x60)."""
+    W, H = 58, 60
+    from squishies import HalfPlane, Clip
+    cap = Union(Clip(Ellipse(29, 30, 28, 27), HalfPlane(0, -1, -30)), Ellipse(29, 29, 28, 4.5))
+    parts = [
+        P(Poly([(12, 29), (46, 29), (48, 58), (10, 58)], 1.0), WALL, z=0, bevel=True),
+        P(cap, ROOF, z=2, line=C['rf_ink'], levels=(0.97, 0.80, 0.42, 0.18)),
+        P(Ellipse(19, 42, 4.6), WIN, z=1, line=C['wl_ink'], bevel=True),
+        P(Ellipse(40, 42, 4.6), WIN, z=1, line=C['wl_ink'], bevel=True),
+    ]
+    img = shade_parts(W, H, parts, outline=C['rf_ink'])
+    for (x, y, r) in ((16, 12, 3.2), (30, 7, 2.6), (42, 14, 3.5), (24, 22, 2.4), (8, 24, 2.0), (50, 25, 2.0),
+                      (36, 22, 1.8)):                          # white spots on the cap
+        for yy in range(int(y - r), int(y + r) + 1):
+            for xx in range(int(x - r), int(x + r) + 1):
+                if (xx - x) ** 2 + (yy - y) ** 2 <= r * r and img[yy, xx, 3] and \
+                        tuple(img[yy, xx, :3]) != C['rf_ink']:
+                    img[yy, xx, :3] = C['white'] if yy < y else C['rf_hi']
+    for cx in (19, 40):
+        for d in range(-3, 4):
+            img[42, cx + d, :3] = C['wl_lt']
+            img[42 + d, cx, :3] = C['wl_lt']
+        img[40, cx - 2, :3] = C['white']
+    _door(img, 29, 42, 58, DOOR, C['wl_ink'])
+    for x in range(12, 47):                                       # grass tufts at the foot
+        if x % 5 == 0 and not (23 < x < 35):
+            img[58, x, :3] = C['mg_dk']
+            img[57, x, :3] = C['mg_dk']
+    return img
+
+
+def beach_hut():
+    """Seashell Shore house: a wooden hut on stilts with a pink and white
+    striped roof, a round window and a mint door (56x56)."""
+    W, H = 56, 56
+    from squishies import HalfPlane, Clip
+    parts = [
+        P(Poly([(7, 24), (49, 24), (49, 50), (7, 50)], 0.5), WOOD, z=0, bevel=True),
+        P(Poly([(2, 26), (28, 4), (54, 26)], 1.5), ROOF, z=2, line=C['rf_ink'], bevel=True),
+        P(Ellipse(16, 36, 4.6), WIN, z=1, line=C['wd_ink'], bevel=True),
+        P(Ellipse(40, 36, 4.6), WIN, z=1, line=C['wd_ink'], bevel=True),
+    ]
+    img = shade_parts(W, H, parts, outline=C['wd_ink'])
+    for y in range(4, 28):                                          # roof stripes, white and pink
+        for x in range(W):
+            if img[y, x, 3] and tuple(img[y, x, :3]) in (C['rf_base'], C['rf_lt'], C['rf_hi']) and ((x - 28) // 5) % 2 == 0:
+                img[y, x, :3] = C['white'] if tuple(img[y, x, :3]) != C['rf_hi'] else C['white']
+    for y in range(26, 50, 4):                                      # planks
+        for x in range(8, 49):
+            if img[y, x, 3] and tuple(img[y, x, :3]) in (C['wd_base'], C['wd_lt']):
+                img[y, x, :3] = C['wd_dk']
+    for cx in (16, 40):
+        for d in range(-3, 4):
+            img[36, cx + d, :3] = C['wd_lt']
+            img[36 + d, cx, :3] = C['wd_lt']
+        img[34, cx - 2, :3] = C['white']
+    _door(img, 28, 34, 50, DOOR, C['wd_ink'])
+    for x in (9, 10, 45, 46):                                       # stilts
+        for y in range(50, 55):
+            img[y, x, :3] = C['wd_dk2'] if x in (10, 46) else C['wd_base']
+            img[y, x, 3] = 255
+    for x in range(8, 48):                                          # step and sand line
+        img[55, x, :3] = C['s_dk2']
+        img[55, x, 3] = 255
+    return img
+
+
+def cloud_cottage():
+    """Cloud Hill house: a round lavender cottage under a puffy cloud roof
+    with a star window and an arched door (58x58)."""
+    W, H = 58, 58
+    lav = ramp('ui_lav', 'ui_lav', 'ui_lav2', 'f_lav_dk', 'f_lav_dk')
+    roofr = [C['cl_hi'], C['cl_hi'], C['cl_base'], C['cl_dk'], C['cl_dk2']]
+    puffs = Union(Ellipse(29, 18, 16, 12), Ellipse(15, 24, 11, 8.5), Ellipse(43, 24, 11, 8.5), Ellipse(8, 30, 7, 5.5),
+                  Ellipse(50, 30, 7, 5.5), Ellipse(29, 30, 26, 6))
+    parts = [
+        P(Mochi(29, 44, 21, 13, nt=2.6, nb=8.0), [C['wl_lt'], C['wl_lt'], C['wl_base'], C['wl_dk'], C['wl_dk']], z=0,
+          k=2.0, line=C['cl_ink']),
+        P(puffs, roofr, z=2, k=5.0, line=C['cl_ink'], levels=(0.9, 0.62, 0.30, 0.12)),
+    ]
+    img = shade_parts(W, H, parts, outline=C['cl_ink'])
+    star = from_ascii(['...k...', '..kyk..', 'kkyyykk', 'kyyyyyk', '.kyyyk.', '.kykyk.', 'kk...kk'],
+                      {'k': C['st_ink'], 'y': C['st_lt']})
+    for (sx, sy) in ((10, 38), (41, 38)):                           # star windows
+        for y in range(star.shape[0]):
+            for x in range(star.shape[1]):
+                if star[y, x, 3]:
+                    img[sy + y, sx + x, :3] = star[y, x, :3]
+    _door(img, 29, 40, 56, lav, C['cl_ink'])
+    return img

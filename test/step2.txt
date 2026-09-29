@@ -1,4 +1,4 @@
-# Step 2: walk the meadow, visit the shelf through the door, open a friend.
+# Step 2: walk the meadow, visit the cottage room through the door, open a friend.
 # title: A skips the intro, A again picks Play / Continue
 wait 20
 tap A
@@ -30,7 +30,7 @@ wait 30
 shot s06_back_in_meadow
 hold UP 40
 wait 30
-shot s07_door_to_shelf
+shot s07_door_to_room
 tap B
 wait 30
 hold DOWN 20

@@ -1096,7 +1096,7 @@ static void update(void) {
             dir = DIR_DOWN;
             pos_dirty = true;                       /* save the spot outside the door */
             save_pos(true);
-            scene_go(&scene_shelf);
+            scene_go(&scene_house);                 /* the room with this area's gifts (owner: not the shelf) */
         }
     }
     for (int i = 0; i < A->nexits && !fading; i++) {          /* walking off the map into the next area */

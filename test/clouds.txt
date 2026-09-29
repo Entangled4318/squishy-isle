@@ -33,7 +33,7 @@ wait 30
 shot c05_shelf_clouds
 tap B
 wait 40
-walkto 372 130 1500
+walkto 394 140 1500
 wait 20
 shot c06a_momo_asleep
 walkto 416 110 900

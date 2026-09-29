@@ -259,11 +259,11 @@ def woods():
         ring.append(('green' if y % 3 else 'autumn', y in (26, 236), -22, y))
     for y in (18, 58, 150, 196, 240):                                # east edge (the trail at 120 stays open)
         ring.append(('autumn' if y in (58, 196) else 'green', y in (18, 196), 440, y))
-    inside = [('autumn', True, 196, 12), ('green', False, 120, 80), ('autumn', False, 340, 56), ('green', False, 56, 100),
+    inside = [('green', False, 120, 80), ('autumn', False, 340, 56), ('green', False, 56, 100),
               ('autumn', False, 150, 216), ('green', True, 60, 40), ('autumn', False, 400, 72),
               ('green', True, 64, 208), ('autumn', False, 200, 226),
               ('autumn', False, 30, 140), ('green', False, 96, 40), ('autumn', True, 150, 30),
-              ('green', False, 290, 36), ('autumn', False, 250, 60), ('green', False, 110, 136)]
+              ('green', False, 290, 36), ('green', False, 110, 136)]
     trees = [(k, b, x // 8 * 8, y // 8 * 8) for k, b, x, y in ring + inside]
     for kind, big, x, y in trees:
         t = tree(kind, big)
@@ -271,6 +271,10 @@ def woods():
     for kind, big, x, y in sorted(trees, key=lambda t: t[3] + tree(t[0], t[1]).shape[0]):
         t = tree(kind, big)
         a.place(t, x, y, block_w=t.shape[1] - 8)
+
+    # ---- the mushroom house at the north end of the path (its door opens the room with the woods gifts)
+    a.place(world.mushroom_house(), 211, 12, block_w=40, tall=18)
+    a.doors.append((232, 60, 16, 10, 'home'))
 
     # ---- props: berry bushes, stumps, fallen logs
     for kind, x, y in (('red', 88, 116), ('blue', 176, 100), ('red', 262, 214), ('blue', 110, 188),
@@ -345,7 +349,9 @@ def shore():
     for x, y in ((40, 22), (330, 34)):
         a.decor(world.sailboat(), x, y)
 
-    # ---- objects
+    # ---- objects; the beach hut up the beach (its door opens the room with the shore gifts)
+    a.place(world.beach_hut(), 294, 72, block_w=46, tall=18)
+    a.doors.append((314, 118, 16, 10, 'home'))
     a.place(world.palm(), -6, 100, block_w=10, tall=6)
     a.place(world.palm(flip=True), 396, 78, block_w=10, tall=6)
     a.place(world.palm(), 160, 250, block_w=10, tall=6)
@@ -386,7 +392,7 @@ def shore():
     a.exits.append((468, 136, 12, 28, 3, 24, 204))     # east: on to Cloud Hill
     a.gates.append((450, 136, 28, 28, 3))              # Momo sleeps here until Cloud Hill opens
     a.spawn = (24, 200)
-    a.spots = [(70, 176), (120, 110), (220, 176), (300, 110), (380, 150), (60, 120), (250, 240),
+    a.spots = [(70, 176), (120, 110), (220, 176), (262, 150), (380, 150), (60, 120), (250, 240),
                (160, 214), (200, 300), (300, 300), (420, 296), (100, 240)]
     a.first_spot = 0                                   # in view of the arrival on the boardwalk
     return a
@@ -447,11 +453,15 @@ def clouds():
     for kind, x, y in (('pink', 190, 148), ('blue', 150, 190), ('mint', 110, 290), ('pink', 380, 96),
                        ('mint', 408, 206), ('blue', 238, 214), ('pink', 396, 132)):
         a.decor(world.lollipop(kind), x, y)
-    trees = [('pink', 96, 116), ('blue', 150, 100), ('blue', 330, 100), ('blue', 112, 196), ('pink', 176, 232),
+    trees = [('blue', 164, 96), ('blue', 330, 100), ('blue', 112, 196), ('pink', 176, 232),
              ('blue', 36, 250), ('pink', 104, 250), ('blue', 256, 240)]
     trees = [(k, x // 8 * 8, y // 8 * 8) for k, x, y in trees]
     for kind, x, y in trees:
         a.decor(world.tree_shadow(26, C['cl_dk']), x + 3, y + 38)
+
+    # ---- the cloud cottage (its door opens the room with the Cloud Hill gifts)
+    a.place(world.cloud_cottage(), 92, 100, block_w=42, tall=16)
+    a.doors.append((113, 148, 16, 10, 'home'))
 
     # ---- the capsule machine under the rainbow, candy trees
     g = world.gacha()

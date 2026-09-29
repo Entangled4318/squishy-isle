@@ -22,7 +22,7 @@ check('shelf page=1' in log, 'R turns to the Berry Woods page (play order)')
 check('scene closeup Matcha Fox' in log, 'A opens the chosen friend (Matcha Fox)')
 check('closeup squish' in log, 'A squishes in the close-up')
 check(log.count('scene meadow') >= 2, 'B returns to the meadow')
-check('door 0' in log, 'walking up into the cottage door opens the shelf')
+check('door 0' in log and 'scene house area 0' in log, 'walking up into the cottage door opens its room (owner: not the shelf)')
 last = re.findall(r'meadow start pip=(\d+),(\d+)', log)[-1]
 check(int(last[0]) > 330 and 128 <= int(last[1]) <= 140,
       f'pond blocks Pip walking up (stopped at {last[0]},{last[1]})')
