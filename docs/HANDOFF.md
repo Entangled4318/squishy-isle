@@ -37,7 +37,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
 | 7. QA and final ROM with Brick instructions | Done (v1.1 after the 7.6 fixes); see "Step 7 progress" and `docs/BRICK.md` |
-| 8. Brick test feedback | In progress (v1.2): 8.1 art fixes and 8.2 letter queue done; see "Step 8 progress" |
+| 8. Brick test feedback | In progress (v1.2): 8.1 art fixes, 8.2 letter queue, 8.3 followers in every area done; see "Step 8 progress" |
 
 ## Owner notes
 
@@ -992,15 +992,30 @@ First Brick test (owner, v1.1): Quit / Continue works. Feedback, and the plan:
    house starts on its gift). Tests: `test_collection.c` (order, flag, re-read,
    full queue, new game), `mail_queue.txt` in `check_mail.py`, `mash.py`
    checks the queue in every save.
-3. Followers keep following into other areas (owner request). Needs 3
-   free OBJ palettes on the map for friends from other areas: box
-   palettes per box slot (3 in use at most, frees 2) and the A bubble and
-   arrow in one palette (frees 1). Waiting on the owner's answer for the
-   line rules.
+3. Followers keep following into other areas (owner request). **Done.**
+   Owner rule: one line of 3 for every area; a new friend joins only while
+   the line has room (as before); the heart sign in any area swaps
+   friends in (the oldest drops off) and marks that page's followers. Save:
+   `followers` is the one line (any area); `lines` is read once at boot
+   (`lines_merge`: the line of the area Pip is in, else the meadow's) and
+   zeroed. Map sprites: a follower from another area loads its 16 px
+   frames at `T_FOLLOW` (296 + k * 8) and its flavor palette into a free
+   OBJ slot (`follow_slot` 5, 6, 9). Freed by: box palettes per box slot
+   (`P_BOX` + slot, loaded by `box_pal`; at most 3 boxes, was 5 color
+   palettes) and the A bubble and arrow in one palette (`P_ARROW` =
+   `P_ABTN`, one `palette_and_lookup` in `export_game.py`). Momo's
+   helpers are friends of that area only (pen first, then its
+   followers). Tests: `test_collection.c` (one line, remove, sign add,
+   old-save merge), `check_woods.py` (the meadow followers come into the
+   woods, the new woods friend goes to its pen; a memory dump shows the
+   meadow flavor palettes in slots 5, 6, 9 and follower sprites using
+   them), `mash.py` (the line may hold any found friend; no old lines
+   left). Screenshot `docs/step8_3_followers.png` (woods, shore, Cloud
+   Hill, gate scene in the full loop).
 4. Cloud Hill: Momo on its bed and the capsule machine are the ending and
    scenery; owner asked what they do. Ideas to ask about after 3.
 
-Version "v1.2" (still 4 characters, title at f2). 458 checks pass.
+Version "v1.2" (still 4 characters, title at f2). 462 checks pass.
 
 ## What step 3 should do (as promised to the owner)
 
@@ -1135,8 +1150,8 @@ memory dump. Checks read the log, pixels and audio pitch.
   (~7 s, buttons resting) as the map shows. `make_save.py` sets the bit
   for full areas by default; scripts that fill a page for real must wait
   it out (see `loop_c.txt`).
-- `make_save.py` puts FOLLOWER_IDS in the meadow's line whatever their
-  area; use meadow ids (0..19) unless the test never visits the meadow.
+- `make_save.py` puts FOLLOWER_IDS in the one follower line (step 8.3:
+  it walks with Pip in every area; before, each area had its own).
 - Squishies share one palette slot layout per area (`ROM_MODE` render:
   two-shade accents, tongue uses the blush color), so 5 palettes cover a
   whole shelf page. The Sparkle flavor's glints are separate twinkle

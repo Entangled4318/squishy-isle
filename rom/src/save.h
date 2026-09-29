@@ -22,12 +22,12 @@ typedef struct {
     u8 found[NUM_FRIENDS];
     u32 opens;                /* containers opened, all areas */
     u32 rng;                  /* roll state, kept so every boot rolls differently */
-    u8 followers[MAX_FOLLOWERS];  /* friend id + 1, 0 = empty; [0] walks nearest Pip */
+    u8 followers[MAX_FOLLOWERS];  /* friend id + 1 (any area, 8.3), 0 = empty; [0] walks nearest Pip */
     u8 pad;
     u16 pip_x, pip_y;         /* position (feet) in `area` for Continue; 0,0 = the area's start */
     u8 area;                  /* area Pip is in: 0 meadow, 1 woods, 2 shore, 3 cloud hill */
     u8 gates;                 /* bit n set: the way into area n + 1 is built (its scene has played) */
-    u8 lines[3][MAX_FOLLOWERS];   /* follower lines of areas 1..3 (the meadow's is `followers`) */
+    u8 lines[3][MAX_FOLLOWERS];   /* before 8.3: follower lines of areas 1..3; merged into `followers` at boot, then 0 */
     u8 mail;                  /* newest friend id + 1: the letter in the mailbox (0 = none yet) */
     u8 mail_new;              /* 1: not read yet, the mailbox flag is up */
     u8 parades;               /* bit n: area n's full-page parade has played */

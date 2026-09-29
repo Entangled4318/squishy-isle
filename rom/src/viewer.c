@@ -21,12 +21,13 @@
 #define T_ABTN    74       /* 16x32 */
 #define T_ARROW   82       /* right, up, upright: 16x16 each */
 #define T_SQ16    94       /* the area's 4 species x (idle, squish) x 4 tiles */
+#define T_FOLLOW  296      /* followers from other areas (8.3): 3 x (idle, squish) x 4 tiles, up to T_PARADE */
 #define P_PIP     0
 #define P_SHADOW  1
-#define P_BOX     2        /* 2..6 */
+#define P_BOX     2        /* 2..4: a palette per box slot, loaded with that box's color (8.3; was one per color) */
 #define P_SPARK   7
-#define P_ABTN    8
-#define P_ARROW   9
+#define P_ABTN    8        /* the A bubble and the arrow share it (8.3) */
+#define P_ARROW   P_ABTN
 #define T_COUNT   128      /* found counter: pill with icon (two 32x16), then text 32x16 */
 #define T_COUNT_TXT (T_COUNT + 16)
 #define T_NPC     160      /* Momo: asleep, awake (32x32 each), two z's; palette P_SHADOW */
@@ -111,6 +112,10 @@ typedef struct {
 
 static Roamer pen[MAX_PEN];
 static int n_pen, n_follow, follow_id[MAX_FOLLOWERS];
+/* One line walks with Pip in every area (8.3). A follower from another area
+ * brings its own tiles (T_FOLLOW) and flavor palette into a free slot. */
+static int follow_tile[MAX_FOLLOWERS], follow_pal[MAX_FOLLOWERS];
+static const u8 follow_slot[MAX_FOLLOWERS] = {5, 6, 9};
 static s16 trail_x[TRAIL], trail_y[TRAIL];
 static int trail_i;
 static u32 pen_seed = 12345;
@@ -181,8 +186,19 @@ static void friends_setup(void) {
     pen_seed ^= frame_count;
     n_follow = 0;
     for (int i = 0; i < MAX_FOLLOWERS; i++) {
-        int id = follower_get(A->area, i);
-        if (id >= 0 && friend_found(id)) follow_id[n_follow++] = id;
+        int id = follower_get(i);
+        if (id < 0 || !friend_found(id)) continue;
+        int k = n_follow++;
+        follow_id[k] = id;
+        if (friend_area(id) == A->area) {        /* this area's tiles and palettes are loaded */
+            follow_tile[k] = T_SQ16 + (friend_species(id) - A->area * 4) * 8;
+            follow_pal[k] = P_SQ + friend_flavor(id);
+        } else {                                 /* from another area: its own tiles and flavor palette */
+            sq_load_frames(friend_species(id), 16, 0, 2, T_FOLLOW + k * 8);
+            dma3_copy16(PAL_OBJ + follow_slot[k] * 16, sq_palette(friend_species(id), friend_flavor(id)), 32);
+            follow_tile[k] = T_FOLLOW + k * 8;
+            follow_pal[k] = follow_slot[k];
+        }
     }
     n_pen = 0;
     for (int id = first; id < first + 20; id++) {
@@ -303,12 +319,17 @@ static int choose_spot(void) {
     return best;
 }
 
+static void box_pal(int i) {        /* box slot i's palette: its color, in this area's container */
+    dma3_copy16(PAL_OBJ + (P_BOX + i) * 16, cont16_pal + (A->area * 5 + boxes[i].color) * 16, 32);
+}
+
 static void place_box(int i) {
     int s = choose_spot();
     if (s < 0) return;
     int c = (int)(game_rand() % BOX_COLORS);
     for (int k = 0; k < BOX_COLORS && color_used(c); k++) c = (c + 1) % BOX_COLORS;
     boxes[i] = (Box){(s8)s, (u8)c, 0, (u16)(game_rand() & 255)};
+    box_pal(i);
     dbg("box %d at %d,%d color %d", i, spot_x(s), spot_y(s), c);
 }
 
@@ -381,7 +402,8 @@ static void gate_scene_start(int i) {
     gs.gate = i;
     gs.n = 0;
     for (int k = 0; k < n_pen && gs.n < 3; k++) gs.ids[gs.n++] = pen[k].id;       /* pen friends first */
-    for (int k = 0; k < n_follow && gs.n < 3; k++) gs.ids[gs.n++] = follow_id[k];
+    for (int k = 0; k < n_follow && gs.n < 3; k++)                               /* then followers of this area */
+        if (friend_area(follow_id[k]) == A->area) gs.ids[gs.n++] = follow_id[k];
     dbg("gate scene %d start helpers=%d", A->gates[i * 5 + 4], gs.n);
 }
 
@@ -465,7 +487,6 @@ static void enter(void) {
     dma3_copy32(OBJ_TILES + T_SHADOW * 16, shadow16_tiles, sizeof shadow16_tiles);
     dma3_copy16(PAL_OBJ + P_SHADOW * 16, shadow16_pal, sizeof shadow16_pal);
     dma3_copy32(OBJ_TILES + T_BOX * 16, cont16_tiles + A->area * 32, 4 * 32);
-    dma3_copy16(PAL_OBJ + P_BOX * 16, cont16_pal + A->area * 5 * 16, 5 * 32);
     dma3_copy32(OBJ_TILES + T_NPC * 16, npc_tiles, sizeof npc_tiles);
     dma3_copy32(OBJ_TILES + T_SPARK * 16, ui_small_tiles, sizeof ui_small_tiles);
     dma3_copy32(OBJ_TILES + T_EXTRA * 16, ui_extra_tiles, sizeof ui_extra_tiles);
@@ -473,7 +494,6 @@ static void enter(void) {
     dma3_copy32(OBJ_TILES + T_ABTN * 16, abubble_tiles, sizeof abubble_tiles);
     dma3_copy16(PAL_OBJ + P_ABTN * 16, abubble_pal, sizeof abubble_pal);
     dma3_copy32(OBJ_TILES + T_ARROW * 16, arrow_tiles, sizeof arrow_tiles);
-    dma3_copy16(PAL_OBJ + P_ARROW * 16, arrow_pal, sizeof arrow_pal);
 
     char buf[8];             /* found counter, top right: area icon and "7/20" */
     int n = found_in_area(A->area), k = 0;
@@ -503,6 +523,8 @@ static void enter(void) {
         boxes_ready = true;
     }
     boxes_fill();
+    for (int i = 0; i < MAX_BOXES; i++)
+        if (boxes[i].spot >= 0) box_pal(i);
     friends_setup();
     if (parade_due())                          /* the page just filled: its friends at 32 px for the parade */
         for (int sp = 0; sp < 4; sp++) sq_load_frames(A->area * 4 + sp, 32, 0, 2, T_PARADE + sp * 32);
@@ -726,13 +748,16 @@ static void draw_pip(void) {
     world_spr(py - 1, sx - 8, sy - 5, A0_WIDE | A0_BLEND, 0, 0, T_SHADOW, P_SHADOW);
 }
 
-/* one friend: 16 px sprite standing on (x, y), with a small shadow */
-static void draw_friend(int id, int x, int y, int hop) {
+/* one friend: 16 px sprite (tile, palette) standing on (x, y), with a small shadow */
+static void draw_sq(int tile, int pal, int x, int y, int hop) {
     int sx = x - cam_x, sy = y - cam_y;
     if (!on_screen(sx - 8, sy - 16, 16, 18)) return;
-    int sp = friend_species(id) - A->area * 4;          /* the area's 4 species are loaded */
-    world_spr(y, sx - 8, sy - 15 - hop, A0_SQUARE, 1, 0, T_SQ16 + sp * 8, P_SQ + friend_flavor(id));
+    world_spr(y, sx - 8, sy - 15 - hop, A0_SQUARE, 1, 0, tile, pal);
     world_spr(y - 1, sx - 8, sy - 5, A0_WIDE | A0_BLEND, 0, 0, T_SHADOW, P_SHADOW);
+}
+
+static void draw_friend(int id, int x, int y, int hop) {   /* a friend of this area (its 4 species are loaded) */
+    draw_sq(T_SQ16 + (friend_species(id) - A->area * 4) * 8, P_SQ + friend_flavor(id), x, y, hop);
 }
 
 static int hop_of(int step) {             /* little hops while walking */
@@ -758,7 +783,7 @@ static void draw_friends(void) {
     for (int k = 0; k < n_follow; k++) {
         int x, y, hop;
         follower_pos(k, &x, &y, &hop);
-        if (!helping(follow_id[k])) draw_friend(follow_id[k], x, y, hop);
+        if (!helping(follow_id[k])) draw_sq(follow_tile[k], follow_pal[k], x, y, hop);
     }
 }
 
@@ -772,7 +797,7 @@ static void draw_boxes(void) {
         /* a small hop every few seconds, staggered per box */
         int t = (int)((frame_count + b->phase) % 160);
         int hop = t < 16 ? isin(t * 2) * 3 / 256 : 0;
-        world_spr(by, sx - 8, sy - 15 - hop, A0_SQUARE, 1, 0, T_BOX, P_BOX + b->color);
+        world_spr(by, sx - 8, sy - 15 - hop, A0_SQUARE, 1, 0, T_BOX, P_BOX + i);
         world_spr(by - 1, sx - 8, sy - 5, A0_WIDE | A0_BLEND, 0, 0, T_SHADOW, P_SHADOW);
         /* one twinkle walks around the box: small, medium, big, medium. Gold
          * with a tan outline (8.1: the pale 8 px ones vanished on sand and cloud) */

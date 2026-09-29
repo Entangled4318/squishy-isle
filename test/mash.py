@@ -98,12 +98,13 @@ def save_problems(s):
     if s['area'] > 3 or (s['area'] > 0 and in_area[s['area'] - 1] < 10): p.append(f"in area {s['area']}, not open")
     for a in (1, 2, 3):
         if s['gates'] & (1 << (a - 1)) and in_area[a - 1] < 10: p.append(f'gate {a} built but not open')
-    for a, line in enumerate([s['followers']] + s['lines']):
-        ids = [v - 1 for v in line if v]
-        if line != [v for v in line if v] + [0] * (3 - len(ids)): p.append(f'line {a} has a gap {line}')
-        if len(set(ids)) != len(ids): p.append(f'line {a} has a friend twice {line}')
-        for i in ids:
-            if not (a * 20 <= i < a * 20 + 20) or not f[i]: p.append(f'line {a} holds friend {i} (not found here)')
+    line = s['followers']                                   # step 8.3: one line for all areas
+    ids = [v - 1 for v in line if v]
+    if line != [v for v in line if v] + [0] * (3 - len(ids)): p.append(f'the line has a gap {line}')
+    if len(set(ids)) != len(ids): p.append(f'the line has a friend twice {line}')
+    for i in ids:
+        if not (0 <= i < 80) or not f[i]: p.append(f'the line holds friend {i} (not found)')
+    if any(v for l in s['lines'] for v in l): p.append(f"old per-area lines left over {s['lines']}")
     if s['mail'] and not f[s['mail'] - 1]: p.append(f"mail from friend {s['mail'] - 1}, not found")
     if s['mail_new'] not in (0, 1) or (s['mail_new'] and not s['mail']): p.append('mail flag without a letter')
     q = [v - 1 for v in s['letters'] if v]                  # step 8.2: the letter queue
