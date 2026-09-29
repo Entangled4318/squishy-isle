@@ -1063,6 +1063,10 @@ memory dump. Checks read the log, pixels and audio pitch.
   Keep big buffers shared, and check `boot_only.txt` still shows
   "scene title" at f2. Boot sits right at the edge: two more characters
   in `GAME_VERSION` ("v1.0.1") made it f3 (step 7.6); keep it 4 characters.
+- `rom/Makefile` generator rules use grouped targets (`&:`, GNU Make 4.3,
+  Ubuntu 24.04 has it): with plain two-target rules, `make -j` ran each
+  asset script twice at once, both writing the same files (external
+  review, after step 7.6). The Makefile stops with an error on older make.
 - `walkto` and `goto` goals must be walkable feet positions. A goal in a
   wall builds no distance field and the harness walks straight at it,
   which works only from some starting spots (step 7.6).

@@ -24,21 +24,29 @@ GEN     := hw_assets font_data game_assets music_data
 OBJS    := $(BUILD)/crt0.o $(SRCS:src/%.c=$(BUILD)/%.o) $(GEN:%=$(BUILD)/%.o)
 ART     := $(wildcard $(TOOLS)/*.py)
 
+ifeq ($(filter grouped-target,$(.FEATURES)),)
+$(error GNU Make 4.3 or newer is needed (grouped targets, &:))
+endif
+
 all: $(BUILD)/$(NAME).gba
 
-$(BUILD)/hw_assets.c $(BUILD)/hw_assets.h: $(ART)
+# Each generator writes its .c and .h in one run. "&:" (grouped targets)
+# tells make so: with a plain rule, make -j ran every generator twice at
+# the same time, both writing the same files.
+
+$(BUILD)/hw_assets.c $(BUILD)/hw_assets.h &: $(ART)
 	@mkdir -p $(BUILD)
 	cd $(TOOLS) && $(PYTHON) export_hwcheck.py $(abspath $(BUILD))
 
-$(BUILD)/font_data.c $(BUILD)/font_data.h: $(TOOLS)/font.py $(TOOLS)/export_font.py
+$(BUILD)/font_data.c $(BUILD)/font_data.h &: $(TOOLS)/font.py $(TOOLS)/export_font.py
 	@mkdir -p $(BUILD)
 	cd $(TOOLS) && $(PYTHON) export_font.py $(abspath $(BUILD))
 
-$(BUILD)/game_assets.c $(BUILD)/game_assets.h: $(ART)
+$(BUILD)/game_assets.c $(BUILD)/game_assets.h &: $(ART)
 	@mkdir -p $(BUILD)
 	cd $(TOOLS) && $(PYTHON) export_game.py $(abspath $(BUILD))
 
-$(BUILD)/music_data.c $(BUILD)/music_data.h: $(TOOLS)/music.py
+$(BUILD)/music_data.c $(BUILD)/music_data.h &: $(TOOLS)/music.py
 	@mkdir -p $(BUILD)
 	cd $(TOOLS) && $(PYTHON) music.py $(abspath $(BUILD))
 
