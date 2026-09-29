@@ -31,9 +31,9 @@
 #define T_COUNT   128      /* found counter: pill with icon (two 32x16), then text 32x16 */
 #define T_COUNT_TXT (T_COUNT + 16)
 #define T_NPC     160      /* Momo: asleep, awake (32x32 each), two z's; palette P_SHADOW */
-#define T_NPC_TXT 232      /* "7/10" in Momo's bubble, 32x16 (after Momo's 66 tiles) */
 #define T_EXTRA   240      /* snacks, envelope, flag up / down, map twinkles (16x16 each, 56 tiles), palette P_SPARK */
 #define T_PARADE  320      /* parade: the area's 4 species x (idle, open) at 32 px, 16 tiles each */
+#define T_METER   448      /* Momo's heart meter (8.4): bubble, tail, filled heart (METER_TILES) */
 #define P_SQ      10       /* 10..14: the area's 5 flavor palettes */
 #define P_COUNT   15
 
@@ -75,9 +75,10 @@ static int seek_t;                 /* frames since the last open */
 static int arrow_box = -1;         /* box the arrow points at, -1 = none */
 static int arrow_t;                /* frames since the arrow showed, for the blink */
 static int touch_box = -1;
-EWRAM_BSS static TextStrip st_count, st_npc;   /* rendered into OBJ tiles: the meadow has no free BG palette */
+EWRAM_BSS static TextStrip st_count;   /* rendered into OBJ tiles: the meadow has no free BG palette */
 static u8 count_last[AREA_COUNT], count_seen;   /* per area: the count last shown, and a bit once shown */
 static int count_hop;               /* the counter hops when a new friend is counted in this area */
+static bool meter_on;              /* Momo's heart meter drawn this frame: the counter pill hides (8.4) */
 static bool at_sign;               /* Pip stands by the pen sign: A opens the picker */
 static bool at_mail, at_basket;    /* by the mailbox (A reads the letter) or the picnic basket (A: snack time) */
 static bool pos_restored;          /* the saved position is used once, on the first visit after boot */
@@ -507,13 +508,7 @@ static void enter(void) {
     dma3_copy16(PAL_OBJ + P_COUNT * 16, count_pill_pal + A->area * 16, 32);
     st_count.tw = 4; st_count.th = 2; st_count.cbb = 4; st_count.first_tile = T_COUNT_TXT;
     strip_print(&st_count, buf, 1, 4, 1, 0);        /* centred after the icon */
-    k = 0;                   /* Momo's bubble: friends found here out of the GATE_NEED that wake Momo */
-    int need = n < GATE_NEED ? n : GATE_NEED;
-    if (need >= 10) buf[k++] = (char)('0' + need / 10);
-    buf[k++] = (char)('0' + need % 10);
-    buf[k++] = '/'; buf[k++] = (char)('0' + GATE_NEED / 10); buf[k++] = (char)('0' + GATE_NEED % 10); buf[k] = 0;
-    st_npc.tw = 4; st_npc.th = 2; st_npc.cbb = 4; st_npc.first_tile = T_NPC_TXT;
-    strip_print(&st_npc, buf, 1, 4, 1, 0);
+    dma3_copy32(OBJ_TILES + T_METER * 16, momo_meter_tiles + A->area * METER_TILES * 8, METER_TILES * 32);   /* Momo's hearts */
 
     door_cool = 30;          /* do not walk straight back in */
     dbg("scene meadow pip=%d,%d area=%d", (int)(pip_x >> 8), (int)(pip_y >> 8), A->area);
@@ -855,7 +850,7 @@ static void draw_arrow(void) {
 }
 
 static void draw_counter(void) {
-    if (!found_in_area(A->area)) return;
+    if (!found_in_area(A->area) || meter_on) return;   /* by Momo the meter shows this area's friends */
     int hop = 0;
     if (count_hop > 0) {                /* two small hops, starting after the fade-in */
         count_hop--;
@@ -884,22 +879,42 @@ static void draw_momo(int x, int y, bool awake, int hop, u16 flip) {
     }
 }
 
-static int npc_near = -1;          /* gate whose Momo Pip stands by (shows the count bubble), -1 = none */
+static int npc_near = -1;          /* gate whose Momo Pip stands by (shows the heart meter), -1 = none */
+static int meter_t;                /* frames since the meter showed: the newest heart hops */
+
+/* Momo's heart meter (8.4, owner pick): a bubble over sleeping Momo with
+ * GATE_NEED (10) hearts, one filled per friend found in this area. No
+ * number to read. The newest filled heart hops twice as the bubble shows. */
+static void draw_meter(int gx, int gy) {
+    int n = found_in_area(A->area);
+    if (n > GATE_NEED) n = GATE_NEED;
+    int bob = isin((int)(frame_count * 2)) * 2 / 256;
+    int x = gx - METER_W / 2 - cam_x, y = gy - 32 - 4 - METER_H - cam_y + bob;   /* over Momo's head, tail between */
+    if (x > SCREEN_W - 2 - METER_W) x = SCREEN_W - 2 - METER_W;   /* Momo sleeps near map edges */
+    if (x < 2) x = 2;
+    for (int k = 0; k < n; k++) {                                   /* filled hearts first: on top of the empty ones */
+        int t = meter_t - 8, hop = 0;
+        if (k == n - 1 && t >= 0 && t < 24) hop = (t % 12) * (12 - t % 12) / 12;
+        hud_spr(x + METER_HX + (k % 5) * METER_DX, y + METER_HY + (k / 5) * METER_DY - hop, A0_SQUARE, 1, 0,
+                T_METER + METER_HEART, P_COUNT);
+    }
+    int tx = gx - 4 - cam_x;                                        /* the tail points down at Momo */
+    if (tx < x + 4) tx = x + 4;
+    if (tx > x + METER_W - 12) tx = x + METER_W - 12;
+    hud_spr(tx, y + METER_H - 1, A0_SQUARE, 0, 0, T_METER + METER_TAIL, P_COUNT);
+    hud_spr(x, y, A0_WIDE, 3, 0, T_METER, P_COUNT);
+}
 
 static void draw_gates(void) {
+    meter_on = false;
     for (int i = 0; i < A->ngates; i++) {
         const u16 *g = &A->gates[i * 5];
         if (!gate_there(g[4]) || (gs.t >= 0 && gs.gate == i)) continue;
         int gx = g[0] + g[2] / 2, gy = g[1] + g[3];
         draw_momo(gx, gy, npc_near == i, 0, 0);
-        if (npc_near == i && gate_shut(g[4])) {                          /* bubble: the area's icon and "7/10" */
-            int bob = isin((int)(frame_count * 2)) * 2 / 256;
-            int x = gx - COUNT_PILL_W / 2 - cam_x, y = gy - 58 - cam_y + bob;
-            if (x > SCREEN_W - 2 - COUNT_PILL_W) x = SCREEN_W - 2 - COUNT_PILL_W;   /* Momo sleeps near map edges */
-            if (x < 2) x = 2;
-            hud_spr(x + COUNT_TEXT_X, y + 1, A0_WIDE, 2, 0, T_NPC_TXT, P_COUNT);
-            hud_spr(x, y, A0_WIDE, 2, 0, T_COUNT, P_COUNT);
-            hud_spr(x + 32, y, A0_WIDE, 2, 0, T_COUNT + 8, P_COUNT);
+        if (npc_near == i && gate_shut(g[4])) {                          /* hearts: friends found out of 10 */
+            draw_meter(gx, gy);
+            meter_on = true;
         }
     }
 }
@@ -948,6 +963,8 @@ static void update_npc(void) {
         int dx = px - (g[0] + g[2] / 2), dy = py - (g[1] + g[3] - 8);
         if (gate_there(g[4]) && dx * dx + dy * dy < 34 * 34) npc_near = i;
     }
+    if (npc_near != was) meter_t = 0;
+    else meter_t++;
     if (npc_near >= 0 && npc_near != was) {
         sfx_blip();                                                      /* "hm?": Momo opens one eye */
         dbg("npc near %d found %d", npc_near, found_in_area(A->area));

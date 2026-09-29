@@ -77,6 +77,13 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	./$(HARNESS) $(ROM) $(OUT)/gate.sav gate.txt $(OUT) > $(OUT)/gate.log
 	./$(HARNESS) $(ROM) $(OUT)/gate.sav gate_again.txt $(OUT) > $(OUT)/gate_again.log
 	python3 check_woods.py $(OUT)
+	python3 make_save.py $(OUT)/meter_meadow.sav 0,1,2,3,4,5,6 ""
+	./$(HARNESS) $(ROM) $(OUT)/meter_meadow.sav meter_meadow.txt $(OUT) > $(OUT)/meter_meadow.log
+	python3 make_save.py $(OUT)/meter_woods.sav $$(seq -s, 0 9),20,21,22 "" - 1
+	./$(HARNESS) $(ROM) $(OUT)/meter_woods.sav meter_woods.txt $(OUT) > $(OUT)/meter_woods.log
+	python3 make_save.py $(OUT)/meter_shore.sav $$(seq -s, 0 9),$$(seq -s, 20 29),$$(seq -s, 40 48) "" - 2
+	./$(HARNESS) $(ROM) $(OUT)/meter_shore.sav meter_shore.txt $(OUT) > $(OUT)/meter_shore.log
+	python3 check_momo.py $(OUT)
 	python3 make_save.py $(OUT)/shore.sav $$(seq -s, 0 9),$$(seq -s, 20 29) 0,1,2 1
 	./$(HARNESS) $(ROM) $(OUT)/shore.sav shore.txt $(OUT) > $(OUT)/shore.log
 	python3 check_shore.py $(OUT)

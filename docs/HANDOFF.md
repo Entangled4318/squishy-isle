@@ -37,7 +37,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
 | 7. QA and final ROM with Brick instructions | Done (v1.1 after the 7.6 fixes); see "Step 7 progress" and `docs/BRICK.md` |
-| 8. Brick test feedback | Done (v1.2): art fixes, letter queue, followers in every area; Brick re-test next; see "Step 8 progress" |
+| 8. Brick test feedback | Done (v1.3): art fixes, letter queue, followers in every area, Momo's heart meter; Brick re-test next; see "Step 8 progress" |
 
 ## Owner notes
 
@@ -1015,6 +1015,26 @@ First Brick test (owner, v1.1): Quit / Continue works. Feedback, and the plan:
 4. Cloud Hill: Momo on its bed and the capsule machine are the ending and
    scenery. Offered A actions for both (a capsule with a found friend, a
    hug from Momo); owner: keep them as scenery. No change.
+5. Momo's heart meter (owner: a different indicator than "7/10"; ideas
+   A..E, mockups of A and B in chat; owner picked A). **Done.** While Pip
+   stands by a sleeping Momo (the old bubble's zone), a bubble with 10
+   hearts floats over it: one filled per friend found in the area (10
+   wake Momo), the newest hops twice as it shows. Art in `export_game.py`
+   (`momo_meter_tiles`, per area, in the counter pill's palette: body
+   64x32 = a 57x28 box, `props.pill(..., r=5)`, with 10 empty hearts; a tail
+   tile; a 16x16 filled `HEART_BIG` drawn over each empty one; `METER_*`
+   defines). `viewer.c draw_meter()`, `T_METER` 448 (37 tiles; the map
+   used up to 448). The "7/10" text strip is gone (2 KB less EWRAM BSS;
+   the title still shows at f2). The counter pill hides while the meter
+   shows (from spots below Momo the bubble reaches it). Owner: the acorn
+   sign by the meadow bridge moves so the bubble does not cover it; one
+   tile west still hid 3 px, so it moved 16 px (x 398). `areas.Area.signs`
+   records every signpost (`place(sign=True)`); `check_map.py` checks, for
+   every walkable spot where Pip wakes each Momo, that the bubble clears
+   all signs and stays on screen. Tests: `meter_meadow/woods/shore.txt`,
+   `check_momo.py` (7, 3, 9 filled hearts from a memory dump of OAM, the
+   pill hidden). Screenshot `docs/step8_4_momo_meter.png`. Score 8.5.
+   Version "v1.3". 474 checks pass.
 
 Version "v1.2" (still 4 characters, title at f2). 462 checks pass.
 

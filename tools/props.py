@@ -318,14 +318,16 @@ def a_button(pressed=False):
 
 
 # ---------------------------------------------------------------- pills
-def pill(w, h, fill, edge, ink, light=None):
-    """Rounded pill panel with a soft bevel."""
+def pill(w, h, fill, edge, ink, light=None, r=None):
+    """Rounded pill panel with a soft bevel. r: corner radius (default h / 2,
+    fully round ends; smaller makes a rounded box, e.g. Momo's heart meter)."""
     img = new(w, h)
-    r = h / 2
+    r = h / 2 if r is None else r
     for y in range(h):
         for x in range(w):
             cx = min(max(x + 0.5, r), w - r)
-            if (x + 0.5 - cx) ** 2 + (y + 0.5 - r) ** 2 <= (r - 0.2) ** 2:
+            cy = min(max(y + 0.5, r), h - r)
+            if (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= (r - 0.2) ** 2:
                 img[y, x, :3] = fill
                 img[y, x, 3] = 255
     m = img[..., 3] > 0
