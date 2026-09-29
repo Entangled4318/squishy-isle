@@ -953,6 +953,13 @@ and text pass, 7.5 final release with `docs/BRICK.md`.
    soak (seeds 31..38) and the 4 shuffles pass on the fixed ROM. Scores:
    jingle resume 8.5 (was 6), Continue spot 8.5 (was 7), counter 8.5
    (was 7.5), gate scene 8.5 (was 7.5).
+   README (owner request): rewritten for v1.1 with a section per feature
+   (controls, areas, explore, open and meet, friends, Momo, mailbox /
+   snack / houses, parade, grown-ups, music, status, testing, build,
+   layout). Its screenshot sheets are in `docs/readme/` (2x, from the
+   suite's `test/build/out` shots plus pen views made with `goto sign`
+   on an all-80 save and the sound test); rebuild them the same way after
+   visual changes.
 
 ## What step 3 should do (as promised to the owner)
 
