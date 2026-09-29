@@ -92,6 +92,13 @@ def reachable_spots(area):
     for (dx0, dy0, dw, dh, _) in area.doors:        # the door zone (viewer.c: up to 12 px below the door)
         if not any(seen[y, x] for y in range(dy0, min(H, dy0 + dh + 12)) for x in range(dx0, dx0 + dw)):
             bad.append(('door', dx0, dy0))
+    # an exit needs room: Pip moves 1.25 px a frame, so a band of only one
+    # or two reachable feet columns can be stepped over (step 7: the woods and
+    # shore west exits were 6 px wide, one column past the edge Pip stops at)
+    for (ex, ey, ew, eh, to, ax, ay) in area.exits:
+        cols = {x for y in range(ey, min(H, ey + eh)) for x in range(ex, min(W, ex + ew)) if seen[y, x]}
+        if len(cols) < 4:
+            bad.append(('exit', ex, ey, len(cols)))
     for (bx, by) in area.spots:
         on_ground = all(not sol(x, y) for x in (bx - 6, bx, bx + 6) for y in (by - 5, by))
         touch = any(seen[y, x] and walk(x, y, (bx, by))
@@ -102,11 +109,38 @@ def reachable_spots(area):
     return bad
 
 
+def arrivals_ok(maps):
+    """Each exit's arrival point is walkable in the area it leads to and not
+    inside one of its exits (no ping-pong)."""
+    bad = []
+    for ar in maps:
+        for (ex, ey, ew, eh, to, ax, ay) in ar.exits:
+            dest = maps[to]
+            if not reachable_from(dest, (ax, ay)):
+                bad.append((ar.name, 'to', dest.name, ax, ay))
+            if any(x <= ax < x + w and y <= ay < y + h for (x, y, w, h, *_rest) in dest.exits):
+                bad.append((ar.name, 'lands in an exit of', dest.name, ax, ay))
+    return bad
+
+
+def reachable_from(area, pt):
+    W, H = area.w, area.h
+
+    def sol(x, y):
+        return x < 0 or y < 0 or x >= W or y >= H or area.solid[y // C, x // C]
+    x, y = pt
+    return not (sol(x - FEET_W, y - FEET_H) or sol(x + FEET_W, y - FEET_H) or sol(x - FEET_W, y) or sol(x + FEET_W, y))
+
+
+maps = []
 for build in (areas.meadow, areas.woods, areas.shore, areas.clouds):
     ar = build()
+    maps.append(ar)
     bad = reachable_spots(ar)
-    check(not bad, f'{ar.name}: Pip can reach all {len(ar.spots)} container spots (none off the ground) and '
-                   f'{len(ar.doors)} house door {bad or ""}')
+    check(not bad, f'{ar.name}: Pip can reach all {len(ar.spots)} container spots (none off the ground), '
+                   f'{len(ar.doors)} house door and {len(ar.exits)} exit(s) with room to walk in {bad or ""}')
+bad = arrivals_ok(maps)
+check(not bad, f'every exit lands on walkable ground in the next area, outside its exits {bad or ""}')
 
 img = areas.collision_preview(a)
 Image.fromarray(img[..., :3]).resize((a.w * 2, a.h * 2), Image.NEAREST).save(os.path.join(OUT, 'map_collision.png'))

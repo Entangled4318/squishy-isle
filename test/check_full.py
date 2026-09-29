@@ -49,11 +49,27 @@ want = {'0': '1', '1': '6', '2': '5', '3': '7'}
 check(songs and all(want[a] == s for s, a in songs) and {a for _, a in songs} == set(want),
       'every area plays its own song')
 check('momo home near' in log, 'Momo sleeps in its cloud bed at the end and wakes for Pip')
+for a in range(4):                            # step 7.3: a full page starts a parade, once
+    st = [m.start() for m in re.finditer(rf'parade {a} start', log)]
+    check(len(st) == 1 and st[0] > log.index(f'found {a * 20 + 20}\n') and f'parade {a} done' in log,
+          f'area {a}: the parade plays once, after its 20th friend, and ends')
+check('pip hop' in log, 'B on the map: Pip hops')
 
 b = open(os.path.join(OUT, 'full_b.log')).read()
 check('save: loaded v2 boots=2 found=80 opens=80' in b, 'Continue after power off: all 80 friends are still there')
 check(re.search(r'scene meadow pip=\d+,\d+ area=3', b) is not None and re.search(r'box \d at', b) is None,
       'Continue starts on Cloud Hill, with no containers left anywhere')
+check('parade' not in b, 'no parade again after Continue (each plays once)')
+
+p = open(os.path.join(OUT, 'parade.log')).read()     # parade.txt: Continue on a full meadow page
+enter = re.search(r'\[game f(\d+)\] scene meadow', p)
+start = re.search(r'\[game f(\d+)\] parade 0 start', p)
+done = re.search(r'\[game f(\d+)\] parade 0 done', p)
+check(enter and start and 0 < int(start.group(1)) - int(enter.group(1)) < 20 and done and
+      300 < int(done.group(1)) - int(start.group(1)) < 600,
+      f'a full page not yet celebrated: the parade starts as the map shows and ends in 5 to 10 s '
+      f'({done and start and int(done.group(1)) - int(start.group(1))} frames)')
+check('pip hop' in p[done.start():] if done else False, 'after the parade B makes Pip hop again')
 
 
 def img(name):
@@ -68,7 +84,8 @@ for p in range(4):                            # a full shelf page: no silhouette
                if max(px) - min(px) < 12 and 120 < px[0] < 230)
     check(grey < 400, f'shelf page {p} is full (grey silhouette pixels {grey})')
 for n in ('full_a0_first', 'full_a1_first', 'full_a2_first', 'full_a3_first', 'full_a0_done', 'full_a1_done',
-          'full_a2_done', 'full_a3_done', 'full_momo_home', 'full_pen_clouds', 'full_continue', 'full_no_boxes'):
+          'full_a2_done', 'full_a3_done', 'full_momo_home', 'full_pen_clouds', 'full_continue', 'full_no_boxes',
+          'full_hop', 'parade_1', 'parade_2', 'parade_after'):
     img(n)
 if fails:
     sys.exit(1)

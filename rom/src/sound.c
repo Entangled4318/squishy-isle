@@ -49,21 +49,36 @@ void sound_init(void) {
 /* "squee": quick rise, small fall. Each flavor squeaks a little higher. */
 static const u16 squeak_curve[12] = {620, 760, 900, 1040, 1150, 1220, 1250, 1230, 1180, 1100, 1010, 930};
 
+static const u16 *slide = squeak_curve;    /* the pitch curve squeak_tick follows */
+
 void sfx_squeak(int pitch) {
     squeak_t = 0;
+    slide = squeak_curve;
     squeak_pitch = 256 + (pitch % 5) * 20;     /* 8.8 multiplier */
     REG_SND1SWEEP = 0x0008;                    /* hardware sweep off */
     REG_SND1CNT = DUTY_25 | ENV(13, 2);
     REG_SND1FREQ = RESTART | SQ_RATE((squeak_curve[0] * squeak_pitch) >> 8);
 }
 
+/* "hup": a soft quick rise for Pip's hop (channel 1, so the song's bass keeps playing) */
+static const u16 hop_curve[12] = {330, 370, 415, 466, 523, 587, 622, 659, 0, 0, 0, 0};
+
 static void squeak_tick(void) {
     if (squeak_t < 0) return;
-    if (++squeak_t >= 12) {
+    if (++squeak_t >= 12 || !slide[squeak_t]) {
         squeak_t = -1;
         return;
     }
-    REG_SND1FREQ = SQ_RATE((squeak_curve[squeak_t] * squeak_pitch) >> 8);   /* no restart */
+    REG_SND1FREQ = SQ_RATE((slide[squeak_t] * squeak_pitch) >> 8);   /* no restart */
+}
+
+void sfx_hop(void) {
+    squeak_t = 0;
+    slide = hop_curve;
+    squeak_pitch = 256;
+    REG_SND1SWEEP = 0x0008;
+    REG_SND1CNT = DUTY_50 | ENV(9, 1);         /* fades within the rise: short and soft */
+    REG_SND1FREQ = RESTART | SQ_RATE(hop_curve[0]);
 }
 
 void sfx_chime(int step) {

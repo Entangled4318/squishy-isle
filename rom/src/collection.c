@@ -77,6 +77,7 @@ void collection_new_game(u32 seed) {
     game_save.area = 0;
     game_save.gates = 0;
     game_save.mail = game_save.mail_new = 0;
+    game_save.parades = 0;
     game_save.rng = seed | 1;
     collection_save();
 }

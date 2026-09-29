@@ -10,6 +10,7 @@ extern volatile u32 vbl_count;      /* VBlanks since power-on (IRQ handler) */
 void input_poll(void);
 u16 key_held(void);
 u16 key_hit(void);
+void input_block(bool on);         /* true: key_hit() reports nothing (scene fades) */
 
 /* sprites: edit oam[] and affine[], then oam_commit() right after vblank */
 extern ObjAttr oam[128];

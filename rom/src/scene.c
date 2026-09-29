@@ -91,6 +91,7 @@ void scene_run(const Scene *first) {
                 fade_dir = 0;
             }
         }
+        input_block(fade_dir != 0);   /* a press while the screen is still white would act unseen */
         current->update();
     }
 }

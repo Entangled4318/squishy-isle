@@ -24,11 +24,22 @@
  *                       him to another area (at most N frames).
  *                       Reads positions from game memory; symbol addresses
  *                       come from `arm-none-eabi-nm` on the ROM's .elf.
+ *   goto KIND N         walk to a place in the current area: sign, mail,
+ *                       basket, door (then UP into it), exit, momo (at most N)
+ *   mash SEED N         a toddler plays for N frames: random taps, chords,
+ *                       held directions, A mashing, long idle spells, and
+ *                       now and then a walk to a box or a place. From then
+ *                       on every frame is watched: the game's frame counter
+ *                       must go on, the scene must be a known one and the
+ *                       CPU must run from BIOS, ROM or IWRAM. The summary
+ *                       line "[mash] ..." lists scene visits, the longest
+ *                       stay in each scene and any fault.
  */
 #include <mgba/core/blip_buf.h>
 #include <mgba/core/core.h>
 #include <mgba/core/log.h>
 #include <mgba/gba/core.h>
+#include <mgba/internal/arm/arm.h>
 #include <mgba/internal/gba/gba.h>
 #include <mgba-util/vfs.h>
 
@@ -98,12 +109,16 @@ static void pump_audio(void) {
     }
 }
 
+static void monitor(void);
+static int watching;              /* set by the first mash: every frame is checked */
+
 static void run(unsigned keys, long n) {
     core->setKeys(core, keys);
     for (long i = 0; i < n; i++) {
         core->runFrame(core);
         frame++;
         pump_audio();
+        if (watching) monitor();
     }
 }
 
@@ -153,8 +168,14 @@ static unsigned parse_keys(const char *s) {
 static const char *area_names[4] = {"meadow", "woods", "shore", "clouds"};
 static struct { const char *name; uint32_t addr, size; } syms[] = {
     {"pip_x"}, {"pip_y"}, {"boxes"}, {"touch_box"}, {"current"}, {"pending"}, {"fade_dir"}, {"scene_meadow_view"},
-    {"game_save"}};
-enum { S_PIPX, S_PIPY, S_BOXES, S_TOUCH, S_CUR, S_PEND, S_FADE, S_MEADOW, S_SAVE, S_N };
+    {"game_save"}, {"frame_count"}, {"area_maps"}, {"meadow_doors"}};
+enum { S_PIPX, S_PIPY, S_BOXES, S_TOUCH, S_CUR, S_PEND, S_FADE, S_MEADOW, S_SAVE, S_FRAMES, S_AREAS, S_MDOORS, S_N };
+
+/* scenes the mash watch knows (the pointer in `current` must be one of them) */
+static struct { const char *name; uint32_t addr; long visits, stay_max; } scenes[] = {
+    {"scene_title"}, {"scene_meadow_view"}, {"scene_open"}, {"scene_reveal"}, {"scene_shelf"},
+    {"scene_closeup"}, {"scene_letter"}, {"scene_house"}, {"scene_jukebox"}};
+#define N_SCENES (int)(sizeof scenes / sizeof scenes[0])
 static struct { uint32_t solid, solid_size, spots, doors, gates, gates_size; } area_syms[4];
 static int syms_loaded;
 static const char *rom_path;
@@ -174,6 +195,8 @@ static void load_syms(void) {
         if (sscanf(line, "%x %x %c %127s", &addr, &size, &type, name) != 4) continue;
         for (int i = 0; i < S_N; i++)
             if (!strcmp(name, syms[i].name)) { syms[i].addr = addr; syms[i].size = size; }
+        for (int i = 0; i < N_SCENES; i++)
+            if (!strcmp(name, scenes[i].name)) scenes[i].addr = addr;
         for (int a = 0; a < 4; a++) {
             size_t n = strlen(area_names[a]);
             if (strncmp(name, area_names[a], n) || name[n] != '_') continue;
@@ -361,9 +384,15 @@ static void walkto(int x, int y, long max_frames) {
     goal_x = x;
     goal_y = y;
     build_field();
+    int built_for[3] = {box_x[0], box_x[1], box_x[2]};
     while (f < max_frames) {
         int px = (int32_t)rd32(syms[S_PIPX].addr) >> 8, py = (int32_t)rd32(syms[S_PIPY].addr) >> 8;
         if (!in_meadow()) { printf("[walkto] left the area at %d,%d after %ld frames\n", px, py, f); break; }
+        read_boxes();                          /* a new box on the way: plan around it */
+        if (box_x[0] != built_for[0] || box_x[1] != built_for[1] || box_x[2] != built_for[2]) {
+            build_field();
+            for (int i = 0; i < 3; i++) built_for[i] = box_x[i];
+        }
         if (abs(px - x) <= 1 && abs(py - y) <= 1) { printf("[walkto] at %d,%d after %ld frames\n", px, py, f); break; }
         step_downhill();
         f++;
@@ -372,6 +401,163 @@ static void walkto(int x, int y, long max_frames) {
         printf("[walkto] stopped at %d,%d (goal %d,%d)\n", (int32_t)rd32(syms[S_PIPX].addr) >> 8,
                (int32_t)rd32(syms[S_PIPY].addr) >> 8, x, y);
     goal_x = goal_y = -1;
+}
+
+/* ---- goto: walk to a place of the current area (AreaMap read from ROM) ---- */
+#define AM_SIZE 112                     /* sizeof(AreaMap); checked against known values below */
+enum { AM_W = 34, AM_H = 36, AM_SPAWN_X = 38, AM_SIGN_X = 58, AM_SIGN_Y = 60, AM_DOORS = 76, AM_NDOORS = 80,
+       AM_EXITS = 84, AM_NEXITS = 88, AM_GATES = 92, AM_NGATES = 96, AM_MOMO_X = 98, AM_MOMO_Y = 100,
+       AM_MAIL_X = 102, AM_MAIL_Y = 104, AM_BASKET_X = 106, AM_BASKET_Y = 108 };
+static const char *place_names[] = {"sign", "mail", "basket", "door", "exit", "momo"};
+#define N_PLACES 6
+
+static uint16_t am16(int area, int off) { return core->busRead16(core, syms[S_AREAS].addr + area * AM_SIZE + off); }
+
+static void check_area_layout(void) {
+    static int checked;
+    if (checked) return;
+    load_syms();
+    int ok = syms[S_AREAS].size == 4 * AM_SIZE && am16(0, AM_W) == MAP_W && am16(0, AM_H) == MAP_H &&
+             rd32(syms[S_AREAS].addr + AM_DOORS) == syms[S_MDOORS].addr && am16(0, AM_SPAWN_X) == 232 &&
+             am16(0, AM_MAIL_X) == 276 && am16(0, AM_BASKET_Y) == 243;
+    for (int a = 0; a < 4; a++) ok &= core->busRead8(core, syms[S_AREAS].addr + a * AM_SIZE) == a;
+    if (!ok) { fprintf(stderr, "goto: AreaMap layout changed; update AM_* in harness.c\n"); exit(1); }
+    checked = 1;
+}
+
+/* where to stand for a place; returns 0 when the area has none */
+static int place_goal(int kind, int pick, int *x, int *y) {
+    int a = core->busRead8(core, syms[S_SAVE].addr + SAVE_AREA) & 3;
+    uint32_t base = syms[S_AREAS].addr + a * AM_SIZE;
+    switch (kind) {
+    case 0: *x = am16(a, AM_SIGN_X); *y = am16(a, AM_SIGN_Y) + 14; return *x != 0;
+    case 1: *x = am16(a, AM_MAIL_X); *y = am16(a, AM_MAIL_Y) + 14; return *x != 0;
+    case 2: *x = am16(a, AM_BASKET_X); *y = am16(a, AM_BASKET_Y) + 14; return *x != 0;
+    case 3: {
+        if (!core->busRead8(core, base + AM_NDOORS)) return 0;
+        uint32_t d = rd32(base + AM_DOORS);
+        *x = core->busRead16(core, d) + core->busRead16(core, d + 4) / 2;
+        *y = core->busRead16(core, d + 2) + core->busRead16(core, d + 6) + 18;
+        return 1;
+    }
+    case 4: {
+        int n = core->busRead8(core, base + AM_NEXITS);
+        if (!n) return 0;
+        uint32_t e = rd32(base + AM_EXITS) + (pick % n) * 14;
+        *x = core->busRead16(core, e) + core->busRead16(core, e + 4) / 2;
+        *y = core->busRead16(core, e + 2) + core->busRead16(core, e + 6) / 2;
+        return 1;
+    }
+    default:
+        if (am16(a, AM_MOMO_X)) { *x = am16(a, AM_MOMO_X); *y = am16(a, AM_MOMO_Y) + 20; return 1; }
+        if (!core->busRead8(core, base + AM_NGATES)) return 0;
+        uint32_t g = rd32(base + AM_GATES);
+        *x = core->busRead16(core, g) + core->busRead16(core, g + 4) / 2;
+        *y = core->busRead16(core, g + 2) + core->busRead16(core, g + 6) + 12;
+        return 1;
+    }
+}
+
+static void goto_place(int kind, int pick, long max_frames) {
+    check_area_layout();
+    int x, y;
+    if (!place_goal(kind, pick, &x, &y)) { printf("[goto] no %s here\n", place_names[kind]); return; }
+    printf("[goto] %s at %d,%d\n", place_names[kind], x, y);
+    walkto(x, y, max_frames);
+    if (kind == 3) run(1u << 6, 24);            /* UP into the door */
+}
+
+/* ---- mash: a toddler at the buttons, with every frame watched ---- */
+#define K_A 1u
+#define K_B 2u
+#define K_START 8u
+#define K_DPAD 0xF0u
+static uint32_t mrng = 1;
+static uint32_t mr(void) { mrng ^= mrng << 13; mrng ^= mrng >> 17; mrng ^= mrng << 5; return mrng; }
+
+static uint32_t last_fc;
+static long fc_still, fc_still_max, faults, pc_bad;
+static int cur_scene = -1;
+static long stay;
+
+static void fault(const char *what) {
+    faults++;
+    if (faults <= 20) printf("[mash] FAULT %s at f%ld\n", what, frame);
+}
+
+static void monitor(void) {
+    uint32_t fc = rd32(syms[S_FRAMES].addr);
+    if (fc == last_fc) {
+        if (++fc_still > fc_still_max) fc_still_max = fc_still;
+        if (fc_still == 60) fault("hang: the game's frame counter stopped for 60 frames");
+    } else {
+        fc_still = 0;
+    }
+    last_fc = fc;
+    uint32_t cur = rd32(syms[S_CUR].addr);
+    if (!cur && cur_scene < 0) return;                  /* still booting: no scene yet */
+    int k = -1;
+    for (int i = 0; i < N_SCENES; i++)
+        if (scenes[i].addr && scenes[i].addr == cur) k = i;
+    if (k < 0) {
+        fault("unknown scene pointer");
+    } else if (k != cur_scene) {
+        scenes[k].visits++;
+        cur_scene = k;
+        stay = 0;
+    } else if (++stay > scenes[k].stay_max) {
+        scenes[k].stay_max = stay;
+    }
+    uint32_t pc = (uint32_t)((struct ARMCore *)core->cpu)->gprs[ARM_PC];
+    if (!(pc < 0x4000 || (pc >= 0x08000000 && pc < 0x0A000000) || (pc >= 0x03000000 && pc < 0x03008000))) {
+        if (!pc_bad++) fault("CPU runs outside BIOS, ROM and IWRAM");
+    }
+}
+
+static void mash(uint32_t seed, long n) {
+    static const unsigned taps[] = {K_A, K_A, K_A, K_A, K_B, K_B, K_START, 4u, 1u << 8, 1u << 9, 1u << 4, 1u << 5, 1u << 6, 1u << 7};
+    static const unsigned dirs[] = {1u << 4, 1u << 5, 1u << 6, 1u << 7};
+    check_area_layout();
+    mrng = seed * 2654435761u | 1;
+    if (!watching) { watching = 1; last_fc = rd32(syms[S_FRAMES].addr); }
+    long end = frame + n;
+    while (frame < end) {
+        uint32_t r = mr() % 100;
+        if (r < 25) {                                   /* taps one button */
+            run(taps[mr() % (sizeof taps / sizeof taps[0])], 2 + mr() % 8);
+            run(0, mr() % 12);
+        } else if (r < 45) {                            /* walks, sometimes on a slant, tapping A on the way */
+            unsigned d = dirs[mr() % 4];
+            if (mr() % 4 == 0) d |= dirs[mr() % 4];
+            long len = 10 + mr() % 90;
+            for (long i = 0; i < len; i++) run(d | (mr() % 12 == 0 ? K_A : 0), 1);
+        } else if (r < 55) {                            /* a whole hand on the buttons */
+            run(mr() & 0x3FF, 1 + mr() % 30);
+            run(0, mr() % 10);
+        } else if (r < 67) {                            /* bashes A (or A and B) as fast as it can */
+            unsigned k = mr() % 3 ? K_A : K_A | K_B;
+            long len = 30 + mr() % 120;
+            for (long i = 0; i < len;) {
+                long on = 1 + mr() % 3, off = 1 + mr() % 3;
+                run(k, on);
+                run(0, off);
+                i += on + off;
+            }
+        } else if (r < 75) {                            /* looks away */
+            run(0, 30 + mr() % 400);
+        } else if (r < 80) {                            /* leans on one button */
+            unsigned k = mr() % 3 ? K_A : taps[mr() % (sizeof taps / sizeof taps[0])];
+            run(k, 120 + mr() % 300);
+        } else {                                        /* a grown-up helps: walk to a box or a place */
+            if (!in_meadow()) { run(0, 1 + mr() % 5); continue; }
+            int what = mr() % 12;
+            if (what < 6) seek(900);
+            else goto_place(what - 6, (int)mr(), 900);
+        }
+    }
+    printf("[mash] seed %u frames %ld faults %ld hang_max %ld\n", seed, n, faults, fc_still_max);
+    for (int i = 0; i < N_SCENES; i++)
+        printf("[mash] scene %s visits %ld stay_max %ld\n", scenes[i].name + 6, scenes[i].visits, scenes[i].stay_max);
 }
 
 int main(int argc, char **argv) {
@@ -440,6 +626,14 @@ int main(int argc, char **argv) {
             long y = 0, m = 0;
             sscanf(line, "%*s %*s %ld %ld", &y, &m);
             walkto(atoi(a), (int)y, m);
+        } else if (!strcmp(cmd, "goto")) {
+            int kind = -1;
+            for (int i = 0; i < N_PLACES; i++)
+                if (!strcmp(a, place_names[i])) kind = i;
+            if (kind < 0) { fprintf(stderr, "goto: unknown place %s\n", a); return 1; }
+            goto_place(kind, 0, n);
+        } else if (!strcmp(cmd, "mash")) {
+            mash((uint32_t)strtoul(a, NULL, 0), n);
         } else if (!strcmp(cmd, "audio")) {
             if (!strcmp(a, "end")) {
                 if (wav) { wav_header(wav, wav_samples); fclose(wav); wav = NULL; }

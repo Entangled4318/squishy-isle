@@ -37,6 +37,8 @@ last_pop = lb.rindex('found 20')
 check(re.search(r'box \d at', lb[last_pop:]) is None, 'no new box after the 20th friend')
 check(re.search(r'box \d at', lc) is None, 'no box after a reboot with a full meadow')
 last_open = re.findall(r'open friend \d+ pip=(\d+,\d+)', lb)[-1]
+check((lb + lc + ld).count('parade 0 done') == 1 and 'parade 0 start' in lc,
+      'the full meadow page parades to the end once (cut by the power off in part B, it plays again on Continue)')
 check(f'restore pip={last_open}' in lc, f'reboot 2: Continue starts where Pip opened the last box ({last_open})')
 saved = re.findall(r'save pip=(\d+,\d+)', lc)
 check(saved and f'restore pip={saved[-1]}' in ld, f'reboot 3: Continue starts where Pip last stood still ({saved and saved[-1]})')
