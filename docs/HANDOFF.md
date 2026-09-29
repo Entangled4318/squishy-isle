@@ -37,7 +37,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
 | 7. QA and final ROM with Brick instructions | Done (v1.1 after the 7.6 fixes); see "Step 7 progress" and `docs/BRICK.md` |
-| 8. Brick test feedback | In progress (v1.2): 8.1 art fixes, 8.2 letter queue, 8.3 followers in every area done; see "Step 8 progress" |
+| 8. Brick test feedback | Done (v1.2): art fixes, letter queue, followers in every area; Brick re-test next; see "Step 8 progress" |
 
 ## Owner notes
 
@@ -1013,7 +1013,8 @@ First Brick test (owner, v1.1): Quit / Continue works. Feedback, and the plan:
    left). Screenshot `docs/step8_3_followers.png` (woods, shore, Cloud
    Hill, gate scene in the full loop).
 4. Cloud Hill: Momo on its bed and the capsule machine are the ending and
-   scenery; owner asked what they do. Ideas to ask about after 3.
+   scenery. Offered A actions for both (a capsule with a found friend, a
+   hug from Momo); owner: keep them as scenery. No change.
 
 Version "v1.2" (still 4 characters, title at f2). 462 checks pass.
 
