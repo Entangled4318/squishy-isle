@@ -51,9 +51,27 @@ check(pops and all(20 <= p < 40 for p in pops), f'an acorn holds a woods friend 
 check('scene shelf page=1' in log, 'START in the woods opens the shelf on the woods page')
 check('exit to area 0' in log and 'scene meadow pip=450,200 area=0' in log, 'the west trail leads back over the bridge')
 after = log[log.index('scene meadow pip=450,200 area=0'):]
-check('friends pen=7 follow=3' in after, 'back in the meadow its own 3 followers are there (the woods friend stays in the woods)')
-woods_lines = re.findall(r'area=1\n\[game f\d+\] friends pen=(\d+) follow=(\d+)', log)
-check(('0', '1') in woods_lines, f'in the woods the new friend follows Pip ({woods_lines[-2:]})')
+check('friends pen=7 follow=3' in after, 'back in the meadow the 3 followers are still there (the woods friend stays in the woods)')
+woods_lines = re.findall(r'area=1\n(?:\[game f\d+\] box .*\n)*\[game f\d+\] friends pen=(\d+) follow=(\d+)', log)
+check(woods_lines[:1] == [('0', '3')] and ('1', '3') in woods_lines,
+      f'step 8.3: the 3 meadow followers come along into the woods; the line is full, so the new woods friend goes to the woods pen ({woods_lines})')
+
+
+# step 8.3: the meadow followers keep their own colors in the woods: their
+# flavor palettes (vanilla, strawberry, matcha) sit in OBJ palettes 5, 6 and 9,
+# and sprites with those palettes and the follower tiles (296..319) are on screen
+import struct                                            # noqa: E402
+src = open(os.path.join(os.path.dirname(__file__), '..', 'rom', 'build', 'game_assets.c')).read()
+body = re.search(r'\bsq_pal_meadow\[\d+\][^=]*=\s*\{(.*?)\}', src, re.S).group(1)
+meadow = [int(v, 0) for v in re.findall(r'0x[0-9a-fA-F]+|\d+', body)]
+d = open(os.path.join(OUT, 'w03_woods_arrive.bin'), 'rb').read()
+obj_pal = [struct.unpack_from('<16H', d, 0x600 + k * 32) for k in range(16)]
+pals_ok = all(list(obj_pal[slot])[1:] == meadow[f * 16 + 1:f * 16 + 16] for slot, f in ((5, 0), (6, 1), (9, 2)))
+oam = [struct.unpack_from('<3H', d, 0x18800 + i * 8) for i in range(128)]
+seen = sorted({(a2 >> 12, a2 & 0x3FF) for a0, a1, a2 in oam if not a0 & 0x200 and 296 <= (a2 & 0x3FF) < 320})
+check(pals_ok and {p for p, _ in seen} == {5, 6, 9},
+      f'the meadow followers walk in the woods in their own colors (palettes 5, 6, 9 hold them: {pals_ok}; sprites {seen})')
+
 cont = open(os.path.join(OUT, 'woods_continue.log')).read()
 check('scene meadow pip=20,200 area=1' in cont, 'after a reboot, Continue starts in the woods where Pip stood')
 songs = re.findall(r'song (?:start|resume) (\d+)\n\[game f\d+\] scene meadow pip=\d+,\d+ area=(\d)', log)

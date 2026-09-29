@@ -448,13 +448,13 @@ def main():
     cw.u16('shadow16_pal', shadow_npc_pal + [0] * (16 - len(shadow_npc_pal)))
     save_scaled(np.concatenate(parts[:2], axis=1), os.path.join(OUT, 'npc_momo.png'), 6)
 
+    # the A bubble and the guide arrow share one palette (step 8.3: the map
+    # needs 3 free OBJ palettes for followers from other areas)
     abtn = pad_to(props.a_button(), 16, 32)
-    lk, pal = palette_and_lookup([abtn])
+    arrows = [props.guide_arrow(d) for d in ('right', 'up', 'upright')]
+    lk, pal = palette_and_lookup([abtn] + arrows)
     cw.u32_bytes('abubble_tiles', obj(abtn, lk))
     cw.u16('abubble_pal', pal)
-
-    arrows = [props.guide_arrow(d) for d in ('right', 'up', 'upright')]
-    lk, pal = palette_and_lookup(arrows)
     cw.u32_bytes('arrow_tiles', b''.join(obj(a, lk) for a in arrows))
     cw.u16('arrow_pal', pal)
     save_scaled(np.concatenate(arrows + [pad_to(props.box16(c), 16, 16) for c in ('pink', 'lav', 'mint', 'yellow', 'sky')], axis=1),

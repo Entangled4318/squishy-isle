@@ -57,8 +57,8 @@ Walk Pip with the D-pad. Walk into a gift box, acorn, seashell or capsule
 and press A (or B): it wobbles, jumps and pops open by itself if nobody
 presses. A new friend lands; A squishes it. B makes Pip hop. START opens
 the shelf (L / R turn the pages, A shows a friend big). The heart sign by
-the pen picks who follows Pip. The mailbox holds a letter from the newest
-friend, the picnic basket gives snack time, and each house holds the
+the pen picks who follows Pip. Every new friend sends a letter: the
+mailbox holds them in turn, oldest first. The picnic basket gives snack time, and each house holds the
 gifts the friends sent. Ten friends in an area wake Momo the panda, who
 opens the way to the next area. Twenty friends start a parade.
 
@@ -93,11 +93,18 @@ Containers, open and reveal
       The lid, cap, top shell or dome flies off.
 - [ ] The friend lands with stars and confetti; 3 squishes or a short
       wait and it hops away.
+- [ ] Wide friends (chick, crab, shroom, frog, fox, dino, planet...) keep
+      their sides at the bottom of each squish; the seashell's top shell
+      is whole on the open screen. (v1.2)
+- [ ] The gold container twinkles show on the shore sand and the Cloud
+      Hill clouds; the shore palms have whole leaves; no bush on the woods
+      trail. (v1.2)
 
 Friends, pen and shelf
 
-- [ ] The first 3 friends of an area follow Pip; the rest waddle in the
-      pen without piling up.
+- [ ] The first 3 friends found follow Pip, and keep following into every
+      area in their own colors; the rest waddle in the pen without piling
+      up. (v1.2)
 - [ ] The heart sign opens the picker in every area; the big heart badges
       mark the followers; A adds or removes one.
 - [ ] START then A on a friend opens it big; 3 squishes go back.
@@ -106,6 +113,9 @@ Mailbox, snack, houses
 
 - [ ] After a new friend the mailbox flag waves and an envelope bobs; A by
       the mailbox opens the letter; the friend's gift shows on it.
+- [ ] Find two or more friends, then visit the mailbox: each friend's
+      letter comes in turn, oldest first; the flag stays up until the last
+      one is read. (v1.2)
 - [ ] Snack time at the basket: a treat pops out, the followers hop over
       and squeak; the pace feels cosy.
 - [ ] Walk up into each house door: the room shows that area's gifts;

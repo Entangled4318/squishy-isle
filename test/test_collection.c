@@ -67,37 +67,49 @@ int main(void) {
     /* new game forgets friends and followers */
     collection_add(8);
     collection_new_game(1234);
-    CHECK(found_total() == 0 && follower_get(0, 0) == -1 && game_save.opens == 0, "new game clears friends, followers and opens");
+    CHECK(found_total() == 0 && follower_get(0) == -1 && game_save.opens == 0, "new game clears friends, followers and opens");
 
     /* follower line: newest first, max 3, no duplicates */
     reset(5);
     follower_add(1); follower_add(2); follower_add(3); follower_add(4);
-    CHECK(follower_get(0, 0) == 4 && follower_get(0, 1) == 3 && follower_get(0, 2) == 2, "line keeps the newest 3 (4,3,2)");
+    CHECK(follower_get(0) == 4 && follower_get(1) == 3 && follower_get(2) == 2, "line keeps the newest 3 (4,3,2)");
     follower_add(2);
-    CHECK(follower_get(0, 0) == 2 && follower_get(0, 1) == 4 && follower_get(0, 2) == 3, "a friend already in line moves to the front (2,4,3)");
+    CHECK(follower_get(0) == 2 && follower_get(1) == 4 && follower_get(2) == 3, "a friend already in line moves to the front (2,4,3)");
     reset(5);
     follower_add(0);
-    CHECK(follower_get(0, 0) == 0 && follower_get(0, 1) == -1, "friend id 0 works, empty places read -1");
+    CHECK(follower_get(0) == 0 && follower_get(1) == -1, "friend id 0 works, empty places read -1");
 
     /* new friends: the first 3 found stay in line, later ones go to the pen */
     reset(5);
     collection_add(7); collection_add(3); collection_add(9); collection_add(12);
-    CHECK(follower_get(0, 0) == 7 && follower_get(0, 1) == 3 && follower_get(0, 2) == 9, "the first 3 friends found keep following (7,3,9)");
+    CHECK(follower_get(0) == 7 && follower_get(1) == 3 && follower_get(2) == 9, "the first 3 friends found keep following (7,3,9)");
     follower_remove(3);
     collection_add(14);
-    CHECK(follower_get(0, 0) == 7 && follower_get(0, 1) == 9 && follower_get(0, 2) == 14, "a new friend fills a free place at the end (7,9,14)");
+    CHECK(follower_get(0) == 7 && follower_get(1) == 9 && follower_get(2) == 14, "a new friend fills a free place at the end (7,9,14)");
     game_save.pip_x = 300; game_save.pip_y = 200;
     collection_new_game(99);
     CHECK(game_save.pip_x == 0 && game_save.pip_y == 0, "new game forgets Pip's saved position");
     CHECK(offsetof(SaveData, checksum) == 140, "save layout unchanged by the position field (checksum at %u)", (unsigned)offsetof(SaveData, checksum));
 
-    /* each area has its own line; a woods friend never joins the meadow's */
+    /* step 8.3: one line walks with Pip in every area; friends of any area join while there is room */
     reset(5);
     collection_add(1); collection_add(21); collection_add(45); collection_add(2);
-    CHECK(follower_get(0, 0) == 1 && follower_get(0, 1) == 2 && follower_get(1, 0) == 21 && follower_get(2, 0) == 45 &&
-          follower_get(3, 0) == -1, "each area keeps its own follower line (1,2 | 21 | 45 | -)");
+    CHECK(follower_get(0) == 1 && follower_get(1) == 21 && follower_get(2) == 45, "one line for all areas: the first 3 found (1, 21, 45)");
     follower_remove(21);
-    CHECK(follower_get(1, 0) == -1 && follower_get(0, 0) == 1, "removing a woods follower leaves the meadow line");
+    CHECK(follower_get(0) == 1 && follower_get(1) == 45 && follower_get(2) == -1, "removing a woods follower closes the gap (1, 45)");
+    follower_add(62);
+    CHECK(follower_get(0) == 62 && follower_get(1) == 1 && follower_get(2) == 45, "the sign adds a Cloud Hill friend at the front (62, 1, 45)");
+    /* a save from before 8.3 (a line per area) keeps the line of the area Pip is in */
+    reset(5);
+    for (int id = 0; id < 12; id++) collection_add(id);
+    game_save.lines[0][0] = 21; game_save.lines[0][1] = 22;      /* woods line: friends 20, 21 */
+    game_save.area = 1;
+    lines_merge();
+    CHECK(follower_get(0) == 20 && follower_get(1) == 21 && follower_get(2) == -1 && !game_save.lines[0][0],
+          "old save in the woods: the woods line becomes the one line (20, 21), old lines cleared");
+    game_save.lines[1][0] = 41; game_save.area = 0;
+    lines_merge();
+    CHECK(follower_get(0) == 20 && !game_save.lines[1][0], "old save in the meadow: the meadow line stays");
     /* gates: area n + 1 opens at GATE_NEED friends in area n */
     reset(5);
     for (int id = 0; id < GATE_NEED - 1; id++) collection_add(id);
@@ -106,7 +118,7 @@ int main(void) {
     CHECK(area_open(0) && shut && area_open(1) && !area_open(2), "the woods open at %d meadow friends, the shore stays shut", GATE_NEED);
     game_save.area = 2; game_save.gates = 3;
     collection_new_game(7);
-    CHECK(game_save.area == 0 && game_save.gates == 0 && follower_get(1, 0) == -1, "new game goes back to the meadow and closes the gates");
+    CHECK(game_save.area == 0 && game_save.gates == 0 && follower_get(0) == -1, "new game goes back to the meadow and closes the gates");
     CHECK(sizeof(SaveData) <= 0x100, "SaveData fits a 256-byte slot (%u bytes)", (unsigned)sizeof(SaveData));
 
     /* mailbox: each new friend sends a letter; a friend found again sends none */

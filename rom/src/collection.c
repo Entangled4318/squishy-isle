@@ -91,6 +91,19 @@ void collection_new_game(u32 seed) {
     collection_save();
 }
 
+/* A save from before 8.3 has a line per area: the one line becomes the
+ * line of the area Pip is in (what the child saw last), else the meadow's. */
+void lines_merge(void) {
+    int a = game_save.area;
+    bool old = false;
+    for (int i = 0; i < 3; i++)
+        for (int k = 0; k < MAX_FOLLOWERS; k++) old |= game_save.lines[i][k] != 0;
+    if (!old) return;
+    if (a >= 1 && a < AREA_COUNT && game_save.lines[a - 1][0])
+        for (int k = 0; k < MAX_FOLLOWERS; k++) game_save.followers[k] = game_save.lines[a - 1][k];
+    memset(game_save.lines, 0, sizeof game_save.lines);
+}
+
 int letter_open(void) {
     int id = game_save.letters[0] - 1;
     if (id >= 0) {                           /* the oldest waiting letter: take it off the queue */
@@ -105,16 +118,11 @@ int letter_open(void) {
     return game_save.mail - 1;               /* a save from before 8.2: its one letter */
 }
 
-/* Each area has its own line of up to 3 followers (friend sprites use the
- * area's palettes, so only that area's friends can walk there). */
-static u8 *line_of(int area) {
-    if (area <= 0) return game_save.followers;
-    return game_save.lines[(area > AREA_COUNT - 1 ? AREA_COUNT - 1 : area) - 1];
-}
-static u8 *line_for(int id) { return line_of(friend_area(id)); }
+/* One line for every area (step 8.3): `followers`. The old per-area
+ * lines (`lines`, areas 1..3) are read once at boot (lines_merge). */
 
 void follower_add(int id) {
-    u8 *l = line_for(id);
+    u8 *l = game_save.followers;
     int at = MAX_FOLLOWERS - 1;          /* drops the oldest unless id is already in line */
     for (int i = 0; i < MAX_FOLLOWERS; i++)
         if (l[i] == id + 1) at = i;
@@ -123,7 +131,7 @@ void follower_add(int id) {
 }
 
 void follower_join(int id) {
-    u8 *l = line_for(id);
+    u8 *l = game_save.followers;
     for (int i = 0; i < MAX_FOLLOWERS; i++) {
         if (l[i] == id + 1) return;
         if (l[i] == 0) {
@@ -133,17 +141,17 @@ void follower_join(int id) {
     }
 }
 
-int follower_get(int area, int i) { return line_of(area)[i] - 1; }
+int follower_get(int i) { return game_save.followers[i] - 1; }
 
 bool follower_has(int id) {
-    const u8 *l = line_for(id);
+    const u8 *l = game_save.followers;
     for (int i = 0; i < MAX_FOLLOWERS; i++)
         if (l[i] == id + 1) return true;
     return false;
 }
 
 void follower_remove(int id) {
-    u8 *l = line_for(id);
+    u8 *l = game_save.followers;
     int n = 0;
     for (int i = 0; i < MAX_FOLLOWERS; i++)
         if (l[i] && l[i] != id + 1) l[n++] = l[i];
@@ -158,6 +166,7 @@ void collection_init(void) {
     game_save.boots++;
     if (game_save.mail_new && !game_save.letters[0] && game_save.mail)   /* before 8.2: one unread letter */
         game_save.letters[0] = game_save.mail;
+    lines_merge();
     dbg("save: %s v%d boots=%u found=%d opens=%u", st == SAVE_LOADED ? "loaded" : st == SAVE_NEW ? "new" : "reset",
         SAVE_VERSION, game_save.boots, found_total(), (unsigned)game_save.opens);
     collection_save();

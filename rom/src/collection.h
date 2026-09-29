@@ -31,11 +31,14 @@ int collection_roll(int area, u32 entropy);   /* a friend not found yet, or -1 w
 
 bool collection_add(int id);             /* records the friend and saves; false if already found */
 
+void lines_merge(void);                  /* boot: a save from before 8.3 (a line per area) gets one line */
 int letter_open(void);                   /* the letter to read: the oldest waiting one (taken off the queue), else the last one read; -1 = none */
 
-void follower_add(int id);               /* puts id at the front of its area's line */
+/* One line of up to 3 followers walks with Pip in every area (step 8.3,
+ * owner); before, each area had its own. */
+void follower_add(int id);               /* puts id at the front; the oldest drops off when 3 follow */
 void follower_join(int id);              /* a new friend: joins the end only while the line has room */
-int follower_get(int area, int i);       /* friend id in that area's line, or -1 */
+int follower_get(int i);                 /* friend id at place i of the line, or -1 */
 bool follower_has(int id);
 void follower_remove(int id);            /* closes the gap; later ones move up */
 

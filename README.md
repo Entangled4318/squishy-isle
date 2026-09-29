@@ -84,10 +84,12 @@ hearts. After three squishes, or 5 calm seconds, it hops away to the map.
 
 ## Friends, the pen and the shelf
 
-The first three friends of an area follow Pip in a line. The rest waddle
-in the area's friend pen, so the island fills with life as the collection
-grows. The heart sign by the pen opens a picker: A on a friend adds or
-removes it from the line, and big heart badges mark who follows.
+The first three friends found follow Pip in a line, and they come along
+into every area. The rest waddle in their area's friend pen, so the island
+fills with life as the collection grows. The heart sign by each pen opens
+a picker for that area's friends: A on a friend adds it to the front of
+the line (the oldest follower goes home when three follow) or removes it,
+and big heart badges mark who follows.
 
 START opens the Squishy Shelf: one page per area, 4 rows of species by 5
 flavors. Friends not found yet show as soft silhouettes with "Find me!".
@@ -110,7 +112,8 @@ visits.
 ## Mailbox, snack time and houses
 
 After each new friend, the meadow mailbox flag waves and an envelope bobs
-over it. A by the mailbox opens a letter from the newest friend: a happy
+over it. Every new friend sends a letter, and the letters wait their
+turn. A by the mailbox opens the oldest one waiting: a happy
 message and the gift it sends. The picnic basket gives snack time: a treat
 pops out, the followers hop over, take a bite each with a squeak, then go
 back in line. Each area's house has a room with wall shelves for that

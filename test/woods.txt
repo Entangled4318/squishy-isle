@@ -9,6 +9,7 @@ shot w02_bridge_open
 walkto 470 200 300
 wait 30
 shot w03_woods_arrive
+dump w03_woods_arrive
 seek 3000
 shot w04_touch_acorn
 tap A

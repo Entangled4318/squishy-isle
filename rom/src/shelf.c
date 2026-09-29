@@ -1,6 +1,7 @@
 /* Squishy Shelf: four pages (one per area), 4 species x 5 flavors each.
  * D-pad moves the dark frame, L/R turn pages, A opens the friend big.
- * Pick mode (A at the pen sign): the current area's page;
+ * Pick mode (A at the pen sign): the current area's page (the line is
+ * one for all areas: hearts mark this page's followers);
  * A adds or removes a follower (up to 3, the oldest drops off), B goes back. */
 #include "collection.h"
 #include "game.h"
@@ -70,8 +71,10 @@ static void enter(void) {
         page = game_save.area;
         page_area = game_save.area;
     }
-    if (shelf_pick) {                 /* start on the first follower, or the first friend found */
-        int id = follower_get(page, 0);
+    if (shelf_pick) {                 /* start on the first follower of this page, or the first friend found */
+        int id = -1;
+        for (int i = 0; id < 0 && i < MAX_FOLLOWERS; i++)
+            if (follower_get(i) >= 0 && friend_area(follower_get(i)) == page) id = follower_get(i);
         for (int i = page * 20; id < 0 && i < page * 20 + 20; i++)
             if (friend_found(i)) id = i;
         if (id >= 0) { cur_r = friend_species(id) - page * 4; cur_c = friend_flavor(id); }   /* the row on this page */
@@ -121,8 +124,8 @@ static void draw(void) {
     }
     for (int i = 0; i < MAX_FOLLOWERS; i++) {      /* a heart badge on the corner of each friend that follows Pip */
         ObjAttr *h = &oam[25 + i];
-        int id = shelf_pick ? follower_get(page, i) : -1;
-        if (id < 0) { h->attr0 = A0_HIDE; continue; }
+        int id = shelf_pick ? follower_get(i) : -1;
+        if (id < 0 || friend_area(id) != page) { h->attr0 = A0_HIDE; continue; }   /* one line for all areas (8.3) */
         int hx = SHELF_X0 + friend_flavor(id) * SHELF_CW - 2;
         int hy = SHELF_Y0 + (friend_species(id) - page * 4) * SHELF_CH - 3;   /* the row on this page */
         if (id == pop_id && pop_t > 0) hy -= (pop_t * (12 - pop_t)) / 6;   /* small hop when chosen */
@@ -173,7 +176,7 @@ static void update(void) {
         if (hit & (KEY_START | KEY_B)) {
             shelf_pick = false;
             sfx_chime(2);
-            dbg("pick done %d %d %d", follower_get(page, 0), follower_get(page, 1), follower_get(page, 2));
+            dbg("pick done %d %d %d", follower_get(0), follower_get(1), follower_get(2));
             scene_go(&scene_meadow_view);
         }
         draw();

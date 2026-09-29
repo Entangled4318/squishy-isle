@@ -38,10 +38,10 @@ Squishy Shelf.
 3. **Meet.** A squishy bounces out with confetti and a star burst. Every
    press squishes it (squash, squeak, hearts). After three
    squishes or a short wait, it hops into Pip's bag.
-4. **Play.** Back in the world, the first three friends of an area follow
-   Pip (the heart sign by the pen picks who follows). The others waddle in
-   the area's friend pen, so the island fills with life as the collection
-   grows.
+4. **Play.** Back in the world, the first three friends found follow
+   Pip, into every area (the heart sign by each pen picks who follows).
+   The others waddle in their area's friend pen, so the island fills with
+   life as the collection grows.
 
 ## Session loop (5 to 15 minutes)
 
