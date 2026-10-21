@@ -443,15 +443,32 @@ def clouds():
     garden = CloudBlob(76, 282, 50, 24, bump=7, seed=5)                # small island, south-west
     bed = CloudBlob(416, 86, 52, 32, bump=7, seed=4)                   # Momo's island, north-east
     puffs = (puff_bridge(-14, 204, 92, 204, 13, 6, 3) +                # straight cloud path from the shore
-             puff_bridge(92, 246, 92, 272, 12, 2, 11) +            # straight bridges (owner): down to the garden,
-             puff_bridge(394, 150, 394, 104, 14, 3, 13))           # up to Momo's island
+             puff_bridge(92, 246, 92, 272, 18, 2, 11) +            # straight bridges (owner): down to the garden,
+             puff_bridge(394, 150, 394, 104, 20, 3, 13))           # up to Momo's island. Puffs 18 and 20 (were 12, 14):
+    # the sky beside a bridge is solid, so the walkable lane is ~24 px narrower than the cloud;
+    # at 14 and 18 px Pip had to line up exactly to turn onto them (Brick test, 8.5). Now 30 and 34 px.
     lab = shape_labels(W_, H_, 'x', [('c', CloudMask(main, garden, bed, *puffs))])
     a.ground = world.cloud_ground(lab, sky)
     walk = lab == 'c'
+    cover = np.zeros((H_ // CELL, W_ // CELL))
     for r in range(H_ // CELL):
         for c in range(W_ // CELL):
-            if walk[r * CELL:(r + 1) * CELL, c * CELL:(c + 1) * CELL].mean() < 0.7:
+            cover[r, c] = walk[r * CELL:(r + 1) * CELL, c * CELL:(c + 1) * CELL].mean()
+            if cover[r, c] < 0.7:
                 a.solid[r, c] = True
+    # Close one-cell notches (8.5, Brick test): the 70% rule left single solid
+    # cells in the inside corners where an island meets a bridge, and Pip,
+    # walking diagonally toward Momo, stuck on them. A solid cell turns
+    # walkable when 3 of its 4 neighbours are walkable (a notch in an edge,
+    # however little cloud it holds), or when it is at least 30% cloud with
+    # walkable cells on opposite sides (a gap a cell wide).
+    for _ in range(2):
+        free = ~a.solid
+        nb = np.zeros_like(free, dtype=int)
+        nb[1:] += free[:-1]; nb[:-1] += free[1:]; nb[:, 1:] += free[:, :-1]; nb[:, :-1] += free[:, 1:]
+        ns = np.zeros_like(free); ns[1:-1] = free[:-2] & free[2:]
+        ew = np.zeros_like(free); ew[:, 1:-1] = free[:, :-2] & free[:, 2:]
+        a.solid &= ~((nb >= 3) | ((cover >= 0.3) & (ns | ew)))
     a.shimmer = 'st_lt'
 
     # ---- stars on the clouds (they twinkle), lollipops, tree shadows
@@ -461,7 +478,9 @@ def clouds():
     for kind, x, y in (('pink', 190, 148), ('blue', 150, 190), ('mint', 110, 290), ('pink', 380, 96),
                        ('mint', 408, 206), ('blue', 238, 214), ('pink', 396, 132)):
         a.decor(world.lollipop(kind), x, y)
-    trees = [('blue', 164, 96), ('blue', 330, 100), ('blue', 112, 196), ('pink', 176, 232),
+    # ('blue', 304, 96) was at 330,100 until 8.5: its trunk stood 3 px under the island edge, a dead-end pocket
+    # on the way to Momo's bridge (Brick test)
+    trees = [('blue', 164, 96), ('blue', 304, 96), ('blue', 112, 196), ('pink', 176, 232),
              ('blue', 36, 250), ('pink', 104, 250), ('blue', 256, 240)]
     trees = [(k, x // 8 * 8, y // 8 * 8) for k, x, y in trees]
     for kind, x, y in trees:

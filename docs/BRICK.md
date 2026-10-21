@@ -1,6 +1,6 @@
 # Squishy Isle on the Trimui Brick
 
-Version 1.3. File: `release/squishy-isle.gba` (617 KB). The version shows
+Version 1.4. File: `release/squishy-isle.gba` (617 KB). The version shows
 small at the bottom right of the title screen, so you can see which build
 is on the Brick.
 
@@ -132,6 +132,10 @@ Areas and Momo
 - [ ] The west exits of the woods and the shore always take Pip back.
 - [ ] Momo sleeps in its cloud bed at the end and hops with hearts when
       Pip comes close.
+- [ ] Cloud Hill: from anywhere near the pen, holding the D-pad toward
+      Momo (up and right) walks Pip onto Momo's island without steering;
+      the bridges to Momo's island and to the garden feel wide; Pip slides
+      along cloud edges instead of sticking. (v1.4)
 
 Parade
 

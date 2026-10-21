@@ -530,8 +530,53 @@ static void enter(void) {
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG1 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;
 }
 
+/* Movement assist (step 8.5, Brick test: the Cloud Hill way to Momo needed
+ * precise moves). Only when a step is blocked by the map (never a box, so
+ * Pip still stops at one to open it). */
+#define ASSIST 6        /* px: walking straight into an edge eases sideways into an opening this close */
+
+/* px to the first spot on side d (offset (ox, oy) per px) from where the step
+ * (sx, sy) is free, walking only on free ground; 0 = none within ASSIST */
+static int reach(int fx, int fy, int ox, int oy, int sx, int sy) {
+    for (int k = 1; k <= ASSIST; k++) {
+        int x = fx + ox * k, y = fy + oy * k;
+        if (map_blocked(x, y)) return 0;
+        if (!map_blocked(x + sx, y + sy)) return k;
+    }
+    return 0;
+}
+
+/* -1 / +1: the side (y for a horizontal walk, x for a vertical one) where the
+ * way on opens within ASSIST px; 0 = none, or both equally close (no guess) */
+static int opening(int fx, int fy, int sx, int sy) {
+    int a = sx ? reach(fx, fy, 0, -1, sx, 0) : reach(fx, fy, -1, 0, 0, sy);
+    int b = sx ? reach(fx, fy, 0, 1, sx, 0) : reach(fx, fy, 1, 0, 0, sy);
+    if (a && (!b || a < b)) return -1;
+    if (b && (!a || b < a)) return 1;
+    return 0;
+}
+
+/* a sidestep around a stair step of an edge (up to ASSIST px) that the
+ * stick would undo frame by frame: done first, then the walk goes on */
+static int step_x, step_y, step_t, step_sx, step_sy;
+
 static void move(int dx, int dy) {
+    s32 ox = pip_x, oy = pip_y;
     int fx = pip_x >> 8, fy = pip_y >> 8;
+    int sx = (dx > 0) - (dx < 0), sy = (dy > 0) - (dy < 0);
+    if (step_t > 0 && (sx != step_sx || sy != step_sy)) step_t = 0;   /* the child steers elsewhere */
+    if (step_t > 0) {
+        step_t--;
+        if (!blocked(fx + step_x, fy + step_y)) {
+            pip_x += step_x << 8;
+            pip_y += step_y << 8;
+        }
+        fx = pip_x >> 8;
+        fy = pip_y >> 8;
+        if (step_y && !blocked((pip_x + dx) >> 8, fy)) { pip_x += dx; step_t = 0; }    /* past the step */
+        if (step_x && !blocked(fx, (pip_y + dy) >> 8)) { pip_y += dy; step_t = 0; }
+        return;
+    }
     if (dx) {
         s32 nx = pip_x + dx;
         if (!blocked(nx >> 8, fy)) pip_x = nx;
@@ -541,6 +586,24 @@ static void move(int dx, int dy) {
         s32 ny = pip_y + dy;
         if (!blocked(fx, ny >> 8)) pip_y = ny;
     }
+    if (pip_x != ox || pip_y != oy) return;
+    if (sx && sy) {                       /* diagonal into a stair step of an edge: step around it */
+        if (!map_blocked(fx + sx, fy) || !map_blocked(fx, fy + sy)) return;   /* a box: no assist */
+        int ky = reach(fx, fy, 0, -sy, sx, 0);       /* back off on y until x is free, */
+        int kx = reach(fx, fy, -sx, 0, 0, sy);       /* or on x until y is */
+        if (!ky && !kx) return;
+        bool along_y = ky && (!kx || ky <= kx);
+        step_x = along_y ? 0 : -sx;
+        step_y = along_y ? -sy : 0;
+        step_t = along_y ? ky : kx;
+        step_sx = sx;
+        step_sy = sy;
+        return;
+    }
+    if (sx ? !map_blocked(fx + sx, fy) : !map_blocked(fx, fy + sy)) return;   /* a box stopped Pip: no assist */
+    int d = opening(fx, fy, sx, sy);      /* straight into an edge: ease toward the opening */
+    if (sx) pip_y += d << 8;
+    else pip_x += d << 8;
 }
 
 /* ---- sprites: UI first (on top), then world sprites sorted front to back ---- */
