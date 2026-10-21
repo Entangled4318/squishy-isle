@@ -37,7 +37,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 5. Music and sound set | Done; see "Step 5 progress". Brick checks queued |
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
 | 7. QA and final ROM with Brick instructions | Done (v1.1 after the 7.6 fixes); see "Step 7 progress" and `docs/BRICK.md` |
-| 8. Brick test feedback | Done (v1.3): art fixes, letter queue, followers in every area, Momo's heart meter; Brick re-test next; see "Step 8 progress" |
+| 8. Brick test feedback | Done (v1.4): art fixes, letter queue, followers in every area, Momo's heart meter, the way to Momo; see "Step 8 progress" |
 
 ## Owner notes
 
@@ -1035,6 +1035,31 @@ First Brick test (owner, v1.1): Quit / Continue works. Feedback, and the plan:
    `check_momo.py` (7, 3, 9 filled hearts from a memory dump of OAM, the
    pill hidden). Screenshot `docs/step8_4_momo_meter.png`. Score 8.5.
    Version "v1.3". 474 checks pass.
+6. The way to Momo on Cloud Hill (owner, after several play tests: "the
+   path seems too short and requires precise movement"). **Done.** Found:
+   (a) the sky beside a cloud bridge is solid and a cell counts as cloud
+   only at 70%, so the walkable lane was ~24 px narrower than the cloud:
+   Momo's bridge 18 px, the garden bridge 14 px. Puffs 20 and 18 (were
+   14, 12): lanes 34 and 30. (b) The 70% rule left one-cell notches where
+   an island meets a bridge; one sat right at the foot of Momo's bridge and
+   stopped a diagonal walk dead. `areas.clouds()` fills a solid cell with 3
+   walkable neighbours, or a 30%+ cloud cell between two walkable ones. (c)
+   The blue candy tree at 330,100 stood 3 px under the island edge: a
+   dead-end pocket on the way. Now 304,96 (still at the rainbow's foot).
+   (d) Movement assist in `viewer.c move()` (map edges only, never boxes, so
+   Pip still stops at a box to open it): a straight walk into an edge eases
+   1 px a frame toward an opening up to `ASSIST` (6) px to the side; a
+   diagonal walk into a stair step of an edge steps around it (up to 6 px,
+   `step_*`: the sidestep is finished before the stick, which would undo
+   it, takes over). Cloud Hill 720 tiles / 13 palettes. Tests:
+   `check_approach.py` (from 39 spots by the pen, holding UP+RIGHT for 5 s
+   reaches Momo every time; v1.3: 12 of 37), `check_map.py` (bridge lanes
+   at least 30 px, no notches). Screenshot `docs/step8_5_momo_path.png`
+   (v1.3 stuck behind the tree, v1.4 up to Momo). Score 8.5 (first pass
+   7: wider bridges alone took 12 to 15 of 31). The assist searches each
+   side once (`reach()`): a first version re-checked the same pixels and
+   pushed the worst map frame from 120 to 149 lines on full saves; now 119.
+   Version "v1.4". 478 checks pass.
 
 Version "v1.2" (still 4 characters, title at f2). 462 checks pass.
 

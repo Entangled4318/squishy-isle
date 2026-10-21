@@ -84,6 +84,7 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	python3 make_save.py $(OUT)/meter_shore.sav $$(seq -s, 0 9),$$(seq -s, 20 29),$$(seq -s, 40 48) "" - 2
 	./$(HARNESS) $(ROM) $(OUT)/meter_shore.sav meter_shore.txt $(OUT) > $(OUT)/meter_shore.log
 	python3 check_momo.py $(OUT)
+	python3 check_approach.py $(OUT) $(ROM)
 	python3 make_save.py $(OUT)/shore.sav $$(seq -s, 0 9),$$(seq -s, 20 29) 0,1,2 1
 	./$(HARNESS) $(ROM) $(OUT)/shore.sav shore.txt $(OUT) > $(OUT)/shore.log
 	python3 check_shore.py $(OUT)

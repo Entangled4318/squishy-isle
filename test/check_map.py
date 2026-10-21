@@ -156,6 +156,31 @@ def walkable(area, x, y):
     return not (sol(x - FEET_W, y - FEET_H) or sol(x + FEET_W, y - FEET_H) or sol(x - FEET_W, y) or sol(x + FEET_W, y))
 
 
+# step 8.5: Cloud Hill's bridges are wide enough to turn onto (the sky beside
+# them is solid), and its collision has no one-cell notches in an edge
+cl = maps[3]
+
+
+def lane(area, x0, y0):                     # width of the run of walkable feet x through (x0, y0)
+    if not walkable(area, x0, y0):
+        return 0
+    lo = hi = x0
+    while walkable(area, lo - 1, y0):
+        lo -= 1
+    while walkable(area, hi + 1, y0):
+        hi += 1
+    return hi - lo + 1
+
+
+for name, x0, ys, old in (('Momo\'s bridge', 394, range(108, 149, 2), 18), ('the garden bridge', 92, range(246, 273, 2), 14)):
+    w = min(lane(cl, x0, y) for y in ys)
+    check(w >= 30, f'Cloud Hill: {name} has a walkable lane of at least 30 px ({w}; v1.3: {old})')
+free = ~cl.solid
+nb = np.zeros(free.shape, int)
+nb[1:] += free[:-1]; nb[:-1] += free[1:]; nb[:, 1:] += free[:, :-1]; nb[:, :-1] += free[:, 1:]
+notches = int((cl.solid & (nb >= 3)).sum())
+check(notches == 0, f'Cloud Hill: no solid cell with 3 walkable neighbours (a notch Pip sticks on): {notches}')
+
 def hit(a, b):
     return a[0] < b[2] and b[0] < a[2] and a[1] < b[3] and b[1] < a[3]
 
