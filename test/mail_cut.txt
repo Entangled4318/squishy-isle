@@ -1,0 +1,14 @@
+# step 9.5: a new friend, then the mailbox; the power goes off while the
+# letter is open (the script ends there). The letter must still wait.
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+seek 3000
+tap A
+waitmap 2000
+goto mail 900
+wait 10
+tap A
+wait 60

@@ -1118,6 +1118,22 @@ several small ones. Owner approved six fixes, one commit each:
    for it. A snack, parade or gate scene cancels a poke. Momo on its
    Cloud Hill bed stays scenery (owner, 8.4). Tests: `poke.txt`,
    `poke_pen.txt`, `check_poke.py`.
+5. No lost letters. **Done.** v1.4: the queue held 10 and a full one
+   dropped its oldest, so after a 0 to 80 run with no mailbox visit 70
+   letters were gone. The save stays 144 bytes, version 2: bit 1 of
+   `found[id]` (`LETTER_WAITS`; bit 0 = found) marks a letter that did
+   not fit the queue. Reading one refills the queue's free place from
+   those bits, lowest id first (`letters_refill`), so the first 10 keep
+   their order and the rest come after. `friend_found` tests bit 0 only;
+   `save_sanitize` clears a waiting bit on a friend not found or already
+   queued, and refills. Also: the letter scene used to take the letter
+   off the queue (and save) in `enter()`, while the screen was still
+   white; a power cut then lost it. Now `letter_peek()` in `enter()`,
+   `letter_open()` when the letter closes. Tests: `test_collection.c`
+   (12 letters, 80 letters each once, sanitize), `mash.py` (found 0/1/3,
+   no letter waits outside a queue with room, none in both),
+   `mail_cut.txt` in `check_mail.py` (the script ends with the letter
+   open: the save still has it queued, flag up).
 
 ## What step 3 should do (as promised to the owner)
 

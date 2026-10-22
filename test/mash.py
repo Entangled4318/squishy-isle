@@ -91,9 +91,10 @@ def load_save(path):
 
 def save_problems(s):
     p = []
-    f = s['found']
+    waits = [i for i, v in enumerate(s['found']) if v & 2]  # step 9.5: bit 1 = the letter waits outside the queue
+    f = [v & 1 for v in s['found']]
     in_area = [sum(f[a * 20:a * 20 + 20]) for a in range(4)]
-    if any(v not in (0, 1) for v in f): p.append('found holds a value other than 0 / 1')
+    if any(v not in (0, 1, 3) for v in s['found']): p.append('found holds a value other than 0 / 1 / 3')
     if s['opens'] != sum(f): p.append(f"opens {s['opens']} != found {sum(f)}")
     if s['area'] > 3 or (s['area'] > 0 and in_area[s['area'] - 1] < 10): p.append(f"in area {s['area']}, not open")
     for a in (1, 2, 3):
@@ -111,6 +112,8 @@ def save_problems(s):
     if s['letters'] != [v + 1 for v in q] + [0] * (10 - len(q)): p.append(f"letter queue has a gap {s['letters']}")
     if len(set(q)) != len(q) or any(not f[i] for i in q): p.append(f'letter queue {q}: a repeat or a friend not found')
     if s['mail_new'] != (1 if q else 0): p.append(f"mail flag {s['mail_new']} with {len(q)} letters waiting")
+    if waits and len(q) < 10: p.append(f'letters wait outside a queue with room ({len(q)} in it, {len(waits)} outside)')
+    if set(waits) & set(q): p.append('a letter both in the queue and waiting outside it')
     if s['letter_read'] and not f[s['letter_read'] - 1]: p.append('last letter read from a friend not found')
     x, y = s['pip']
     if x >= 480 or y >= 320: p.append(f'Pip saved at {x},{y}, off the map')

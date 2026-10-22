@@ -15,7 +15,7 @@ static void reset(u32 seed) { memset(&game_save, 0, sizeof game_save); collectio
 
 static void test_sanitize(void) {
     memset(&game_save, 0, sizeof game_save);
-    game_save.found[3] = 7;
+    game_save.found[3] = 5;                         /* bit 2: not a flag the game uses */
     game_save.found[9] = 1;
     game_save.area = 5;
     game_save.pip_x = 300;
@@ -174,10 +174,40 @@ int main(void) {
     CHECK(l3 == 61 && !f3, "then friend 61; the flag goes down with the last one");
     int l4 = letter_open(), f4 = game_save.mail_new;
     CHECK(l4 == 61 && !f4, "none waiting: A re-reads the last letter");
-    for (int i = 0; i < MAX_LETTERS + 2; i++) collection_add(20 + i);
-    int l5 = letter_open();
-    CHECK(l5 == 22 && game_save.letters[MAX_LETTERS - 2] == 20 + MAX_LETTERS + 2,
-          "a full queue drops the oldest letters (%d kept)", MAX_LETTERS);
+    /* step 9.5: a full queue keeps every letter; the ones past 10 wait in found[] and come after */
+    for (int i = 0; i < MAX_LETTERS; i++) collection_add(20 + i);
+    collection_add(79);
+    collection_add(50);
+    CHECK(game_save.letters[MAX_LETTERS - 1] == 30 && game_save.found[79] == 3 && game_save.found[50] == 3 &&
+          friend_found(79) && found_total() == 15, "a full queue: 2 more letters wait outside it, still found");
+    int got[MAX_LETTERS + 2], peek_ok = 1;
+    for (int i = 0; i < MAX_LETTERS + 2; i++) {
+        peek_ok &= letter_peek() == game_save.letters[0] - 1;
+        got[i] = letter_open();
+    }
+    int order_ok = 1;
+    for (int i = 0; i < MAX_LETTERS; i++) order_ok &= got[i] == 20 + i;
+    int fl = game_save.mail_new;
+    CHECK(order_ok && got[MAX_LETTERS] == 50 && got[MAX_LETTERS + 1] == 79 && !fl && peek_ok &&
+          game_save.found[50] == 1 && game_save.found[79] == 1,
+          "all 12 letters come: the first 10 in order, then the waiting ones; the flag goes down after the last");
+    CHECK(letter_peek() == 79 && letter_open() == 79, "peek and A then re-read the last letter");
+    /* the whole island: 80 friends found before the mailbox is visited, 80 letters read */
+    reset(9);
+    for (int id = 0; id < NUM_FRIENDS; id++) collection_add(id);
+    int seen[NUM_FRIENDS] = {0}, reads = 0;
+    while (game_save.letters[0] && reads < 200) { seen[letter_open()]++; reads++; }
+    int all = 1;
+    for (int id = 0; id < NUM_FRIENDS; id++) all &= seen[id] == 1;
+    CHECK(all && reads == NUM_FRIENDS, "80 friends found, then the mailbox: all 80 letters, each once (%d reads)", reads);
+    /* sanitize: a waiting bit on a friend not found, or on a letter already queued, is cleared */
+    reset(10);
+    collection_add(5);
+    game_save.found[6] = 2;
+    game_save.found[5] |= 2;
+    save_sanitize();
+    CHECK(game_save.found[6] == 0 && game_save.found[5] == 1 && game_save.letters[0] == 6 && !game_save.letters[1],
+          "sanitize: waiting bits only on found friends whose letter is not queued");
     collection_new_game(3);
     CHECK(game_save.mail == 0 && !game_save.mail_new && !game_save.letters[0] && !game_save.letter_read,
           "new game empties the mailbox");

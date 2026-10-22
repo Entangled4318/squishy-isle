@@ -17,7 +17,23 @@ static u32 rng_next(void) {
 
 u32 game_rand(void) { return rng_next(); }
 
-bool friend_found(int id) { return game_save.found[id] != 0; }
+/* found[id]: bit 0 = found. Bit 1 (step 9.5) = its letter waits outside the
+ * 10-letter queue; it joins the queue as letters are read, so no letter is lost. */
+#define FOUND        1
+#define LETTER_WAITS 2
+
+bool friend_found(int id) { return (game_save.found[id] & FOUND) != 0; }
+
+/* letters waiting outside the queue fill its free places, lowest friend id first */
+static void letters_refill(void) {
+    int n = 0;
+    while (n < MAX_LETTERS && game_save.letters[n]) n++;
+    for (int id = 0; id < NUM_FRIENDS && n < MAX_LETTERS; id++)
+        if (game_save.found[id] & LETTER_WAITS) {
+            game_save.found[id] &= (u8)~LETTER_WAITS;
+            game_save.letters[n++] = (u8)(id + 1);
+        }
+}
 
 int found_in_area(int area) {
     int n = 0;
@@ -59,16 +75,13 @@ int collection_roll(int area, u32 entropy) {
 
 bool collection_add(int id) {
     if (id < 0 || id >= NUM_FRIENDS || friend_found(id)) return false;
-    game_save.found[id] = 1;
+    game_save.found[id] = FOUND;
     game_save.opens++;
     game_save.mail = (u8)(id + 1);           /* the newest friend (the house starts on its gift) */
     int n = 0;                               /* its letter joins the queue; the mailbox flag goes up */
     while (n < MAX_LETTERS && game_save.letters[n]) n++;
-    if (n == MAX_LETTERS) {                  /* full: the oldest letter makes room */
-        for (int i = 1; i < MAX_LETTERS; i++) game_save.letters[i - 1] = game_save.letters[i];
-        n--;
-    }
-    game_save.letters[n] = (u8)(id + 1);
+    if (n == MAX_LETTERS) game_save.found[id] |= LETTER_WAITS;   /* 9.5: full, it waits its turn (was: dropped the oldest) */
+    else game_save.letters[n] = (u8)(id + 1);
     game_save.mail_new = 1;
     follower_join(id);
     collection_save();
@@ -103,7 +116,7 @@ static void squeeze(u8 *l, int n, bool need_found) {   /* drops bad ids (id + 1 
 
 void save_sanitize(void) {
     SaveData *s = &game_save;
-    for (int i = 0; i < NUM_FRIENDS; i++) s->found[i] = s->found[i] != 0;
+    for (int i = 0; i < NUM_FRIENDS; i++) s->found[i] = (s->found[i] & FOUND) ? s->found[i] & (FOUND | LETTER_WAITS) : 0;
     if (s->area >= AREA_COUNT) {
         s->area = 0;
         s->pip_x = s->pip_y = 0;
@@ -111,6 +124,9 @@ void save_sanitize(void) {
     squeeze(s->followers, MAX_FOLLOWERS, true);
     for (int i = 0; i < 3; i++) squeeze(s->lines[i], MAX_FOLLOWERS, true);
     squeeze(s->letters, MAX_LETTERS, false);
+    for (int i = 0; i < MAX_LETTERS; i++)    /* a letter in the queue does not also wait outside it */
+        if (s->letters[i]) s->found[s->letters[i] - 1] &= (u8)~LETTER_WAITS;
+    letters_refill();
     if (s->mail > NUM_FRIENDS) s->mail = 0;
     if (s->letter_read > NUM_FRIENDS) s->letter_read = 0;
     s->mail_new = s->letters[0] != 0 || (s->mail_new && s->mail);
@@ -129,11 +145,18 @@ void lines_merge(void) {
     memset(game_save.lines, 0, sizeof game_save.lines);
 }
 
+int letter_peek(void) {
+    if (game_save.letters[0]) return game_save.letters[0] - 1;
+    if (game_save.letter_read) return game_save.letter_read - 1;
+    return game_save.mail - 1;
+}
+
 int letter_open(void) {
     int id = game_save.letters[0] - 1;
     if (id >= 0) {                           /* the oldest waiting letter: take it off the queue */
         for (int i = 1; i < MAX_LETTERS; i++) game_save.letters[i - 1] = game_save.letters[i];
         game_save.letters[MAX_LETTERS - 1] = 0;
+        letters_refill();
         game_save.letter_read = (u8)(id + 1);
         game_save.mail_new = game_save.letters[0] != 0;
         collection_save();

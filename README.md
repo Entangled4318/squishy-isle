@@ -116,7 +116,8 @@ visits.
 After each new friend, the meadow mailbox flag waves and an envelope bobs
 over it. Every new friend sends a letter, and the letters wait their
 turn. A by the mailbox opens the oldest one waiting: a happy
-message and the gift it sends. The picnic basket gives snack time: a treat
+message and the gift it sends. No letter is lost: a child who finds all 80
+friends before visiting the mailbox can still read all 80 letters. The picnic basket gives snack time: a treat
 pops out, the followers hop over, take a bite each with a squeak, then go
 back in line. Each area's house has a room with wall shelves for that
 area's 20 gifts. Gifts not received yet are silhouettes. DOWN from the
