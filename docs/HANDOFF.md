@@ -38,6 +38,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
 | 7. QA and final ROM with Brick instructions | Done (v1.1 after the 7.6 fixes); see "Step 7 progress" and `docs/BRICK.md` |
 | 8. Brick test feedback | Done (v1.4): art fixes, letter queue, followers in every area, Momo's heart meter, the way to Momo; see "Step 8 progress" |
+| 9. Fixes from the v1.4 review (child, developer, tester) | In progress; see "Step 9 progress" |
 
 ## Owner notes
 
@@ -1062,6 +1063,24 @@ First Brick test (owner, v1.1): Quit / Continue works. Feedback, and the plan:
    Version "v1.4". 478 checks pass.
 
 Version "v1.2" (still 4 characters, title at f2). 462 checks pass.
+
+## Step 9 progress
+
+A review of v1.4 by three agents (a child's-eye reviewer, a senior GBA
+developer, a QA tester who fuzzed the ROM in mGBA) found one high bug and
+several small ones. Owner approved six fixes, one commit each:
+
+1. Title erase guard. **Done.** v1.4: on "Yes", any A hold of 3 s started
+   over, and the harness's own toddler model (`mash`: "leans on one
+   button") wiped a save with friends in ~0.7% of boots (4 of 40 when it
+   starts on "Yes"). Now the hearts fill only while exactly SELECT + A are
+   held (`HOLD_KEYS`, `(held & KEY_ANY) == HOLD_KEYS`); A alone blips, any
+   other button empties them. On "Yes" line 2 reads "Grown-ups: hold
+   SELECT and A" and the A icon hides. Tests: `title_reset.txt` /
+   `check_title.py` (A alone and A + L + SELECT for 200 frames fill no
+   hearts; SELECT + A for 180 starts over), `mash.py title_mash` (40
+   toddlers, 300 in the soak, mash 900 frames from "Yes"; fails on any
+   `title start new`; it fails on v1.4).
 
 ## What step 3 should do (as promised to the owner)
 

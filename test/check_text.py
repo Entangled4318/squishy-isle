@@ -43,9 +43,9 @@ STRIPS = [   # where (source: strip_init), width in px, the texts printed there
     ('reveal and close-up name (closeup.c, 16 tiles)', 16 * 8, NAMES),
     ('house pill (house.c, 16 tiles)', 16 * 8, ['From ' + n for n in NAMES] + ['Find me!']),
     ('letter lines (letter.c, 13 tiles, left aligned)', 13 * 8, NAMES + LETTER),
-    ('title options (title.c, 12 tiles)', 12 * 8, ['Play', 'Continue', 'New game', 'No', 'Yes, hold A']),
+    ('title options (title.c, 12 tiles)', 12 * 8, ['Play', 'Continue', 'New game', 'No', 'Yes']),
     ('title confirm lines (title.c, 16 and 24 tiles)', 16 * 8, ['Start over?']),
-    ('title confirm line 2 (title.c, 24 tiles)', 24 * 8, ['Your friends will go home.']),
+    ('title confirm line 2 (title.c, 24 tiles)', 24 * 8, ['Your friends will go home.', 'Grown-ups: hold SELECT and A']),
     ('map counter (viewer.c, 4 tiles after the icon)', 4 * 8, [f'{n}/20' for n in range(21)] + [f'{n}/10' for n in range(11)]),
 ]
 for where, room, texts in STRIPS:

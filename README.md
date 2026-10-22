@@ -134,9 +134,10 @@ along. It plays once per area and takes about 7 seconds.
 ## For grown-ups
 
 - **New game** is only on the title screen. With friends on the save, it
-  asks "Start over?" with No first, and Yes needs A held for 3 seconds
-  while six hearts fill. A button-mashing toddler cannot erase the
-  collection.
+  asks "Start over?" with No first. On Yes, a grown-up holds SELECT and A
+  together for 3 seconds while six hearts fill. A alone does nothing there,
+  and any other button empties the hearts, so a button-mashing toddler
+  cannot erase the collection.
 - **Saves** are automatic: after each new friend, after a letter, after a
   follower change, at each door and area change, and when Pip stands
   still for 1 second. The save has two copies with a CRC-32 check, so a

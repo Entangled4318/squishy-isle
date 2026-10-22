@@ -17,7 +17,12 @@ tap A
 wait 20
 tap RIGHT
 wait 4
-hold A 60
+shot t06b_yes_hint
+hold A 200
+shot t06c_a_alone
+hold A+L+SELECT 200
+shot t06d_three_keys
+hold SELECT+A 60
 shot t07_hold_part
 wait 30
 shot t08_released
@@ -33,6 +38,6 @@ tap LEFT
 wait 4
 tap RIGHT
 wait 4
-hold A 185
+hold SELECT+A 185
 wait 40
 shot t09_new_game_meadow

@@ -181,7 +181,25 @@ def run(name, args, seed):
     return summary
 
 
+def title_mash(runs, frames):
+    """Step 9.1: a toddler mashes on the start-over screen with "Yes" already chosen,
+    the worst place to start. Any "title start new" is a wiped collection."""
+    sav = os.path.join(OUT, 'mash_title.sav')
+    wiped = []
+    for seed in range(1, runs + 1):
+        if os.path.exists(sav): os.remove(sav)
+        subprocess.run([sys.executable, os.path.join(HERE, 'make_save.py'), sav, '0,1,2,3,4,5', '0,1'], check=True)
+        script = os.path.join(OUT, 'mash_title.txt')
+        open(script, 'w').write(f'wait 20\ntap A\nwait 15\ntap RIGHT\nwait 4\ntap A\nwait 20\ntap RIGHT\nwait 4\n'
+                                f'mash {1000 + seed} {frames}\n')
+        log = subprocess.run([HARNESS, ROM, sav, script, OUT], capture_output=True, check=True).stdout.decode('utf-8', 'replace')
+        if 'title confirm' not in log: wiped.append(f'{seed}: never reached the start-over screen')
+        if 'title start new' in log: wiped.append(str(seed))
+    check(not wiped, f'title mash: {runs} toddlers mashing on "Yes" never start over ({len(wiped)} did: {" ".join(wiped[:5])})')
+
+
 if __name__ == '__main__':
+    title_mash(300 if SOAK else 40, 900)
     totals, worst_lines, worst_enter = {}, {}, {}
     for seed in SEEDS:
         for name, args in SAVES:

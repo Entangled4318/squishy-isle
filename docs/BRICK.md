@@ -43,7 +43,8 @@ too old and starts a new game.
 ## For grown-ups
 
 - New game is only on the title screen. With friends on the save it asks
-  "Start over?" with No first, and Yes needs A held for 3 seconds.
+  "Start over?" with No first. On Yes, hold SELECT and A together for
+  3 seconds (A alone does nothing).
 - Nothing in play deletes friends. SELECT does nothing.
 - Hardware check: hold L + R + SELECT while the game starts. It shows the
   buttons, a sound, the save and the boot count.
