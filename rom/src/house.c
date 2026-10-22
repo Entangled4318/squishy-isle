@@ -77,16 +77,16 @@ static void enter(void) {
 
     /* start on the newest friend's gift when it lives here, else the first one found */
     sel_x = sel_y = 0;
-    int want = game_save.mail ? game_save.mail - 1 : -1, n = 0, first = -1;
+    int want = game_save.mail ? game_save.mail - 1 : -1, n = 0, first = -1, newest = -1;
     for (int y = 0; y < 2; y++)
         for (int x = 0; x < 10; x++) {
             int id = gift_id(x, y);
             if (!friend_found(id)) continue;
             n++;
             if (first < 0) first = y * 10 + x;
-            if (id == want) first = -100 - (y * 10 + x);
+            if (id == want) newest = y * 10 + x;   /* 9.6: its own variable (a later found gift overwrote the mark) */
         }
-    if (first <= -100) first = -100 - first;
+    if (newest >= 0) first = newest;
     if (first >= 0) {
         sel_x = first % 10;
         sel_y = first / 10;

@@ -1,0 +1,10 @@
+# step 9.6: the newest friend is Vanilla Bunny (slot 0) and Strawberry Bunny is
+# found too: the arrow must start on the newest friend's gift
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+walkto 232 106 1500
+hold UP 20
+wait 40

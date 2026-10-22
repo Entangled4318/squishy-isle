@@ -60,6 +60,9 @@ check('scene house area 1 gifts 1 sel 36' in open(os.path.join(OUT, 'house_long.
       min(ink) >= 53 and max(ink) <= 186,
       f'"From Strawberry Shroom" fits inside the pill with room at both ends (text x {ink and min(ink)}..{ink and max(ink)}, '
       f'pill 48..191)')
+new = re.search(r'scene house area 0 gifts (\d+) sel (\d+)', open(os.path.join(OUT, 'house_new.log')).read())
+check(new and new.groups() == ('4', '0'),
+      f'the arrow starts on the newest friend\'s gift even when a later gift is found too (9.6; {new and new.groups()})')
 if fails:
     sys.exit(1)
 print('all house checks passed')

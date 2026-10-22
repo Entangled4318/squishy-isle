@@ -122,6 +122,8 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	./$(HARNESS) $(ROM) $(OUT)/house_c.sav house_clouds.txt $(OUT) > $(OUT)/house_clouds.log
 	python3 make_save.py $(OUT)/house_long.sav $$(seq -s, 0 9),36 "" - 1
 	./$(HARNESS) $(ROM) $(OUT)/house_long.sav house_long.txt $(OUT) > $(OUT)/house_long.log
+	python3 make_save.py $(OUT)/house_new.sav 0,1,6,7 0 - 0 - 0,0 0
+	./$(HARNESS) $(ROM) $(OUT)/house_new.sav house_new.txt $(OUT) > $(OUT)/house_new.log
 	python3 check_house.py $(OUT)
 	python3 make_save.py $(OUT)/shelf_exits.sav 0,1,6,7,12 0
 	./$(HARNESS) $(ROM) $(OUT)/shelf_exits.sav shelf_exits.txt $(OUT) > $(OUT)/shelf_exits.log

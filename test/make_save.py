@@ -1,5 +1,6 @@
 """Writes a version 2 save with chosen friends, for screenshots and tests.
-Usage: make_save.py FILE FOUND_IDS FOLLOWER_IDS [GATES [AREA [PARADES [POS]]]]   (comma lists, e.g. 0,3,7 5,2)
+Usage: make_save.py FILE FOUND_IDS FOLLOWER_IDS [GATES [AREA [PARADES [POS [MAIL]]]]]   (comma lists, e.g. 0,3,7 5,2)
+MAIL: the newest friend id (default none).
 POS: x,y where Pip stood still (Continue puts him there); default none (the area's start).
 PARADES: bit n = area n's full-page parade has played (default: every full area).
 GATES: bit n = the way into area n + 1 is built (its scene played). By
@@ -33,7 +34,9 @@ if len(sys.argv) > 6 and sys.argv[6] != '-':
 pos = (0, 0)
 if len(sys.argv) > 7:
     pos = tuple(int(v) for v in sys.argv[7].split(','))      # POS: Pip's saved spot
-body += bytes(fol) + b'\0' + struct.pack('<HHBB', pos[0], pos[1], area, gates) + bytes(11) + bytes([parades]) + bytes(14)
+mail = int(sys.argv[8]) + 1 if len(sys.argv) > 8 else 0  # MAIL: the newest friend (the house starts on its gift)
+body += bytes(fol) + b'\0' + struct.pack('<HHBB', pos[0], pos[1], area, gates) + bytes(9) + bytes([mail, 0])
+body += bytes([parades]) + bytes(14)
 assert len(body) == 140
 slot = body + struct.pack('<I', checksum(body))
 sram = bytearray(b'\xff' * 0x8000)

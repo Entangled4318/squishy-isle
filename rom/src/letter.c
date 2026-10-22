@@ -105,6 +105,8 @@ static void draw(void) {
      * starts at most 96 px down: the 256 px map wraps, and rows 160..255
      * are the only blank ones above the card */
     int rise = t < RISE ? CARD_LOW - CARD_LOW * (t - FLAP) / (RISE - FLAP) : 0;
+    if (rise > CARD_LOW) rise = CARD_LOW;   /* 9.6: BG0/1 turn on now, but this scroll lands next frame: the frame
+                                             * before must already show blank rows (98 showed a 2 px sliver) */
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D | (t >= FLAP ? DCNT_BG0 | DCNT_BG1 : 0);
     for (int i = 0; i <= 2; i++) {
         bg_scroll_x[i] = 0;

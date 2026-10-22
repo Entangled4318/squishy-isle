@@ -1134,6 +1134,20 @@ several small ones. Owner approved six fixes, one commit each:
    no letter waits outside a queue with room, none in both),
    `mail_cut.txt` in `check_mail.py` (the script ends with the letter
    open: the save still has it queued, flag up).
+6. Small fixes. **Done.** (a) House cursor: the "newest gift" mark was a
+   negative `first`, overwritten by the next found gift in scan order
+   (newest Vanilla Bunny + Strawberry Bunny found: the arrow started on
+   Strawberry, v1.4 `sel 1`). Own variable `newest`. Test: `house_new.txt`
+   in `check_house.py` (`make_save.py` takes MAIL as an 8th argument).
+   (b) Letter card: `rise` at `t = FLAP - 1` was 98, and BG0/1 turn on in
+   `draw()` while the scroll lands a frame later, so the card's first
+   frame sat 2 px low, then jumped (seen frame by frame in mGBA, old vs
+   new). Clamped to `CARD_LOW`. (c) Shelf page turn: `load_page()` wrote
+   tiles and OBJ palettes mid-frame while OAM still held the old page's
+   found / silhouette palettes; v1.4 showed one frame of every woods
+   friend in full color. Now L / R set `page_turning`; that frame hides
+   the 27 friend, twinkle and badge sprites; the next update loads the
+   page first. One blank-shelf frame instead.
 
 ## What step 3 should do (as promised to the owner)
 
