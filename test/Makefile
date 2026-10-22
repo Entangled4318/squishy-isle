@@ -121,6 +121,9 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	python3 make_save.py $(OUT)/house_long.sav $$(seq -s, 0 9),36 "" - 1
 	./$(HARNESS) $(ROM) $(OUT)/house_long.sav house_long.txt $(OUT) > $(OUT)/house_long.log
 	python3 check_house.py $(OUT)
+	python3 make_save.py $(OUT)/shelf_exits.sav 0,1,6,7,12 0
+	./$(HARNESS) $(ROM) $(OUT)/shelf_exits.sav shelf_exits.txt $(OUT) > $(OUT)/shelf_exits.log
+	python3 check_exits.py $(OUT)
 	python3 make_save.py $(OUT)/parade.sav $$(seq -s, 0 19) 0,1,2 - 0 0
 	./$(HARNESS) $(ROM) $(OUT)/parade.sav parade.txt $(OUT) > $(OUT)/parade.log
 	python3 make_full_loop.py > $(OUT)/full.txt

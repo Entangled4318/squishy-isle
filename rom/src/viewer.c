@@ -462,6 +462,7 @@ static void save_pos(bool now) {
 }
 
 static void enter(void) {
+    closeup_streak = 0;                        /* 9.3: back on the map, the A-only count starts again */
     if (travel_to >= 0) {                      /* walked in from another area */
         game_save.area = (u8)travel_to;
         pip_x = travel_x << 8;

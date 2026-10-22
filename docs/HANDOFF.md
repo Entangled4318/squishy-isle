@@ -1096,6 +1096,17 @@ several small ones. Owner approved six fixes, one commit each:
    `test_save.c` (newer slot untouched over 5 saves and a reboot, both
    slots newer, crc_only), `test_collection.c test_sanitize`,
    `check_save.py` (a v3 save with friends: two boots, slot 0 untouched).
+3. Ways out. **Done.** v1.4 left the house and the shelf only with B or
+   START; a child on A and the D-pad stayed in, and the soak spent ~78%
+   of scene visits on shelf / close-up. House: UP picks the top row, DOWN
+   the bottom row, DOWN on the bottom row walks out (`house leave
+   (down)`). Shelf (and picker): DOWN past row 3 goes back to the map
+   (`shelf leave (down)`). A only: `closeup_streak` counts close-ups
+   ended by 3 squishes; the 3rd in a row goes to the map with a boing
+   (`closeup streak: back to the map`). Any D-pad, L or R on the shelf,
+   B or START in the close-up, or the map resets it. Tests:
+   `house_meadow.txt` leaves with DOWN (`check_house.py`),
+   `shelf_exits.txt` / `check_exits.py`.
 
 ## What step 3 should do (as promised to the owner)
 

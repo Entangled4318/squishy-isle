@@ -109,6 +109,9 @@ Friends, pen and shelf
 - [ ] The heart sign opens the picker in every area; the big heart badges
       mark the followers; A adds or removes one.
 - [ ] START then A on a friend opens it big; 3 squishes go back.
+- [ ] On the shelf, DOWN past the bottom row goes back to the map. Press
+      only A on the shelf: the 3rd close-up in a row goes back to the
+      map. (v1.5)
 
 Mailbox, snack, houses
 
@@ -120,7 +123,8 @@ Mailbox, snack, houses
 - [ ] Snack time at the basket: a treat pops out, the followers hop over
       and squeak; the pace feels cosy.
 - [ ] Walk up into each house door: the room shows that area's gifts;
-      long names such as "From Strawberry Shroom" fit the pill.
+      long names such as "From Strawberry Shroom" fit the pill. DOWN on
+      the bottom row walks Pip back out of the door. (v1.5)
 
 Areas and Momo
 

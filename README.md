@@ -25,7 +25,7 @@ settings (integer 4x scale, no smoothing) and the Brick test checklist.
 
 | Button | On the map | Elsewhere |
 | --- | --- | --- |
-| D-pad | Walk | Move the cursor |
+| D-pad | Walk | Move the cursor; DOWN past the bottom row of the shelf or a house goes back out |
 | A | Open a container, read the mailbox, snack time, pen sign | Squish, choose |
 | B | Pip hops (the followers hop after him); also opens a container | Squish, go back |
 | START | Open the Squishy Shelf | Go back |
@@ -119,7 +119,12 @@ turn. A by the mailbox opens the oldest one waiting: a happy
 message and the gift it sends. The picnic basket gives snack time: a treat
 pops out, the followers hop over, take a bite each with a squeak, then go
 back in line. Each area's house has a room with wall shelves for that
-area's 20 gifts. Gifts not received yet are silhouettes.
+area's 20 gifts. Gifts not received yet are silhouettes. DOWN from the
+bottom row walks Pip back out of the door.
+
+A child who presses only A on the shelf gets three close-ups in a row,
+then the third one goes back to the map, so the shelf never becomes a loop
+with no way out.
 
 ![Mailbox flag up, a letter, snack time, a house room](docs/readme/extras.png)
 

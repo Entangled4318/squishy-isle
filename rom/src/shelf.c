@@ -144,6 +144,8 @@ static void draw(void) {
 static void update(void) {
     u16 hit = key_hit();
     int r = cur_r, c = cur_c;
+    bool walk_out = (hit & KEY_DOWN) && r == 3;   /* 9.3: DOWN past the bottom row goes back to the map */
+    if (hit & (KEY_LEFT | KEY_RIGHT | KEY_UP | KEY_DOWN | KEY_L | KEY_R)) closeup_streak = 0;
     if (hit & KEY_LEFT && c > 0) c--;
     if (hit & KEY_RIGHT && c < 4) c++;
     if (hit & KEY_UP && r > 0) r--;
@@ -173,7 +175,7 @@ static void update(void) {
                 dbg("pick add %d", id);
             }
         }
-        if (hit & (KEY_START | KEY_B)) {
+        if ((hit & (KEY_START | KEY_B)) || walk_out) {
             shelf_pick = false;
             sfx_chime(2);
             dbg("pick done %d %d %d", follower_get(0), follower_get(1), follower_get(2));
@@ -198,8 +200,9 @@ static void update(void) {
             sfx_blip();
         }
     }
-    if (hit & (KEY_START | KEY_B)) {
+    if ((hit & (KEY_START | KEY_B)) || walk_out) {
         sfx_chime(2);
+        if (walk_out) dbg("shelf leave (down)");
         scene_go(&scene_meadow_view);
     }
     draw();

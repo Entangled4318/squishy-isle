@@ -145,7 +145,9 @@ static void update(void) {
     int ox = sel_x, oy = sel_y;
     if (hit & KEY_LEFT) sel_x = (sel_x + 9) % 10;
     if (hit & KEY_RIGHT) sel_x = (sel_x + 1) % 10;
-    if (hit & (KEY_UP | KEY_DOWN)) sel_y ^= 1;
+    if (hit & KEY_UP) sel_y = 0;
+    bool walk_out = (hit & KEY_DOWN) && sel_y == 1;   /* 9.3: DOWN from the bottom row walks out the door */
+    if (hit & KEY_DOWN) sel_y = 1;
     if (sel_x != ox || sel_y != oy) {
         sfx_tick();
         hop_t = -1;
@@ -162,9 +164,9 @@ static void update(void) {
         }
         dbg("house pick %d found %d", id, friend_found(id));
     }
-    if (hit & (KEY_B | KEY_START)) {
+    if ((hit & (KEY_B | KEY_START)) || walk_out) {
         sfx_blip();
-        dbg("house leave");
+        dbg("house leave%s", walk_out ? " (down)" : "");
         scene_go(&scene_meadow_view);
     }
     draw();
