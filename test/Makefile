@@ -36,6 +36,10 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	python3 make_v1_save.py $(OUT)/v1.sav
 	./$(HARNESS) $(ROM) $(OUT)/v1.sav boot_only.txt $(OUT) > $(OUT)/savev1.log
 	./$(HARNESS) $(ROM) $(OUT)/v1.sav boot_only.txt $(OUT) > $(OUT)/savev1b.log
+	python3 make_save.py $(OUT)/v3.sav 0,1,2,3,4 0,1
+	python3 -c "import sys; p = sys.argv[1]; b = bytearray(open(p, 'rb').read()); b[4] = 3; open(p, 'wb').write(b); open(p + '.orig', 'wb').write(b)" $(OUT)/v3.sav
+	./$(HARNESS) $(ROM) $(OUT)/v3.sav boot_only.txt $(OUT) > $(OUT)/savev3.log
+	./$(HARNESS) $(ROM) $(OUT)/v3.sav boot_only.txt $(OUT) > $(OUT)/savev3b.log
 	python3 check_save.py $(OUT)
 	./$(HARNESS) $(ROM) $(OUT)/boxes.sav step3_boxes.txt $(OUT) > $(OUT)/boxes.log
 	./$(HARNESS) $(ROM) $(OUT)/boxes.sav boot_only.txt $(OUT) > $(OUT)/boxes_reboot.log

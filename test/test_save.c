@@ -121,9 +121,55 @@ int main(void) {
     stamp(&d, 77);
     save_store(&d);
     s = (SaveData *)(fake_sram + active_slot * SLOT_SIZE);
+    s->crc_only = 0;                                  /* as written before step 9.2 */
     s->checksum = checksum_old(s);
     CHECK(save_load(&got) == SAVE_LOADED && same(&got, &d), "a save with the old checksum still loads");
     CHECK(s->checksum != checksum(s), "new saves use the CRC-32, not the old sum");
+
+    /* step 9.2: a save written since 9.2 is marked; the old sum no longer passes for it */
+    memset(fake_sram, 0xFF, sizeof fake_sram);
+    save_load(&d);
+    stamp(&d, 78);
+    save_store(&d);
+    s = (SaveData *)(fake_sram + active_slot * SLOT_SIZE);
+    CHECK(s->crc_only == 1, "new saves are marked crc_only");
+    s->checksum = checksum_old(s);
+    CHECK(save_load(&got) != SAVE_LOADED, "a crc_only save that only matches the old sum is not loaded");
+
+    /* step 9.2: a save from a newer version (a parent went back to an older ROM) is never overwritten */
+    memset(fake_sram, 0xFF, sizeof fake_sram);
+    save_load(&d);
+    stamp(&d, 300);
+    save_store(&d);                                   /* slot 0 */
+    s = (SaveData *)(fake_sram + 0 * SLOT_SIZE);
+    s->version = SAVE_VERSION + 1;
+    u8 v3[SLOT_SIZE];
+    memcpy(v3, fake_sram, SLOT_SIZE);
+    CHECK(save_load(&got) == SAVE_BROKEN, "a newer-version save is not read as this version");
+    for (u32 n = 1; n <= 5; n++) {
+        stamp(&got, 400 + n);
+        save_store(&got);
+    }
+    CHECK(!memcmp(fake_sram, v3, SLOT_SIZE), "five saves later the newer-version slot is untouched");
+    CHECK(save_load(&got) == SAVE_LOADED && got.opens == 405, "play still saves, in the other slot");
+    stamp(&got, 406);
+    save_store(&got);
+    CHECK(!memcmp(fake_sram, v3, SLOT_SIZE), "after a reboot the newer-version slot is still untouched");
+
+    /* both slots newer: the newest of them is kept */
+    memset(fake_sram, 0xFF, sizeof fake_sram);
+    save_load(&d);
+    for (u32 n = 1; n <= 2; n++) {
+        stamp(&d, 500 + n);
+        save_store(&d);
+    }
+    for (int k = 0; k < 2; k++) ((SaveData *)(fake_sram + k * SLOT_SIZE))->version = SAVE_VERSION + 1;
+    int newest = active_slot;
+    u8 keep[SLOT_SIZE];
+    memcpy(keep, fake_sram + newest * SLOT_SIZE, SLOT_SIZE);
+    save_load(&got);
+    for (u32 n = 1; n <= 3; n++) save_store(&got);
+    CHECK(!memcmp(fake_sram + newest * SLOT_SIZE, keep, SLOT_SIZE), "both slots newer: the newest one is kept");
 
     if (fails) { printf("%d save check(s) FAILED\n", fails); return 1; }
     printf("all save unit checks passed\n");

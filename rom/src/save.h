@@ -23,7 +23,7 @@ typedef struct {
     u32 opens;                /* containers opened, all areas */
     u32 rng;                  /* roll state, kept so every boot rolls differently */
     u8 followers[MAX_FOLLOWERS];  /* friend id + 1 (any area, 8.3), 0 = empty; [0] walks nearest Pip */
-    u8 pad;
+    u8 crc_only;              /* step 9.2: 1 = written with the CRC; the old sum is then not accepted */
     u16 pip_x, pip_y;         /* position (feet) in `area` for Continue; 0,0 = the area's start */
     u8 area;                  /* area Pip is in: 0 meadow, 1 woods, 2 shore, 3 cloud hill */
     u8 gates;                 /* bit n set: the way into area n + 1 is built (its scene has played) */
@@ -48,6 +48,7 @@ _Static_assert(__builtin_offsetof(SaveData, area) == 112, "test/harness.c reads 
 typedef enum { SAVE_NEW, SAVE_LOADED, SAVE_BROKEN } SaveStatus;
 
 SaveStatus save_load(SaveData *out);   /* fills defaults when nothing valid */
-bool save_store(SaveData *d);          /* writes the other slot, verifies it */
+bool save_store(SaveData *d);          /* writes the other slot, verifies it; never a slot that
+                                        * holds a save of a newer version (step 9.2) */
 
 #endif

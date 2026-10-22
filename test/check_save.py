@@ -23,6 +23,12 @@ check('save: reset v2 boots=1' in log('savev1'), 'an old version 1 save is repla
 check('save: loaded v2 boots=2' in log('savev1b'), 'the replaced save loads on the next boot')
 check(all('FAILED' not in log(n) for n in ('save1', 'save2', 'savev1', 'savev1b')), 'no save write errors')
 
+# step 9.2: a save from a newer version (going back to an older ROM) is not overwritten
+v3, v3_orig = (open(os.path.join(OUT, n), 'rb').read() for n in ('v3.sav', 'v3.sav.orig'))
+check('save: reset' in log('savev3') and 'save: loaded v2 boots=2' in log('savev3b'),
+      'a newer-version save plays as a fresh game in the other slot')
+check(v3[:0x100] == v3_orig[:0x100], 'two boots later the newer-version slot is untouched')
+
 sav = open(os.path.join(OUT, 'game.sav'), 'rb').read()
 slots = [struct.unpack_from('<IHH', sav, off) for off in (0, 0x100)]
 check(all(s[0] == 0x53495153 and s[1] == 2 for s in slots), 'both SRAM slots hold version 2 saves after two boots')

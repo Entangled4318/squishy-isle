@@ -91,6 +91,31 @@ void collection_new_game(u32 seed) {
     collection_save();
 }
 
+/* Step 9.2: a save can pass its checksum and still hold values the game
+ * never writes (a hand-edited file, a future bug). Every scene indexes
+ * arrays with these, so they are put in range once, at boot. */
+static void squeeze(u8 *l, int n, bool need_found) {   /* drops bad ids (id + 1 > 80), closes gaps */
+    int k = 0;
+    for (int i = 0; i < n; i++)
+        if (l[i] && l[i] <= NUM_FRIENDS && (!need_found || friend_found(l[i] - 1))) l[k++] = l[i];
+    while (k < n) l[k++] = 0;
+}
+
+void save_sanitize(void) {
+    SaveData *s = &game_save;
+    for (int i = 0; i < NUM_FRIENDS; i++) s->found[i] = s->found[i] != 0;
+    if (s->area >= AREA_COUNT) {
+        s->area = 0;
+        s->pip_x = s->pip_y = 0;
+    }
+    squeeze(s->followers, MAX_FOLLOWERS, true);
+    for (int i = 0; i < 3; i++) squeeze(s->lines[i], MAX_FOLLOWERS, true);
+    squeeze(s->letters, MAX_LETTERS, false);
+    if (s->mail > NUM_FRIENDS) s->mail = 0;
+    if (s->letter_read > NUM_FRIENDS) s->letter_read = 0;
+    s->mail_new = s->letters[0] != 0 || (s->mail_new && s->mail);
+}
+
 /* A save from before 8.3 has a line per area: the one line becomes the
  * line of the area Pip is in (what the child saw last), else the meadow's. */
 void lines_merge(void) {
@@ -163,13 +188,14 @@ void follower_remove(int id) {
 
 void collection_init(void) {
     SaveStatus st = save_load(&game_save);
+    save_sanitize();
     game_save.boots++;
     if (game_save.mail_new && !game_save.letters[0] && game_save.mail)   /* before 8.2: one unread letter */
         game_save.letters[0] = game_save.mail;
     lines_merge();
     dbg("save: %s v%d boots=%u found=%d opens=%u", st == SAVE_LOADED ? "loaded" : st == SAVE_NEW ? "new" : "reset",
         SAVE_VERSION, game_save.boots, found_total(), (unsigned)game_save.opens);
-    collection_save();
+    collection_save();                       /* never over a newer version's slot (save.c keep_slot) */
 }
 
 bool collection_save(void) {

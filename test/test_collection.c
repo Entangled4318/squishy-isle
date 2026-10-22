@@ -13,7 +13,38 @@ bool collection_save(void) { return true; }
 
 static void reset(u32 seed) { memset(&game_save, 0, sizeof game_save); collection_new_game(seed); }
 
+static void test_sanitize(void) {
+    memset(&game_save, 0, sizeof game_save);
+    game_save.found[3] = 7;
+    game_save.found[9] = 1;
+    game_save.area = 5;
+    game_save.pip_x = 300;
+    game_save.followers[0] = 200;                     /* out of range */
+    game_save.followers[1] = 4;                       /* friend 3: found */
+    game_save.followers[2] = 6;                       /* friend 5: not found */
+    game_save.letters[0] = 0;
+    game_save.letters[1] = 81;                        /* out of range */
+    game_save.letters[2] = 10;
+    game_save.mail = 99;
+    game_save.letter_read = 250;
+    game_save.lines[1][0] = 90;
+    save_sanitize();
+    CHECK(game_save.found[3] == 1 && game_save.found[9] == 1 && found_total() == 2, "sanitize: found flags become 0 or 1");
+    CHECK(game_save.area == 0 && game_save.pip_x == 0, "sanitize: an area past Cloud Hill becomes the meadow start");
+    CHECK(game_save.followers[0] == 4 && !game_save.followers[1] && !game_save.followers[2],
+          "sanitize: followers keep only found friends, closed up");
+    CHECK(game_save.letters[0] == 10 && !game_save.letters[1] && game_save.mail_new == 1,
+          "sanitize: bad letters drop, the queue closes up, the flag follows it");
+    CHECK(!game_save.mail && !game_save.letter_read && !game_save.lines[1][0], "sanitize: mail, letter_read and old lines in range");
+    reset(1);
+    collection_add(4);
+    SaveData before = game_save;
+    save_sanitize();
+    CHECK(!memcmp(&before, &game_save, sizeof before), "sanitize: a normal save is not changed");
+}
+
 int main(void) {
+    test_sanitize();
     /* play every area to the end for many games: never a repeat, never outside the area */
     int repeats = 0, outside = 0, short_area = 0, extra = 0;
     for (u32 seed = 1; seed <= 2000; seed++) {

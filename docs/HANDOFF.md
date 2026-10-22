@@ -1081,6 +1081,21 @@ several small ones. Owner approved six fixes, one commit each:
    hearts; SELECT + A for 180 starts over), `mash.py title_mash` (40
    toddlers, 300 in the soak, mash 900 frames from "Yes"; fails on any
    `title start new`; it fails on v1.4).
+2. Save safety. **Done.** (a) v1.4 read any version but 2 as broken and
+   wrote a fresh save over slot 0 at boot: going back from a newer ROM
+   wiped the collection. `save.c keep_slot`: a slot whose magic matches
+   and whose version is newer (the newest of two) is never written;
+   play saves in the other slot (no power-cut fallback then, but the
+   newer save lives). (b) `save_sanitize()` at boot (`collection.c`, host
+   tested): found flags 0/1, an area past 3 becomes the meadow start,
+   follower / old line ids must be in range and found, letters in range
+   and closed up, `mail` and `letter_read` in range. The shelf did not
+   clamp `area` (`page_maps[page]` out of bounds). (c) The old `pad` byte
+   is `crc_only`: set by every write; such a save must match the CRC (the
+   rotate-add sum is accepted only for saves from before). Tests:
+   `test_save.c` (newer slot untouched over 5 saves and a reboot, both
+   slots newer, crc_only), `test_collection.c test_sanitize`,
+   `check_save.py` (a v3 save with friends: two boots, slot 0 untouched).
 
 ## What step 3 should do (as promised to the owner)
 
