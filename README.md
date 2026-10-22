@@ -26,7 +26,7 @@ settings (integer 4x scale, no smoothing) and the Brick test checklist.
 | Button | On the map | Elsewhere |
 | --- | --- | --- |
 | D-pad | Walk | Move the cursor; DOWN past the bottom row of the shelf or a house goes back out |
-| A | Open a container, read the mailbox, snack time, pen sign | Squish, choose |
+| A | Open a container, read the mailbox, snack time, pen sign; anywhere else, squish the nearest friend or tickle a sleeping Momo | Squish, choose |
 | B | Pip hops (the followers hop after him); also opens a container | Squish, go back |
 | START | Open the Squishy Shelf | Go back |
 | L / R | Nothing | Turn shelf pages |

@@ -1107,6 +1107,17 @@ several small ones. Owner approved six fixes, one commit each:
    B or START in the close-up, or the map resets it. Tests:
    `house_meadow.txt` leaves with DOWN (`check_house.py`),
    `shelf_exits.txt` / `check_exits.py`.
+4. A on the map always does something. **Done.** v1.4: A with nothing in
+   reach only ticked. `poke_try()` runs where the tick was (after boxes,
+   sign, mailbox and basket): by a sleeping Momo (`npc_near`) Momo
+   giggles (2 hops, a 1 px wiggle) with a boing and the newest meter
+   heart hops again (a heart over Momo hid behind the meter); else the
+   nearest follower or pen friend within `POKE_R` (28 px, feet to feet)
+   shows its squish frame (tile + 4) for 10 frames, hops, squeaks in its
+   flavor, and a heart (`T_SPARK + 3`) floats up. A pen friend stands still
+   for it. A snack, parade or gate scene cancels a poke. Momo on its
+   Cloud Hill bed stays scenery (owner, 8.4). Tests: `poke.txt`,
+   `poke_pen.txt`, `check_poke.py`.
 
 ## What step 3 should do (as promised to the owner)
 

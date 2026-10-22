@@ -124,6 +124,11 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	python3 make_save.py $(OUT)/shelf_exits.sav 0,1,6,7,12 0
 	./$(HARNESS) $(ROM) $(OUT)/shelf_exits.sav shelf_exits.txt $(OUT) > $(OUT)/shelf_exits.log
 	python3 check_exits.py $(OUT)
+	python3 make_save.py $(OUT)/poke.sav 0,1,2,3,4,5,6,7,8 0,1
+	./$(HARNESS) $(ROM) $(OUT)/poke.sav poke.txt $(OUT) > $(OUT)/poke.log
+	python3 make_save.py $(OUT)/poke_pen.sav 0,1,2,3,4,5,6,7,8 ""
+	./$(HARNESS) $(ROM) $(OUT)/poke_pen.sav poke_pen.txt $(OUT) > $(OUT)/poke_pen.log
+	python3 check_poke.py $(OUT)
 	python3 make_save.py $(OUT)/parade.sav $$(seq -s, 0 19) 0,1,2 - 0 0
 	./$(HARNESS) $(ROM) $(OUT)/parade.sav parade.txt $(OUT) > $(OUT)/parade.log
 	python3 make_full_loop.py > $(OUT)/full.txt

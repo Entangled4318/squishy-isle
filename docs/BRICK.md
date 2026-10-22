@@ -109,6 +109,9 @@ Friends, pen and shelf
 - [ ] The heart sign opens the picker in every area; the big heart badges
       mark the followers; A adds or removes one.
 - [ ] START then A on a friend opens it big; 3 squishes go back.
+- [ ] A on the map near a follower or by the pen fence: the nearest friend
+      squishes with its squeak and a heart floats up. A by a sleeping Momo:
+      Momo giggles and hops, the newest meter heart hops. (v1.5)
 - [ ] On the shelf, DOWN past the bottom row goes back to the map. Press
       only A on the shelf: the 3rd close-up in a row goes back to the
       map. (v1.5)
