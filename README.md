@@ -6,14 +6,14 @@ around a pastel island, opens surprise containers, squishes the mochi
 friends inside and fills the Squishy Shelf. There are no battles, no fail
 states and no timers, and the child does not need to read.
 
-Version 1.1. All screenshots on this page come from the ROM, running on
-the mGBA emulator core, shown at 2x.
+Version 1.5. All screenshots on this page come from the ROM (taken at
+v1.1), running on the mGBA emulator core, shown at 2x.
 
 ![Title screen](docs/readme/title.png)
 
 ## Download and play
 
-1. Download [release/squishy-isle.gba](release/squishy-isle.gba) (617 KB).
+1. Download [release/squishy-isle.gba](release/squishy-isle.gba) (627 KB).
 2. Open it in any GBA emulator. The game is built and tested on mGBA.
 3. On a Trimui Brick, copy it into the GBA ROM folder by FTP. Keep the file
    name the same when you update: the save file follows the ROM's name.

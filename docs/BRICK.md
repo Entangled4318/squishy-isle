@@ -1,6 +1,6 @@
 # Squishy Isle on the Trimui Brick
 
-Version 1.4. File: `release/squishy-isle.gba` (617 KB). The version shows
+Version 1.5. File: `release/squishy-isle.gba` (627 KB). The version shows
 small at the bottom right of the title screen, so you can see which build
 is on the Brick.
 
@@ -74,6 +74,9 @@ Start and save
       button skips.
 - [ ] Continue after power off: Pip starts where he last stood still,
       with the same friends and followers.
+- [ ] New game over a save: on "Yes", holding A alone does nothing; SELECT
+      and A held together fill the hearts and start over after 3 s. Check
+      SELECT works on the Brick here. (v1.5)
 - [ ] Hold L + R + START at start: the sound test opens. Hold
       L + R + SELECT: the hardware check opens.
 

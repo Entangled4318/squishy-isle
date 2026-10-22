@@ -38,7 +38,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
 | 7. QA and final ROM with Brick instructions | Done (v1.1 after the 7.6 fixes); see "Step 7 progress" and `docs/BRICK.md` |
 | 8. Brick test feedback | Done (v1.4): art fixes, letter queue, followers in every area, Momo's heart meter, the way to Momo; see "Step 8 progress" |
-| 9. Fixes from the v1.4 review (child, developer, tester) | In progress; see "Step 9 progress" |
+| 9. Fixes from the v1.4 review (child, developer, tester) | Done (v1.5): title erase guard, save safety, ways out, A pokes friends and Momo, no lost letters, small fixes; see "Step 9 progress" |
 
 ## Owner notes
 
