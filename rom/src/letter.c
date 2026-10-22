@@ -15,6 +15,10 @@
 #define T_ENV     256     /* closed, open: 64 tiles each */
 #define T_SMALL   384     /* twinkles, heart */
 #define T_GIFT    388     /* the friend's gift, 16x16, shown twice as big */
+OBJ_TILES_FIT(T_SQ, 4 * 64 * 32, T_ENV);
+OBJ_TILES_FIT(T_ENV, sizeof envelope64_tiles, T_SMALL);
+OBJ_TILES_FIT(T_SMALL, sizeof ui_small_tiles, T_GIFT);
+OBJ_TILES_FIT(T_GIFT, 4 * 32, OBJ_TILES_END);
 #define P_SQ      0
 #define P_ENV     1
 #define P_SMALL   2

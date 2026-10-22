@@ -6,7 +6,7 @@ around a pastel island, opens surprise containers, squishes the mochi
 friends inside and fills the Squishy Shelf. There are no battles, no fail
 states and no timers, and the child does not need to read.
 
-Version 1.5. All screenshots on this page come from the ROM (taken at
+Version 1.6. All screenshots on this page come from the ROM (taken at
 v1.1), running on the mGBA emulator core, shown at 2x.
 
 ![Title screen](docs/readme/title.png)
@@ -152,7 +152,8 @@ along. It plays once per area and takes about 7 seconds.
 - **Hardware check**: hold L + R + SELECT while the game starts. It shows
   the buttons, a sound, the save and the boot count.
 - **Sound test**: hold L + R + START while the game starts. It plays all
-  8 songs, a jingle and the effects.
+  8 songs, a jingle and the effects. In both, hold L + R for 1 second to
+  go on to the game.
 
 ![The guarded new game, the hardware check, the sound test](docs/readme/grownups.png)
 

@@ -15,6 +15,11 @@
 #define T_SMALL   196      /* twinkles, heart */
 #define T_ABIG    200      /* 2 frames of 32x32 */
 #define T_UI      232
+OBJ_TILES_FIT(T_BOX, 3 * 64 * 32, T_SHADOW);
+OBJ_TILES_FIT(T_SHADOW, sizeof ui_shadow_tiles, T_SMALL);
+OBJ_TILES_FIT(T_SMALL, sizeof ui_small_tiles, T_ABIG);
+OBJ_TILES_FIT(T_ABIG, sizeof abig_tiles, T_UI);
+OBJ_TILES_FIT(T_UI, sizeof openui_tiles, OBJ_TILES_END);
 #define P_BOX     0
 #define P_SHADOW  1
 #define P_SMALL   2

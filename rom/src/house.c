@@ -16,6 +16,10 @@
 #define T_ARROW   16
 #define T_PIP     28       /* up0: 16x32 */
 #define T_SMALL   36       /* twinkles, heart */
+OBJ_TILES_FIT(T_GIFT, 4 * 4 * 32, T_ARROW);
+OBJ_TILES_FIT(T_ARROW, sizeof arrow_tiles, T_PIP);
+OBJ_TILES_FIT(T_PIP, 8 * 32, T_SMALL);
+OBJ_TILES_FIT(T_SMALL, sizeof ui_small_tiles, OBJ_TILES_END);
 #define P_FLAVOR  0        /* 0..4: the area's flavor palettes */
 #define P_SIL     5        /* 5..8: silhouettes, one tint per shelf */
 #define P_ARROW   9

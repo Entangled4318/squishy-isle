@@ -133,6 +133,12 @@ typedef struct {
 #define DMA_32        0x04000000
 #define DMA_16        0x00000000
 
+/* Step 9.7: a scene's sprite tile range (start tile, bytes loaded) must end
+ * before the next range starts. Tiles are 32 bytes; modes 0..2 have 1024. */
+#define OBJ_TILES_END 1024
+#define OBJ_TILES_FIT(start, bytes, next) \
+    _Static_assert((start) * 32 + (bytes) <= (next) * 32, "sprite tiles: " #start " runs into " #next)
+
 /* ---- input ---- */
 #define REG_KEYINPUT  (*(vu16 *)(MEM_IO + 0x130))
 #define KEY_A      0x0001

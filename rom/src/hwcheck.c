@@ -194,12 +194,19 @@ int hwcheck_main(void) {
     load_flavor(sd.flavor % 5);
     dbg("boot: save=%s boots=%u squishes=%u flavor=%d", label, sd.boots, sd.squishes, flavor);
 
-    for (;;) {
+    for (int leave_t = 0;;) {
         vblank_wait();
         oam_commit();
         input_poll();
         sound_tick();
         u16 hit = key_hit();
+        /* 9.7: L + R held for 1 s goes on to the game (L or R alone turn the flavor) */
+        leave_t = (key_held() & (KEY_L | KEY_R)) == (KEY_L | KEY_R) ? leave_t + 1 : 0;
+        if (leave_t >= 60) {
+            dbg("hwcheck leave");
+            REG_DISPCNT = DCNT_BLANK;                 /* blank until the title has loaded */
+            return 0;
+        }
 
         if (hit & KEY_A) {
             squish_t = 0;
