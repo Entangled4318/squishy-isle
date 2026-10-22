@@ -93,6 +93,8 @@ static void enter(void) {
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG0 | DCNT_BG1 | DCNT_OBJ | DCNT_OBJ_1D;
 }
 
+static bool page_turning;   /* 9.6: the new page loads at the start of the next frame, friends hidden meanwhile */
+
 static void draw(void) {
     int bob = (isin((int)frame_count * 2) * 2) / 256;
     for (int r = 0; r < 4; r++) {
@@ -139,11 +141,20 @@ static void draw(void) {
     oam[20].attr0 = A0_Y(fy) | A0_WIDE;
     oam[20].attr1 = A1_X(fx) | A1_SIZE(3);
     oam[20].attr2 = A2_TILE(T_FRAME) | A2_PRIO(1) | A2_PAL(P_FRAME);
+    if (page_turning)                              /* 9.6: one frame without friends while the page loads */
+        for (int i = 0; i < 28; i++)
+            if (i != 20) oam[i].attr0 = A0_HIDE;
 }
 
 static void update(void) {
+    if (page_turning) {     /* the friends' sprites are hidden on screen now: new tiles and palettes cannot mix with old */
+        load_page();
+        page_turning = false;
+    }
     u16 hit = key_hit();
     int r = cur_r, c = cur_c;
+    bool walk_out = (hit & KEY_DOWN) && r == 3;   /* 9.3: DOWN past the bottom row goes back to the map */
+    if (hit & (KEY_LEFT | KEY_RIGHT | KEY_UP | KEY_DOWN | KEY_L | KEY_R)) closeup_streak = 0;
     if (hit & KEY_LEFT && c > 0) c--;
     if (hit & KEY_RIGHT && c < 4) c++;
     if (hit & KEY_UP && r > 0) r--;
@@ -173,7 +184,7 @@ static void update(void) {
                 dbg("pick add %d", id);
             }
         }
-        if (hit & (KEY_START | KEY_B)) {
+        if ((hit & (KEY_START | KEY_B)) || walk_out) {
             shelf_pick = false;
             sfx_chime(2);
             dbg("pick done %d %d %d", follower_get(0), follower_get(1), follower_get(2));
@@ -185,7 +196,7 @@ static void update(void) {
     if (hit & (KEY_L | KEY_R)) {
         page = (page + ((hit & KEY_R) ? 1 : 3)) & 3;
         sfx_chime(page);
-        load_page();
+        page_turning = true;
         dbg("shelf page=%d", page);
     }
     if (hit & KEY_A) {
@@ -198,8 +209,9 @@ static void update(void) {
             sfx_blip();
         }
     }
-    if (hit & (KEY_START | KEY_B)) {
+    if ((hit & (KEY_START | KEY_B)) || walk_out) {
         sfx_chime(2);
+        if (walk_out) dbg("shelf leave (down)");
         scene_go(&scene_meadow_view);
     }
     draw();

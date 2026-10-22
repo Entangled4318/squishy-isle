@@ -1,6 +1,6 @@
 # Squishy Isle on the Trimui Brick
 
-Version 1.4. File: `release/squishy-isle.gba` (617 KB). The version shows
+Version 1.5. File: `release/squishy-isle.gba` (627 KB). The version shows
 small at the bottom right of the title screen, so you can see which build
 is on the Brick.
 
@@ -43,7 +43,8 @@ too old and starts a new game.
 ## For grown-ups
 
 - New game is only on the title screen. With friends on the save it asks
-  "Start over?" with No first, and Yes needs A held for 3 seconds.
+  "Start over?" with No first. On Yes, hold SELECT and A together for
+  3 seconds (A alone does nothing).
 - Nothing in play deletes friends. SELECT does nothing.
 - Hardware check: hold L + R + SELECT while the game starts. It shows the
   buttons, a sound, the save and the boot count.
@@ -73,6 +74,9 @@ Start and save
       button skips.
 - [ ] Continue after power off: Pip starts where he last stood still,
       with the same friends and followers.
+- [ ] New game over a save: on "Yes", holding A alone does nothing; SELECT
+      and A held together fill the hearts and start over after 3 s. Check
+      SELECT works on the Brick here. (v1.5)
 - [ ] Hold L + R + START at start: the sound test opens. Hold
       L + R + SELECT: the hardware check opens.
 
@@ -108,6 +112,12 @@ Friends, pen and shelf
 - [ ] The heart sign opens the picker in every area; the big heart badges
       mark the followers; A adds or removes one.
 - [ ] START then A on a friend opens it big; 3 squishes go back.
+- [ ] A on the map near a follower or by the pen fence: the nearest friend
+      squishes with its squeak and a heart floats up. A by a sleeping Momo:
+      Momo giggles and hops, the newest meter heart hops. (v1.5)
+- [ ] On the shelf, DOWN past the bottom row goes back to the map. Press
+      only A on the shelf: the 3rd close-up in a row goes back to the
+      map. (v1.5)
 
 Mailbox, snack, houses
 
@@ -119,7 +129,8 @@ Mailbox, snack, houses
 - [ ] Snack time at the basket: a treat pops out, the followers hop over
       and squeak; the pace feels cosy.
 - [ ] Walk up into each house door: the room shows that area's gifts;
-      long names such as "From Strawberry Shroom" fit the pill.
+      long names such as "From Strawberry Shroom" fit the pill. DOWN on
+      the bottom row walks Pip back out of the door. (v1.5)
 
 Areas and Momo
 

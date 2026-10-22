@@ -41,11 +41,12 @@ static const char *const lines2[12] = {
 
 EWRAM_BSS static TextStrip st_line;   /* one buffer for all 5 lines: each line's tiles stay in VRAM (boot clears less RAM) */
 static int t, writer, squish_t, squishes, calm_t, bounce_t;
+static bool was_new;
 static struct { int t, x, y; } hearts[3];
 
 static void enter(void) {
-    bool was_new = game_save.letters[0] != 0;
-    writer = letter_open();                    /* the oldest waiting letter; the flag goes down with the last one */
+    was_new = game_save.letters[0] != 0;
+    writer = letter_peek();                    /* the oldest waiting letter; 9.5: taken off the queue only once read */
     if (writer < 0) writer = 0;
     int sp = friend_species(writer), fl = friend_flavor(writer);
 
@@ -83,7 +84,8 @@ static void enter(void) {
     squish_t = bounce_t = -1;
     squishes = calm_t = 0;
     for (int i = 0; i < 3; i++) hearts[i].t = -1000;
-    dbg("scene letter friend %d new %d msg %d waiting %d", writer, was_new, m, game_save.mail_new);
+    dbg("scene letter friend %d new %d msg %d waiting %d", writer, was_new, m,
+        was_new ? game_save.letters[1] != 0 : game_save.mail_new);
     scene_blend(0, 0);
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D;   /* the card shows when the flap opens */
 }
@@ -103,6 +105,8 @@ static void draw(void) {
      * starts at most 96 px down: the 256 px map wraps, and rows 160..255
      * are the only blank ones above the card */
     int rise = t < RISE ? CARD_LOW - CARD_LOW * (t - FLAP) / (RISE - FLAP) : 0;
+    if (rise > CARD_LOW) rise = CARD_LOW;   /* 9.6: BG0/1 turn on now, but this scroll lands next frame: the frame
+                                             * before must already show blank rows (98 showed a 2 px sliver) */
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG2 | DCNT_OBJ | DCNT_OBJ_1D | (t >= FLAP ? DCNT_BG0 | DCNT_BG1 : 0);
     for (int i = 0; i <= 2; i++) {
         bg_scroll_x[i] = 0;
@@ -200,7 +204,9 @@ static void update(void) {
         dbg("letter squish %d", squishes);
     }
     bool done = squishes >= SQUISHES && squish_t < 0 && calm_t > 30;
-    if (done || (hit & (KEY_B | KEY_START))) {
+    if ((done || (hit & (KEY_B | KEY_START))) && !scene_fading()) {
+        if (was_new) letter_open();            /* read: off the queue now (a power cut before this keeps it) */
+        was_new = false;
         sfx_blip();
         dbg("letter close");
         scene_go(&scene_meadow_view);

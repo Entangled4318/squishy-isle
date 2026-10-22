@@ -40,8 +40,9 @@ for name, (area, n) in FOUND.items():
     picks = [(int(i), int(f)) for i, f in re.findall(r'house pick (\d+) found (\d)', log)]
     check(len(picks) == 2 and picks[0][1] == 1 and picks[1][1] == 0 and all(area * 20 <= i < area * 20 + 20 for i, _ in picks),
           f'{name}: A on a gift makes it hop, on a missing one it wiggles ({picks})')
-    check('house leave' in log and re.search(rf'house leave\n\[game f\d+\] scene meadow pip=\d+,\d+ area={area}', log),
-          f'{name}: B goes back out of the door')
+    how = ' \\(down\\)' if name == 'meadow' else ''
+    check(re.search(rf'house leave{how}\n\[game f\d+\] scene meadow pip=\d+,\d+ area={area}', log),
+          f'{name}: ' + ('DOWN on the bottom row walks back out of the door (9.3)' if how else 'B goes back out of the door'))
     room = Image.open(os.path.join(OUT, f'h_{name}_room.ppm')).convert('RGB')
     room.resize((960, 640), Image.NEAREST).save(os.path.join(OUT, f'h_{name}_room.png'))
     check(count(room, VANILLA, (11, 42, 29, 60)) > 20, f'{name}: the first gift shows in its friend\'s (vanilla) colors')
@@ -59,6 +60,9 @@ check('scene house area 1 gifts 1 sel 36' in open(os.path.join(OUT, 'house_long.
       min(ink) >= 53 and max(ink) <= 186,
       f'"From Strawberry Shroom" fits inside the pill with room at both ends (text x {ink and min(ink)}..{ink and max(ink)}, '
       f'pill 48..191)')
+new = re.search(r'scene house area 0 gifts (\d+) sel (\d+)', open(os.path.join(OUT, 'house_new.log')).read())
+check(new and new.groups() == ('4', '0'),
+      f'the arrow starts on the newest friend\'s gift even when a later gift is found too (9.6; {new and new.groups()})')
 if fails:
     sys.exit(1)
 print('all house checks passed')

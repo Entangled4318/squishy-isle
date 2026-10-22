@@ -12,6 +12,10 @@ const char save_type_id[16] __attribute__((section(".rodata.keep"), aligned(4), 
 _Static_assert(sizeof(SaveData) <= SLOT_SIZE, "SaveData must fit one slot");
 
 static int active_slot = -1;
+/* A slot holding a save from a newer version of the game (a parent went
+ * back to an older ROM). It is never written, so going forward again finds
+ * it. -1 = none. */
+static int keep_slot = -1;
 
 /* CRC-32 (the zlib one) over everything before the checksum field, 4 bits
  * a step from a 16-entry table: bit by bit it was slow enough to push the
@@ -33,7 +37,8 @@ static u32 checksum(const SaveData *d) {
 
 /* The rotate-add sum saves used before step 7. Still read, so an older
  * save loads; the next write uses the CRC. (Two bit flips 32 bytes apart
- * can cancel out in it, which the CRC catches.) */
+ * can cancel out in it, which the CRC catches.) A save marked `crc_only`
+ * (written since step 9.2) must match the CRC. */
 static u32 checksum_old(const SaveData *d) {
     const u8 *p = (const u8 *)d;
     u32 sum = 0x1234ABCDu;
@@ -56,7 +61,11 @@ static void sram_write(int slot, const SaveData *d) {
 
 static bool valid(const SaveData *d) {
     return d->magic == SAVE_MAGIC && d->version == SAVE_VERSION &&
-           (d->checksum == checksum(d) || d->checksum == checksum_old(d));
+           (d->checksum == checksum(d) || (!d->crc_only && d->checksum == checksum_old(d)));
+}
+
+static bool newer(const SaveData *d) {
+    return d->magic == SAVE_MAGIC && d->version > SAVE_VERSION && d->version != 0xFFFF;
 }
 
 SaveStatus save_load(SaveData *out) {
@@ -64,7 +73,8 @@ SaveStatus save_load(SaveData *out) {
     (void)*(volatile const char *)save_type_id;
     sram_read(0, &a);
     sram_read(1, &b);
-    bool va = valid(&a), vb = valid(&b);
+    bool va = valid(&a), vb = valid(&b), na = newer(&a), nb = newer(&b);
+    keep_slot = na && nb ? ((s16)(a.seq - b.seq) > 0 ? 0 : 1) : na ? 0 : nb ? 1 : -1;
     if (va && (!vb || (s16)(a.seq - b.seq) > 0)) {
         *out = a;
         active_slot = 0;
@@ -85,8 +95,10 @@ SaveStatus save_load(SaveData *out) {
 
 bool save_store(SaveData *d) {
     int slot = active_slot == 0 ? 1 : 0;
+    if (slot == keep_slot) slot ^= 1;          /* only one slot left: no power-cut fallback, but the newer save lives */
     d->magic = SAVE_MAGIC;
     d->version = SAVE_VERSION;
+    d->crc_only = 1;
     d->seq++;
     d->checksum = checksum(d);
     sram_write(slot, d);

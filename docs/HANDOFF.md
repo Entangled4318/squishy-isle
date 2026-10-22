@@ -38,6 +38,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
 | 7. QA and final ROM with Brick instructions | Done (v1.1 after the 7.6 fixes); see "Step 7 progress" and `docs/BRICK.md` |
 | 8. Brick test feedback | Done (v1.4): art fixes, letter queue, followers in every area, Momo's heart meter, the way to Momo; see "Step 8 progress" |
+| 9. Fixes from the v1.4 review (child, developer, tester) | Done (v1.5): title erase guard, save safety, ways out, A pokes friends and Momo, no lost letters, small fixes; see "Step 9 progress" |
 
 ## Owner notes
 
@@ -1062,6 +1063,91 @@ First Brick test (owner, v1.1): Quit / Continue works. Feedback, and the plan:
    Version "v1.4". 478 checks pass.
 
 Version "v1.2" (still 4 characters, title at f2). 462 checks pass.
+
+## Step 9 progress
+
+A review of v1.4 by three agents (a child's-eye reviewer, a senior GBA
+developer, a QA tester who fuzzed the ROM in mGBA) found one high bug and
+several small ones. Owner approved six fixes, one commit each:
+
+1. Title erase guard. **Done.** v1.4: on "Yes", any A hold of 3 s started
+   over, and the harness's own toddler model (`mash`: "leans on one
+   button") wiped a save with friends in ~0.7% of boots (4 of 40 when it
+   starts on "Yes"). Now the hearts fill only while exactly SELECT + A are
+   held (`HOLD_KEYS`, `(held & KEY_ANY) == HOLD_KEYS`); A alone blips, any
+   other button empties them. On "Yes" line 2 reads "Grown-ups: hold
+   SELECT and A" and the A icon hides. Tests: `title_reset.txt` /
+   `check_title.py` (A alone and A + L + SELECT for 200 frames fill no
+   hearts; SELECT + A for 180 starts over), `mash.py title_mash` (40
+   toddlers, 300 in the soak, mash 900 frames from "Yes"; fails on any
+   `title start new`; it fails on v1.4).
+2. Save safety. **Done.** (a) v1.4 read any version but 2 as broken and
+   wrote a fresh save over slot 0 at boot: going back from a newer ROM
+   wiped the collection. `save.c keep_slot`: a slot whose magic matches
+   and whose version is newer (the newest of two) is never written;
+   play saves in the other slot (no power-cut fallback then, but the
+   newer save lives). (b) `save_sanitize()` at boot (`collection.c`, host
+   tested): found flags 0/1, an area past 3 becomes the meadow start,
+   follower / old line ids must be in range and found, letters in range
+   and closed up, `mail` and `letter_read` in range. The shelf did not
+   clamp `area` (`page_maps[page]` out of bounds). (c) The old `pad` byte
+   is `crc_only`: set by every write; such a save must match the CRC (the
+   rotate-add sum is accepted only for saves from before). Tests:
+   `test_save.c` (newer slot untouched over 5 saves and a reboot, both
+   slots newer, crc_only), `test_collection.c test_sanitize`,
+   `check_save.py` (a v3 save with friends: two boots, slot 0 untouched).
+3. Ways out. **Done.** v1.4 left the house and the shelf only with B or
+   START; a child on A and the D-pad stayed in, and the soak spent ~78%
+   of scene visits on shelf / close-up. House: UP picks the top row, DOWN
+   the bottom row, DOWN on the bottom row walks out (`house leave
+   (down)`). Shelf (and picker): DOWN past row 3 goes back to the map
+   (`shelf leave (down)`). A only: `closeup_streak` counts close-ups
+   ended by 3 squishes; the 3rd in a row goes to the map with a boing
+   (`closeup streak: back to the map`). Any D-pad, L or R on the shelf,
+   B or START in the close-up, or the map resets it. Tests:
+   `house_meadow.txt` leaves with DOWN (`check_house.py`),
+   `shelf_exits.txt` / `check_exits.py`.
+4. A on the map always does something. **Done.** v1.4: A with nothing in
+   reach only ticked. `poke_try()` runs where the tick was (after boxes,
+   sign, mailbox and basket): by a sleeping Momo (`npc_near`) Momo
+   giggles (2 hops, a 1 px wiggle) with a boing and the newest meter
+   heart hops again (a heart over Momo hid behind the meter); else the
+   nearest follower or pen friend within `POKE_R` (28 px, feet to feet)
+   shows its squish frame (tile + 4) for 10 frames, hops, squeaks in its
+   flavor, and a heart (`T_SPARK + 3`) floats up. A pen friend stands still
+   for it. A snack, parade or gate scene cancels a poke. Momo on its
+   Cloud Hill bed stays scenery (owner, 8.4). Tests: `poke.txt`,
+   `poke_pen.txt`, `check_poke.py`.
+5. No lost letters. **Done.** v1.4: the queue held 10 and a full one
+   dropped its oldest, so after a 0 to 80 run with no mailbox visit 70
+   letters were gone. The save stays 144 bytes, version 2: bit 1 of
+   `found[id]` (`LETTER_WAITS`; bit 0 = found) marks a letter that did
+   not fit the queue. Reading one refills the queue's free place from
+   those bits, lowest id first (`letters_refill`), so the first 10 keep
+   their order and the rest come after. `friend_found` tests bit 0 only;
+   `save_sanitize` clears a waiting bit on a friend not found or already
+   queued, and refills. Also: the letter scene used to take the letter
+   off the queue (and save) in `enter()`, while the screen was still
+   white; a power cut then lost it. Now `letter_peek()` in `enter()`,
+   `letter_open()` when the letter closes. Tests: `test_collection.c`
+   (12 letters, 80 letters each once, sanitize), `mash.py` (found 0/1/3,
+   no letter waits outside a queue with room, none in both),
+   `mail_cut.txt` in `check_mail.py` (the script ends with the letter
+   open: the save still has it queued, flag up).
+6. Small fixes. **Done.** (a) House cursor: the "newest gift" mark was a
+   negative `first`, overwritten by the next found gift in scan order
+   (newest Vanilla Bunny + Strawberry Bunny found: the arrow started on
+   Strawberry, v1.4 `sel 1`). Own variable `newest`. Test: `house_new.txt`
+   in `check_house.py` (`make_save.py` takes MAIL as an 8th argument).
+   (b) Letter card: `rise` at `t = FLAP - 1` was 98, and BG0/1 turn on in
+   `draw()` while the scroll lands a frame later, so the card's first
+   frame sat 2 px low, then jumped (seen frame by frame in mGBA, old vs
+   new). Clamped to `CARD_LOW`. (c) Shelf page turn: `load_page()` wrote
+   tiles and OBJ palettes mid-frame while OAM still held the old page's
+   found / silhouette palettes; v1.4 showed one frame of every woods
+   friend in full color. Now L / R set `page_turning`; that frame hides
+   the 27 friend, twinkle and badge sprites; the next update loads the
+   page first. One blank-shelf frame instead.
 
 ## What step 3 should do (as promised to the owner)
 

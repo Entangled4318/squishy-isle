@@ -31,7 +31,9 @@ int collection_roll(int area, u32 entropy);   /* a friend not found yet, or -1 w
 
 bool collection_add(int id);             /* records the friend and saves; false if already found */
 
+void save_sanitize(void);                /* boot: every id, flag and area in range (step 9.2) */
 void lines_merge(void);                  /* boot: a save from before 8.3 (a line per area) gets one line */
+int letter_peek(void);                   /* the letter the mailbox shows now, without taking it (step 9.5) */
 int letter_open(void);                   /* the letter to read: the oldest waiting one (taken off the queue), else the last one read; -1 = none */
 
 /* One line of up to 3 followers walks with Pip in every area (step 8.3,

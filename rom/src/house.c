@@ -77,16 +77,16 @@ static void enter(void) {
 
     /* start on the newest friend's gift when it lives here, else the first one found */
     sel_x = sel_y = 0;
-    int want = game_save.mail ? game_save.mail - 1 : -1, n = 0, first = -1;
+    int want = game_save.mail ? game_save.mail - 1 : -1, n = 0, first = -1, newest = -1;
     for (int y = 0; y < 2; y++)
         for (int x = 0; x < 10; x++) {
             int id = gift_id(x, y);
             if (!friend_found(id)) continue;
             n++;
             if (first < 0) first = y * 10 + x;
-            if (id == want) first = -100 - (y * 10 + x);
+            if (id == want) newest = y * 10 + x;   /* 9.6: its own variable (a later found gift overwrote the mark) */
         }
-    if (first <= -100) first = -100 - first;
+    if (newest >= 0) first = newest;
     if (first >= 0) {
         sel_x = first % 10;
         sel_y = first / 10;
@@ -145,7 +145,9 @@ static void update(void) {
     int ox = sel_x, oy = sel_y;
     if (hit & KEY_LEFT) sel_x = (sel_x + 9) % 10;
     if (hit & KEY_RIGHT) sel_x = (sel_x + 1) % 10;
-    if (hit & (KEY_UP | KEY_DOWN)) sel_y ^= 1;
+    if (hit & KEY_UP) sel_y = 0;
+    bool walk_out = (hit & KEY_DOWN) && sel_y == 1;   /* 9.3: DOWN from the bottom row walks out the door */
+    if (hit & KEY_DOWN) sel_y = 1;
     if (sel_x != ox || sel_y != oy) {
         sfx_tick();
         hop_t = -1;
@@ -162,9 +164,9 @@ static void update(void) {
         }
         dbg("house pick %d found %d", id, friend_found(id));
     }
-    if (hit & (KEY_B | KEY_START)) {
+    if ((hit & (KEY_B | KEY_START)) || walk_out) {
         sfx_blip();
-        dbg("house leave");
+        dbg("house leave%s", walk_out ? " (down)" : "");
         scene_go(&scene_meadow_view);
     }
     draw();

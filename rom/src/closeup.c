@@ -35,6 +35,9 @@
 #define HEART_OFF (-1000)
 
 int sel_species, sel_flavor;
+int closeup_streak;
+
+#define STREAK_HOME 3     /* 9.3: the 3rd close-up in a row ended with A alone goes back to the map */
 
 EWRAM_BSS static TextStrip st_name;
 static int squish_t, bounce_t, blink_t, idle_t;
@@ -310,7 +313,19 @@ static void update(void) {
         dbg("closeup squish %d", squishes);
     }
     bool done = squishes >= SQUISHES && squish_t < 0 && calm_t > 30;   /* 3 squishes: back to the shelf, like B */
-    if (done || (hit & (KEY_B | KEY_START))) {
+    if (scene_fading()) {
+        /* scene_go is ignored during a fade: count nothing until it can leave */
+    } else if (hit & (KEY_B | KEY_START)) {
+        closeup_streak = 0;
+        sfx_blip();
+        scene_go(&scene_shelf);
+    } else if (done && ++closeup_streak >= STREAK_HOME) {
+        /* a child pressing only A: shelf, close-up, shelf... would never end. Go play. */
+        closeup_streak = 0;
+        sfx_boing();
+        dbg("closeup streak: back to the map");
+        scene_go(&scene_meadow_view);
+    } else if (done) {
         sfx_blip();
         scene_go(&scene_shelf);
     }

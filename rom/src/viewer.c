@@ -121,6 +121,17 @@ static s16 trail_x[TRAIL], trail_y[TRAIL];
 static int trail_i;
 static u32 pen_seed = 12345;
 
+/* Step 9.4: A with nothing else to do squishes the nearest friend (a
+ * follower or a pen friend) or tickles a sleeping Momo: a squeak, the
+ * squish frame and a heart, so A on the map always does something happy. */
+enum { POKE_FOLLOWER = 1, POKE_PEN, POKE_MOMO };
+#define POKE_R      28     /* px from Pip's feet to the friend's feet */
+#define POKE_SQUISH 10     /* frames on the squish frame, then a little hop */
+#define POKE_LEN    40     /* frames until the heart has floated away */
+static struct { int t, kind, k, x, y; } poke = {-1, 0, 0, 0, 0};
+static int npc_near = -1;          /* gate whose Momo Pip stands by (shows the heart meter), -1 = none */
+static int meter_t;                /* frames since the meter showed: the newest heart hops */
+
 static int pen_rand(int n) {          /* local: the pen must not use up the saved random numbers */
     pen_seed = pen_seed * 1103515245u + 12345u;
     return (int)(((pen_seed >> 16) * (u32)n) >> 16);   /* 0..n-1 by a multiply: no slow division */
@@ -462,6 +473,8 @@ static void save_pos(bool now) {
 }
 
 static void enter(void) {
+    closeup_streak = 0;                        /* 9.3: back on the map, the A-only count starts again */
+    poke.t = -1;
     if (travel_to >= 0) {                      /* walked in from another area */
         game_save.area = (u8)travel_to;
         pip_x = travel_x << 8;
@@ -832,17 +845,75 @@ static bool helping(int id) {        /* in the gate scene by Momo: not drawn in 
     return false;
 }
 
+/* the poked friend: squish frame first (tile + 4), then a small hop; remembers where it is for the heart */
+static bool poked(int kind, int k, int x, int y, int *frame, int *hop) {
+    if (poke.t < 0 || poke.kind != kind || poke.k != k) return false;
+    poke.x = x;
+    poke.y = y;
+    int t = poke.t - POKE_SQUISH;
+    if (t < 0) *frame = 4;
+    else if (t < 12) *hop = t * (12 - t) / 9;
+    return true;
+}
+
 static void draw_friends(void) {
     if (parade_t >= 0) return;          /* they are all in the parade */
     for (int i = 0; i < n_pen; i++) {
         Roamer *r = &pen[i];
-        if (!helping(r->id)) draw_friend(r->id, r->x, r->y, r->wait > 0 ? 0 : hop_of(r->step));
+        int frame = 0, hop = r->wait > 0 ? 0 : hop_of(r->step);
+        poked(POKE_PEN, i, r->x, r->y, &frame, &hop);
+        if (!helping(r->id))
+            draw_sq(T_SQ16 + (friend_species(r->id) - A->area * 4) * 8 + frame, P_SQ + friend_flavor(r->id), r->x, r->y, hop);
     }
     for (int k = 0; k < n_follow; k++) {
-        int x, y, hop;
+        int x, y, hop, frame = 0;
         follower_pos(k, &x, &y, &hop);
-        if (!helping(follow_id[k])) draw_sq(follow_tile[k], follow_pal[k], x, y, hop);
+        poked(POKE_FOLLOWER, k, x, y, &frame, &hop);
+        if (!helping(follow_id[k])) draw_sq(follow_tile[k] + frame, follow_pal[k], x, y, hop);
     }
+}
+
+static void draw_poke_heart(void) {
+    if (poke.t < 4 || poke.kind == POKE_MOMO) return;                  /* Momo's meter hearts hop instead */
+    int t = poke.t - 4, high = 20;
+    if (t > 30 && (t & 2)) return;                                      /* blinks out at the end */
+    int wob = isin(t * 2) * 2 / 256;
+    ui_spr(poke.x - cam_x - 4 + wob, poke.y - cam_y - high - 8 - t / 2, A0_SQUARE, 0, 0, T_SPARK + 3, P_SPARK);
+}
+
+/* A with nothing else to do: the nearest friend gets a squish, or Momo a tickle */
+static bool poke_try(int px, int py) {
+    if (npc_near >= 0) {
+        const u16 *g = &A->gates[npc_near * 5];
+        poke.kind = POKE_MOMO;
+        poke.k = npc_near;
+        poke.x = g[0] + g[2] / 2;
+        poke.y = g[1] + g[3];
+        poke.t = 0;
+        meter_t = 0;                                                    /* the newest meter heart hops again */
+        sfx_boing();
+        dbg("poke momo %d", npc_near);
+        return true;
+    }
+    int best = POKE_R * POKE_R, kind = 0, k = -1, id = -1;
+    for (int i = 0; i < n_follow; i++) {
+        int x, y, hop;
+        follower_pos(i, &x, &y, &hop);
+        int d = (x - px) * (x - px) + (y - py) * (y - py);
+        if (d < best && !helping(follow_id[i])) { best = d; kind = POKE_FOLLOWER; k = i; id = follow_id[i]; }
+    }
+    for (int i = 0; i < n_pen; i++) {
+        int d = (pen[i].x - px) * (pen[i].x - px) + (pen[i].y - py) * (pen[i].y - py);
+        if (d < best && !helping(pen[i].id)) { best = d; kind = POKE_PEN; k = i; id = pen[i].id; }
+    }
+    if (k < 0) return false;
+    poke.kind = kind;
+    poke.k = k;
+    poke.t = 0;
+    if (kind == POKE_PEN && pen[k].wait < POKE_LEN) pen[k].wait = POKE_LEN;   /* stands still for its squish */
+    sfx_squeak(friend_flavor(id));
+    dbg("poke friend %d", id);
+    return true;
 }
 
 static void draw_boxes(void) {
@@ -942,8 +1013,6 @@ static void draw_momo(int x, int y, bool awake, int hop, u16 flip) {
     }
 }
 
-static int npc_near = -1;          /* gate whose Momo Pip stands by (shows the heart meter), -1 = none */
-static int meter_t;                /* frames since the meter showed: the newest heart hops */
 
 /* Momo's heart meter (8.4, owner pick): a bubble over sleeping Momo with
  * GATE_NEED (10) hearts, one filled per friend found in this area. No
@@ -973,8 +1042,13 @@ static void draw_gates(void) {
     for (int i = 0; i < A->ngates; i++) {
         const u16 *g = &A->gates[i * 5];
         if (!gate_there(g[4]) || (gs.t >= 0 && gs.gate == i)) continue;
-        int gx = g[0] + g[2] / 2, gy = g[1] + g[3];
-        draw_momo(gx, gy, npc_near == i, 0, 0);
+        int gx = g[0] + g[2] / 2, gy = g[1] + g[3], hop = 0;
+        if (poke.t >= 0 && poke.kind == POKE_MOMO && poke.k == i && poke.t < 24) {   /* tickled: giggles and hops */
+            int t = poke.t % 12;
+            hop = t * (12 - t) / 6;
+            gx += (poke.t / 3) & 1;
+        }
+        draw_momo(gx, gy, npc_near == i, hop, 0);
         if (npc_near == i && gate_shut(g[4])) {                          /* hearts: friends found out of 10 */
             draw_meter(gx, gy);
             meter_on = true;
@@ -1166,6 +1240,13 @@ static void draw(void) {
     draw_boxes();
     draw_friends();
     draw_pip();
+    if (poke.t >= 0) {
+        if (gs.t >= 0 || parade_t >= 0 || snack.t >= 0) poke.t = -1;   /* a scene takes over */
+        else {
+            draw_poke_heart();
+            if (++poke.t > POKE_LEN) poke.t = -1;
+        }
+    }
     flush_world();
 }
 
@@ -1375,7 +1456,7 @@ static void update(void) {
         draw();
         return;
     }
-    if ((hit & KEY_A) && touch_box < 0) sfx_tick();
+    if ((hit & KEY_A) && touch_box < 0 && !poke_try(px, py)) sfx_tick();
     if ((hit & KEY_B) && touch_box < 0 && hop_t < 0) {   /* B: a happy hop (DESIGN.md controls) */
         hop_t = 0;
         sfx_hop();

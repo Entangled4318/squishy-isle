@@ -1,0 +1,18 @@
+# step 9.4: no followers; A by the pen fence squishes the nearest pen friend,
+# A with no friend near only ticks
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+walkto 188 140 1500
+wait 10
+tap A
+wait 3
+shot pk_pen_squish
+wait 16
+shot pk_pen_heart
+walkto 300 220 1500
+wait 10
+tap A
+wait 20

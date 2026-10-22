@@ -1,0 +1,28 @@
+# step 9.4: A with nothing else to do squishes the nearest friend or tickles Momo
+wait 20
+tap A
+wait 15
+tap A
+wait 40
+tap A
+wait 3
+shot pk_follow_squish
+wait 16
+shot pk_follow_heart
+walkto 188 140 1500
+wait 10
+tap A
+wait 3
+shot pk_pen_squish
+wait 16
+shot pk_pen_heart
+walkto 428 200 1500
+wait 40
+tap A
+wait 6
+shot pk_momo
+wait 14
+shot pk_momo_heart
+wait 60
+tap A
+wait 40

@@ -78,6 +78,15 @@ box = (116, 44, 152, 78)                  # Pip below the mailbox (goto mail, 27
 check(count(fu, flag, box) >= 20 and count(fd, flag, box) <= 6,
       f'the flag is up between the two letters, down after ({count(fu, flag, box)}, {count(fd, flag, box)} px)')
 
+# step 9.5: power off while the letter is open: it still waits on the next boot
+cut = open(os.path.join(OUT, 'mail_cut.log')).read()
+m = re.search(r'scene letter friend (\d+) new 1', cut)
+sav = open(os.path.join(OUT, 'mail_cut.sav'), 'rb').read()
+slots = [sav[k * 0x100:k * 0x100 + 144] for k in (0, 1)]
+newest = max((s for s in slots if s[:4] == b'SQIS'), key=lambda s: int.from_bytes(s[6:8], 'little'), default=None)
+check(m and 'letter close' not in cut and newest is not None and newest[128] == int(m.group(1)) + 1 and newest[124] == 1,
+      f'power off while a letter is open: it still waits, flag up ({m and m.group(1)}, queue {newest and list(newest[128:131])})')
+
 for n in ('m02_mail_bubble', 'm05_letter_squish', 'm07_basket_bubble', 'm09_snack2', 'm10_pip_snack'):
     img(n)
 if fails:

@@ -36,6 +36,10 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	python3 make_v1_save.py $(OUT)/v1.sav
 	./$(HARNESS) $(ROM) $(OUT)/v1.sav boot_only.txt $(OUT) > $(OUT)/savev1.log
 	./$(HARNESS) $(ROM) $(OUT)/v1.sav boot_only.txt $(OUT) > $(OUT)/savev1b.log
+	python3 make_save.py $(OUT)/v3.sav 0,1,2,3,4 0,1
+	python3 -c "import sys; p = sys.argv[1]; b = bytearray(open(p, 'rb').read()); b[4] = 3; open(p, 'wb').write(b); open(p + '.orig', 'wb').write(b)" $(OUT)/v3.sav
+	./$(HARNESS) $(ROM) $(OUT)/v3.sav boot_only.txt $(OUT) > $(OUT)/savev3.log
+	./$(HARNESS) $(ROM) $(OUT)/v3.sav boot_only.txt $(OUT) > $(OUT)/savev3b.log
 	python3 check_save.py $(OUT)
 	./$(HARNESS) $(ROM) $(OUT)/boxes.sav step3_boxes.txt $(OUT) > $(OUT)/boxes.log
 	./$(HARNESS) $(ROM) $(OUT)/boxes.sav boot_only.txt $(OUT) > $(OUT)/boxes_reboot.log
@@ -105,6 +109,8 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	./$(HARNESS) $(ROM) $(OUT)/mail_solo.sav mail_solo.txt $(OUT) > $(OUT)/mail_solo.log
 	python3 make_save.py $(OUT)/mailq.sav 0,1,2 ""
 	./$(HARNESS) $(ROM) $(OUT)/mailq.sav mail_queue.txt $(OUT) > $(OUT)/mail_queue.log
+	python3 make_save.py $(OUT)/mail_cut.sav 0,1,2 ""
+	./$(HARNESS) $(ROM) $(OUT)/mail_cut.sav mail_cut.txt $(OUT) > $(OUT)/mail_cut.log
 	python3 check_mail.py $(OUT)
 	python3 make_save.py $(OUT)/house_m.sav 0,1,6,7,12,15,19 0
 	./$(HARNESS) $(ROM) $(OUT)/house_m.sav house_meadow.txt $(OUT) > $(OUT)/house_meadow.log
@@ -116,7 +122,17 @@ run: $(HARNESS) $(UNIT) $(SAVETEST)
 	./$(HARNESS) $(ROM) $(OUT)/house_c.sav house_clouds.txt $(OUT) > $(OUT)/house_clouds.log
 	python3 make_save.py $(OUT)/house_long.sav $$(seq -s, 0 9),36 "" - 1
 	./$(HARNESS) $(ROM) $(OUT)/house_long.sav house_long.txt $(OUT) > $(OUT)/house_long.log
+	python3 make_save.py $(OUT)/house_new.sav 0,1,6,7 0 - 0 - 0,0 0
+	./$(HARNESS) $(ROM) $(OUT)/house_new.sav house_new.txt $(OUT) > $(OUT)/house_new.log
 	python3 check_house.py $(OUT)
+	python3 make_save.py $(OUT)/shelf_exits.sav 0,1,6,7,12 0
+	./$(HARNESS) $(ROM) $(OUT)/shelf_exits.sav shelf_exits.txt $(OUT) > $(OUT)/shelf_exits.log
+	python3 check_exits.py $(OUT)
+	python3 make_save.py $(OUT)/poke.sav 0,1,2,3,4,5,6,7,8 0,1
+	./$(HARNESS) $(ROM) $(OUT)/poke.sav poke.txt $(OUT) > $(OUT)/poke.log
+	python3 make_save.py $(OUT)/poke_pen.sav 0,1,2,3,4,5,6,7,8 ""
+	./$(HARNESS) $(ROM) $(OUT)/poke_pen.sav poke_pen.txt $(OUT) > $(OUT)/poke_pen.log
+	python3 check_poke.py $(OUT)
 	python3 make_save.py $(OUT)/parade.sav $$(seq -s, 0 19) 0,1,2 - 0 0
 	./$(HARNESS) $(ROM) $(OUT)/parade.sav parade.txt $(OUT) > $(OUT)/parade.log
 	python3 make_full_loop.py > $(OUT)/full.txt

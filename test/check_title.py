@@ -57,14 +57,19 @@ nos = frames(log, r'title confirm no')
 check(len(nos) >= 2, 'A on the default "No" and B both back out of the start-over screen')
 t6 = shot('t06_confirm_no')
 check(count(t6, (40, 20, 200, 70), white) > 150, 'the start-over screen asks in words for the parent')
+t6b, t6c, t6d = shot('t06b_yes_hint'), shot('t06c_a_alone'), shot('t06d_three_keys')
+check(count(t6b, (20, 44, 220, 62), white) > count(t6, (20, 44, 220, 62), white) + 20,
+      'on "Yes" line 2 changes to tell a grown-up to hold SELECT and A')
+check(count(t6c, (60, 66, 180, 90), heart_on) == 0 and count(t6d, (60, 66, 180, 90), heart_on) == 0,
+      'leaning on A alone, or on A + L + SELECT, fills no hearts on "Yes" (step 9.1)')
 t7, t8 = shot('t07_hold_part'), shot('t08_released')
 filled = count(t7, (60, 66, 180, 90), heart_on)
-check(20 < filled < 120, f'holding A on "Yes" fills the hearts bit by bit ({filled} px after 1 s)')
+check(20 < filled < 120, f'holding SELECT + A on "Yes" fills the hearts bit by bit ({filled} px after 1 s)')
 check(count(t8, (60, 66, 180, 90), heart_on) == 0 and 'title hold released at 6' in log,
-      'letting go of A empties the hearts again; nothing is erased')
+      'letting go empties the hearts again; nothing is erased')
 starts = frames(log, r'title hold start')
 new = frames(log, r'title start new')
-check(len(new) == 1 and starts and 175 <= new[0] - starts[-1] <= 185,
+check(len(new) == 1 and len(starts) == 2 and 175 <= new[0] - starts[-1] <= 185,
       f'only a full 3 s hold starts over ({new and starts and new[0] - starts[-1]} frames)')
 shot('t09_new_game_meadow')
 reboot = open(os.path.join(OUT, 'reset_reboot.log')).read()

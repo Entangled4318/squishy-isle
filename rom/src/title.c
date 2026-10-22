@@ -1,8 +1,9 @@
 /* Title: the logo letters drop in and bounce (any button skips), friends
  * hop on the island, then a small menu: Play, or Continue / New game when
  * a save has friends. New game asks first: "No" is the default and "Yes"
- * needs A held for 3 s while hearts fill, so a toddler cannot wipe the
- * collection by mashing buttons. */
+ * needs SELECT and A held together for 3 s while hearts fill. A alone, or
+ * any other button, does nothing there, so a toddler leaning on A cannot
+ * wipe the collection (step 9.1). */
 #include "collection.h"
 #include "game.h"
 #include "game_assets.h"
@@ -28,7 +29,8 @@
 
 #define LETTER_GAP  8      /* frames between letters dropping in */
 #define DROP_FROM   90     /* px above the letter's place */
-#define HOLD_TIME   180    /* 3 s of holding A on "Yes" */
+#define HOLD_TIME   180    /* 3 s of holding SELECT + A on "Yes" */
+#define HOLD_KEYS   (KEY_SELECT | KEY_A)   /* exactly these: one more button empties the hearts */
 #define HOLD_HEARTS 6
 
 enum { MODE_INTRO, MODE_MENU, MODE_CONFIRM };
@@ -49,7 +51,7 @@ static void print_options(void) {
     for (int i = 0; i < 2; i++) {
         const char *txt = "";
         if (mode == MODE_MENU) txt = n_opts == 1 ? (i == 0 ? "Play" : "") : names2[i];
-        if (mode == MODE_CONFIRM) txt = (i == 1 && sel == 1) ? "Yes, hold A" : names_confirm[i];
+        if (mode == MODE_CONFIRM) txt = names_confirm[i];
         bool on = i == sel;
         strip_print(&st_opt[i], txt, 1, 3, on ? 2 : 1, on ? 1 : 0);
     }
@@ -150,12 +152,17 @@ static void update_letters(void) {
     }
 }
 
+/* line 2 warns first; on "Yes" it tells the grown-up what to hold */
+static void print_confirm_line2(void) {
+    strip_print(&st_line2, sel ? "Grown-ups: hold SELECT and A" : "Your friends will go home.", 1, 3, 2, 1);
+}
+
 static void confirm_enter(void) {
     mode = MODE_CONFIRM;
     sel = 0;                                       /* "No" is the default */
     hold_t = 0;
     strip_print(&st_line1, "Start over?", 1, 3, 2, 1);
-    strip_print(&st_line2, "Your friends will go home.", 1, 3, 2, 1);
+    print_confirm_line2();
     print_options();
     dbg("title confirm");
 }
@@ -203,6 +210,7 @@ static void update_input(void) {
         hold_t = 0;
         sfx_tick();
         print_options();
+        print_confirm_line2();
     }
     if ((hit & KEY_B) || (sel == 0 && (hit & (KEY_A | KEY_START)))) {
         sfx_blip();
@@ -211,13 +219,16 @@ static void update_input(void) {
         return;
     }
     if (sel == 1) {
-        if ((hit & KEY_A) || (hold_t > 0 && (held & KEY_A))) {
+        if ((held & KEY_ANY) == HOLD_KEYS) {
             if (hold_t++ == 0) dbg("title hold start");
             if (hold_t % (HOLD_TIME / HOLD_HEARTS) == 0) sfx_chime(hold_t * HOLD_HEARTS / HOLD_TIME - 1);
             if (hold_t >= HOLD_TIME) start_game(true);
-        } else if (hold_t > 0) {
-            dbg("title hold released at %d", hold_t);
-            hold_t = 0;
+        } else {
+            if (hold_t > 0) {
+                dbg("title hold released at %d", hold_t);
+                hold_t = 0;
+            }
+            if (hit & KEY_A) sfx_blip();           /* A alone: a soft blip, nothing else */
         }
     }
 }
@@ -232,7 +243,7 @@ static void draw(void) {
 
     if (mode == MODE_MENU || confirm) {            /* heart cursor and A button by the chosen option */
         int cx = (confirm ? (sel ? 168 : 72) : (n_opts == 1 ? 120 : sel ? 168 : 72));
-        const char *txt = confirm ? (sel ? "Yes, hold A" : "No") : n_opts == 1 ? "Play" : sel ? "New game" : "Continue";
+        const char *txt = confirm ? (sel ? "Yes" : "No") : n_opts == 1 ? "Play" : sel ? "New game" : "Continue";
         int half = text_width(txt) / 2;
         int bob = isin((int)frame_count * 2) * 2 / 256;
         if (n_opts == 2 || confirm) {
@@ -241,7 +252,7 @@ static void draw(void) {
             o->attr1 = A1_X(cx - half - 20 + bob) | A1_SIZE(1);
             o->attr2 = A2_TILE(T_UI) | A2_PRIO(0) | A2_PAL(P_UI);
         }
-        {
+        if (!(confirm && sel)) {                   /* no A button by "Yes": A alone does not start over */
             o = spr();
             o->attr0 = A0_Y(137 - (bob > 0 ? 1 : 0)) | A0_TALL;
             o->attr1 = A1_X(cx + half + 5) | A1_SIZE(2);

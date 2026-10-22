@@ -1,4 +1,5 @@
-# walk up into the meadow house (step 6.9): its room shows the meadow gifts
+# walk up into the meadow house (step 6.9): its room shows the meadow gifts;
+# DOWN on the bottom row walks back out (step 9.3)
 wait 20
 tap A
 wait 15
@@ -15,6 +16,6 @@ shot h_meadow_hop
 tap DOWN
 tap A
 wait 10
-tap B
+tap DOWN
 wait 40
 shot h_meadow_back

@@ -6,14 +6,14 @@ around a pastel island, opens surprise containers, squishes the mochi
 friends inside and fills the Squishy Shelf. There are no battles, no fail
 states and no timers, and the child does not need to read.
 
-Version 1.1. All screenshots on this page come from the ROM, running on
-the mGBA emulator core, shown at 2x.
+Version 1.5. All screenshots on this page come from the ROM (taken at
+v1.1), running on the mGBA emulator core, shown at 2x.
 
 ![Title screen](docs/readme/title.png)
 
 ## Download and play
 
-1. Download [release/squishy-isle.gba](release/squishy-isle.gba) (617 KB).
+1. Download [release/squishy-isle.gba](release/squishy-isle.gba) (627 KB).
 2. Open it in any GBA emulator. The game is built and tested on mGBA.
 3. On a Trimui Brick, copy it into the GBA ROM folder by FTP. Keep the file
    name the same when you update: the save file follows the ROM's name.
@@ -25,8 +25,8 @@ settings (integer 4x scale, no smoothing) and the Brick test checklist.
 
 | Button | On the map | Elsewhere |
 | --- | --- | --- |
-| D-pad | Walk | Move the cursor |
-| A | Open a container, read the mailbox, snack time, pen sign | Squish, choose |
+| D-pad | Walk | Move the cursor; DOWN past the bottom row of the shelf or a house goes back out |
+| A | Open a container, read the mailbox, snack time, pen sign; anywhere else, squish the nearest friend or tickle a sleeping Momo | Squish, choose |
 | B | Pip hops (the followers hop after him); also opens a container | Squish, go back |
 | START | Open the Squishy Shelf | Go back |
 | L / R | Nothing | Turn shelf pages |
@@ -116,10 +116,16 @@ visits.
 After each new friend, the meadow mailbox flag waves and an envelope bobs
 over it. Every new friend sends a letter, and the letters wait their
 turn. A by the mailbox opens the oldest one waiting: a happy
-message and the gift it sends. The picnic basket gives snack time: a treat
+message and the gift it sends. No letter is lost: a child who finds all 80
+friends before visiting the mailbox can still read all 80 letters. The picnic basket gives snack time: a treat
 pops out, the followers hop over, take a bite each with a squeak, then go
 back in line. Each area's house has a room with wall shelves for that
-area's 20 gifts. Gifts not received yet are silhouettes.
+area's 20 gifts. Gifts not received yet are silhouettes. DOWN from the
+bottom row walks Pip back out of the door.
+
+A child who presses only A on the shelf gets three close-ups in a row,
+then the third one goes back to the map, so the shelf never becomes a loop
+with no way out.
 
 ![Mailbox flag up, a letter, snack time, a house room](docs/readme/extras.png)
 
@@ -134,9 +140,10 @@ along. It plays once per area and takes about 7 seconds.
 ## For grown-ups
 
 - **New game** is only on the title screen. With friends on the save, it
-  asks "Start over?" with No first, and Yes needs A held for 3 seconds
-  while six hearts fill. A button-mashing toddler cannot erase the
-  collection.
+  asks "Start over?" with No first. On Yes, a grown-up holds SELECT and A
+  together for 3 seconds while six hearts fill. A alone does nothing there,
+  and any other button empties the hearts, so a button-mashing toddler
+  cannot erase the collection.
 - **Saves** are automatic: after each new friend, after a letter, after a
   follower change, at each door and area change, and when Pip stands
   still for 1 second. The save has two copies with a CRC-32 check, so a

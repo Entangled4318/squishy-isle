@@ -75,8 +75,10 @@ appearing.
 Boot shows a short logo intro (any button skips it), then the title with
 Continue (default, only when a save exists) and New game. New game over a
 save with friends asks "Start over? Your friends will go home." with No as
-the default; Yes needs A held for 3 seconds while a bar fills, so a
-button-mashing toddler cannot erase the collection.
+the default; Yes needs SELECT and A held together (and no other button)
+for 3 seconds while hearts fill, so a button-mashing toddler cannot erase
+the collection. A alone was not enough: a toddler leaning on A did it in
+about 1 of 150 boots (v1.4 review).
 
 ## Content
 
