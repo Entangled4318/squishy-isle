@@ -16,6 +16,10 @@
 #define T_FRAME   128
 #define T_SMALL   160
 #define T_BADGE   164    /* pick mode: the open screen's 16 px heart marks a follower */
+OBJ_TILES_FIT(T_SQ, 4 * 2 * 16 * 32, T_FRAME);         /* 4 rows x (idle, open) x 16 tiles */
+OBJ_TILES_FIT(T_FRAME, sizeof ui_frame_tiles, T_SMALL);
+OBJ_TILES_FIT(T_SMALL, sizeof ui_small_tiles, T_BADGE);
+OBJ_TILES_FIT(T_BADGE, 4 * 32, OBJ_TILES_END);
 #define P_SIL     5      /* 5..8 silhouettes, one per row */
 #define P_FRAME   9
 #define P_SMALL   10

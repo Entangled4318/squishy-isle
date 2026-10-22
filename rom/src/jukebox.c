@@ -2,6 +2,7 @@
  * Hold L + R + START at power-on. LEFT / RIGHT choose, A plays, B stops,
  * SELECT plays a jingle over the song, L boings (both check that the song
  * goes on after an effect), UP chimes and DOWN squeaks (to judge the mix). */
+#include "collection.h"
 #include "game.h"
 #include "game_assets.h"
 #include "music_data.h"
@@ -41,6 +42,11 @@ static void enter(void) {
     strip_print(&st_head, "Sound test", 1, 3, 2, 1);
     strip_print(&st_help1, "LEFT RIGHT choose   A play   B stop", 1, 3, 1, 0);
     strip_print(&st_help2, "SELECT jingle  L boing  UP DOWN fx", 1, 3, 1, 0);
+    {   /* on the stack: its tiles stay in VRAM, and a static strip adds RAM to clear at boot (HANDOFF traps) */
+        TextStrip help3;
+        strip_init(&help3, 2, 209, 31, 2, 18, 26, 2, P_TEXT);
+        strip_print(&help3, "Hold L + R: play the game", 1, 3, 1, 0);
+    }
     sel = 0;
     show();
     dbg("scene jukebox songs=%d", SONG_COUNT);
@@ -48,8 +54,18 @@ static void enter(void) {
     REG_DISPCNT = DCNT_MODE0 | DCNT_BG0;
 }
 
+static int leave_t;
+
 static void update(void) {
     u16 hit = key_hit();
+    /* 9.7: L + R held for 1 s goes on to the game */
+    leave_t = (key_held() & (KEY_L | KEY_R)) == (KEY_L | KEY_R) ? leave_t + 1 : 0;
+    if (leave_t == 60) {
+        dbg("jukebox leave");
+        music_stop();
+        collection_init();
+        scene_go(&scene_title);
+    }
     if (hit & KEY_RIGHT) { sel = (sel + 1) % SONG_COUNT; show(); }
     if (hit & KEY_LEFT) { sel = (sel + SONG_COUNT - 1) % SONG_COUNT; show(); }
     if (hit & KEY_A) {

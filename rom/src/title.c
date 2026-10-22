@@ -19,6 +19,12 @@
 #define T_SMALL   496
 #define T_UI      500      /* hearts on/off */
 #define T_ABTN    511
+OBJ_TILES_FIT(T_LOGO, sizeof logo_tiles, T_CAST);
+OBJ_TILES_FIT(T_CAST, 4 * 2 * 16 * 32, T_PIP);         /* 4 friends x (idle, open) x 16 tiles */
+OBJ_TILES_FIT(T_PIP, 8 * 32, T_SMALL);
+OBJ_TILES_FIT(T_SMALL, sizeof ui_small_tiles, T_UI);
+OBJ_TILES_FIT(T_UI, 8 * 32, T_ABTN);
+OBJ_TILES_FIT(T_ABTN, sizeof abubble_tiles, OBJ_TILES_END);
 #define P_LOGO    0        /* 0..LOGO_PALS-1 */
 #define P_CAST    5        /* 5..8 */
 #define P_PIP     9

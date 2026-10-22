@@ -34,6 +34,20 @@
 #define T_EXTRA   240      /* snacks, envelope, flag up / down, map twinkles (16x16 each, 56 tiles), palette P_SPARK */
 #define T_PARADE  320      /* parade: the area's 4 species x (idle, open) at 32 px, 16 tiles each */
 #define T_METER   448      /* Momo's heart meter (8.4): bubble, tail, filled heart (METER_TILES) */
+OBJ_TILES_FIT(T_PIP, sizeof pip_tiles, T_SHADOW);
+OBJ_TILES_FIT(T_SHADOW, sizeof shadow16_tiles, T_BOX);
+OBJ_TILES_FIT(T_BOX, 4 * 32, T_SPARK);
+OBJ_TILES_FIT(T_SPARK, sizeof ui_small_tiles, T_ABTN);
+OBJ_TILES_FIT(T_ABTN, sizeof abubble_tiles, T_ARROW);
+OBJ_TILES_FIT(T_ARROW, sizeof arrow_tiles, T_SQ16);
+OBJ_TILES_FIT(T_SQ16, 4 * 8 * 32, T_COUNT);              /* 4 species x (idle, squish) x 4 tiles */
+OBJ_TILES_FIT(T_COUNT, 16 * 32, T_COUNT_TXT);
+OBJ_TILES_FIT(T_COUNT_TXT, 4 * 2 * 32, T_NPC);           /* st_count: 4 x 2 tiles */
+OBJ_TILES_FIT(T_NPC, sizeof npc_tiles, T_EXTRA);
+OBJ_TILES_FIT(T_EXTRA, sizeof ui_extra_tiles, T_FOLLOW);  /* exactly full: a new snack needs room first */
+OBJ_TILES_FIT(T_FOLLOW, 3 * 8 * 32, T_PARADE);           /* MAX_FOLLOWERS x (idle, squish) x 4 tiles */
+OBJ_TILES_FIT(T_PARADE, 4 * 2 * 16 * 32, T_METER);       /* 4 species x (idle, open) x 16 tiles */
+OBJ_TILES_FIT(T_METER, METER_TILES * 32, OBJ_TILES_END);
 #define P_SQ      10       /* 10..14: the area's 5 flavor palettes */
 #define P_COUNT   15
 
@@ -1229,6 +1243,7 @@ static void draw_parade(void) {
 
 static void draw(void) {
     n_world = n_oam = 0;
+    draw_pip();                 /* 9.7: first, so a full list (64) drops a prop, never Pip (the list is sorted by depth after) */
     draw_gates();
     draw_momo_home();
     draw_mailbox();
@@ -1239,7 +1254,6 @@ static void draw(void) {
     draw_arrow();
     draw_boxes();
     draw_friends();
-    draw_pip();
     if (poke.t >= 0) {
         if (gs.t >= 0 || parade_t >= 0 || snack.t >= 0) poke.t = -1;   /* a scene takes over */
         else {

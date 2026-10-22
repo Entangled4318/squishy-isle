@@ -18,6 +18,11 @@
 #define P_SHADOW  1
 #define T_CONF    264
 #define T_STAR    276
+OBJ_TILES_FIT(T_SQ, 4 * 64 * 32, T_SHADOW);             /* 4 frames x 64 tiles */
+OBJ_TILES_FIT(T_SHADOW, sizeof ui_shadow_tiles, T_SMALL);
+OBJ_TILES_FIT(T_SMALL, sizeof ui_small_tiles, T_CONF);
+OBJ_TILES_FIT(T_CONF, sizeof confetti_tiles, T_STAR);
+OBJ_TILES_FIT(T_STAR, sizeof star16_tiles, OBJ_TILES_END);
 #define P_SMALL   2
 #define P_CONF    3
 #define P_STAR    4

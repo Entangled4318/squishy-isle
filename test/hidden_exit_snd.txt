@@ -1,0 +1,11 @@
+# step 9.7: the sound test has a way out: hold L + R for 1 s, the title shows
+hold L+R+START 5
+wait 30
+shot hx_snd
+hold L+R 70
+wait 60
+tap A
+wait 15
+tap A
+wait 30
+shot hx_snd_title

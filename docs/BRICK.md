@@ -1,6 +1,6 @@
 # Squishy Isle on the Trimui Brick
 
-Version 1.5. File: `release/squishy-isle.gba` (627 KB). The version shows
+Version 1.6. File: `release/squishy-isle.gba` (627 KB). The version shows
 small at the bottom right of the title screen, so you can see which build
 is on the Brick.
 
@@ -51,6 +51,7 @@ too old and starts a new game.
 - Sound test: hold L + R + START while the game starts. LEFT / RIGHT
   choose a song, A plays, B stops, SELECT plays a jingle, L boings,
   UP / DOWN play effects.
+- In both, hold L + R for 1 second to go on to the game's title.
 
 ## How to play (for the parent)
 
@@ -78,7 +79,8 @@ Start and save
       and A held together fill the hearts and start over after 3 s. Check
       SELECT works on the Brick here. (v1.5)
 - [ ] Hold L + R + START at start: the sound test opens. Hold
-      L + R + SELECT: the hardware check opens.
+      L + R + SELECT: the hardware check opens. In both, holding L + R
+      for 1 second goes on to the title. (v1.6)
 
 Map and walking
 

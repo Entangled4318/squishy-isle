@@ -1,0 +1,10 @@
+# step 9.7: the hardware check has a way out: hold L + R for 1 s, the title shows
+hold L+R+SELECT 5
+wait 40
+hold L+R 70
+wait 60
+tap A
+wait 15
+tap A
+wait 30
+shot hx_hw_title

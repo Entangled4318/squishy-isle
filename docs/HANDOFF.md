@@ -38,7 +38,7 @@ shelf. No battles, no fail states, no reading needed. Full design:
 | 6. Woods, Shore, Cloud Hill, gates, mailbox, basket | Done (6.1 to 6.9); see "Step 6 progress". Brick checks queued |
 | 7. QA and final ROM with Brick instructions | Done (v1.1 after the 7.6 fixes); see "Step 7 progress" and `docs/BRICK.md` |
 | 8. Brick test feedback | Done (v1.4): art fixes, letter queue, followers in every area, Momo's heart meter, the way to Momo; see "Step 8 progress" |
-| 9. Fixes from the v1.4 review (child, developer, tester) | Done (v1.5): title erase guard, save safety, ways out, A pokes friends and Momo, no lost letters, small fixes; see "Step 9 progress" |
+| 9. Fixes from the v1.4 review (child, developer, tester) | Done (v1.6): title erase guard, save safety, ways out, A pokes friends and Momo, no lost letters, small fixes, hardening; see "Step 9 progress" |
 
 ## Owner notes
 
@@ -1148,6 +1148,23 @@ several small ones. Owner approved six fixes, one commit each:
    friend in full color. Now L / R set `page_turning`; that frame hides
    the 27 friend, twinkle and badge sprites; the next update loads the
    page first. One blank-shelf frame instead.
+7. Hardening (owner asked after 9.6). **Done** (v1.6). (a) Sprite tile
+   ranges: `OBJ_TILES_FIT(start, bytes, next)` in `gba.h`, a
+   `_Static_assert` per range in every scene (viewer, title, shelf,
+   close-up, open, house, letter). Ranges that are exactly full today:
+   viewer `T_EXTRA` (snacks etc.) to `T_FOLLOW`, shelf `T_FRAME`, letter
+   `T_ENV`. A new snack type now fails the build instead of drawing over
+   the followers. (b) `draw_pip()` runs first in the map's `draw()`: the
+   64-entry world list drops the last added sprites when full, and Pip
+   was added last. The list is sorted by depth after, so only ties
+   change: Pip now draws in front of a sprite at exactly his depth.
+   (c) The hidden screens had no way out. Holding L + R for 60 frames
+   leaves: the sound test (a scene) loads the save and goes to the
+   title; the hardware check (its own loop) blanks the screen and
+   returns, and `main()` goes on to the normal boot. The sound test shows
+   "Hold L + R: play the game" (a stack `TextStrip`, no boot RAM).
+   Tests: `hidden_exit_hw.txt`, `hidden_exit_snd.txt`, `check_hidden.py`
+   (title, then Continue, with the save's 3 friends).
 
 ## What step 3 should do (as promised to the owner)
 
